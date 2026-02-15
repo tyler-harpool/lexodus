@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, judge_id, signature_data, created_at\n        FROM judge_signatures\n        WHERE court_id = $1 AND judge_id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "signature_data",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3c32281ed9aa6a2a98024895bb192a311d53d4017dbcf6de4b13c70ff8f1723f"
+}

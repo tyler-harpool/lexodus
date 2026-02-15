@@ -1,0 +1,77 @@
+.cyber-date-picker {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.cyber-date-picker[data-disabled="true"] {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.cyber-date-picker-popover {
+    position: relative;
+    display: inline-block;
+}
+
+.cyber-date-picker-input,
+.date-picker-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.cyber-date-picker-input:focus-within,
+.date-picker-group:focus-within {
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+.date-picker-group input {
+    background: transparent;
+    border: none;
+    color: var(--color-on-surface);
+    font-family: inherit;
+    font-size: inherit;
+    text-align: center;
+    outline: none;
+    padding: 0;
+    width: 2ch;
+}
+
+.date-picker-group input:focus {
+    color: var(--color-primary);
+}
+
+.date-picker-group input[data-placeholder="true"] {
+    color: color-mix(in srgb, var(--color-on-surface) 40%, transparent);
+}
+
+.date-picker-group .date-separator {
+    color: color-mix(in srgb, var(--color-on-surface) 50%, transparent);
+    padding: 0 0.125rem;
+}
+
+.cyber-date-picker-calendar {
+    margin-top: 0.5rem;
+}
+
+.cyber-date-picker .popover-content,
+.cyber-date-picker-popover .popover-content {
+    background: var(--primary-color-4);
+    border: 1px solid var(--color-primary);
+    border-radius: 8px;
+    box-shadow:
+        0 0 14px color-mix(in srgb, var(--color-primary) 25%, transparent),
+        0 8px 24px rgba(0, 0, 0, 0.5);
+    padding: 0;
+}

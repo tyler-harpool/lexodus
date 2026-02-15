@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM deadlines WHERE id = $1 AND court_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "410a161cad81e2dfdc637463cf3a6b56b7a5c57a369d017c901a82f5e6b6d84c"
+}

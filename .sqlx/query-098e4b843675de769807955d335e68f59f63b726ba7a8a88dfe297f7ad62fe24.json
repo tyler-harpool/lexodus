@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_id, start_date, end_date, reason,\n               COALESCE(statutory_reference, '') as \"statutory_reference!\",\n               days_excluded, order_reference\n        FROM excludable_delays\n        WHERE case_id = $1 AND court_id = $2\n        ORDER BY start_date ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "end_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "statutory_reference!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "days_excluded",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "order_reference",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      false,
+      true
+    ]
+  },
+  "hash": "098e4b843675de769807955d335e68f59f63b726ba7a8a88dfe297f7ad62fe24"
+}

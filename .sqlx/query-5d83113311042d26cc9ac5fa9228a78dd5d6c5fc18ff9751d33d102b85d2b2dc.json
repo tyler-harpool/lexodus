@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users\n           SET email_notifications_enabled = $2,\n               push_notifications_enabled = $3,\n               weekly_digest_enabled = $4\n           WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5d83113311042d26cc9ac5fa9228a78dd5d6c5fc18ff9751d33d102b85d2b2dc"
+}

@@ -1,0 +1,8 @@
+/* AspectRatio - Cyberpunk Theme */
+
+.aspect-ratio {
+    overflow: hidden;
+    border-radius: var(--radius-md, 0.5rem);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+}

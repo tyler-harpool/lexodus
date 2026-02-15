@@ -1,0 +1,95 @@
+/* Accordion - Cyberpunk Theme */
+
+.accordion {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md, 0.5rem);
+    overflow: hidden;
+    background-color: var(--color-surface);
+}
+
+.accordion[data-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.accordion-item {
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color var(--transition-fast);
+}
+
+.accordion-item:last-child {
+    border-bottom: none;
+}
+
+.accordion-item[data-open="true"] {
+    background-color: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+}
+
+.accordion-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: none;
+    background-color: transparent;
+    color: var(--color-on-surface);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    outline: none;
+    gap: 0.5rem;
+}
+
+.accordion-trigger:hover:not(:disabled) {
+    color: var(--color-primary);
+    background-color: color-mix(in srgb, var(--color-surface) 95%, var(--color-primary) 5%);
+}
+
+.accordion-trigger:focus-visible {
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+    z-index: 1;
+    position: relative;
+}
+
+.accordion-trigger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.accordion-chevron {
+    flex-shrink: 0;
+    color: var(--color-on-surface);
+    transition: transform var(--transition-base);
+}
+
+.accordion-item[data-open="true"] .accordion-chevron {
+    transform: rotate(180deg);
+    color: var(--color-primary);
+}
+
+.accordion-content {
+    overflow: hidden;
+}
+
+.accordion-content[data-open="true"] {
+    padding: 0 1rem 0.875rem 1rem;
+    animation: accordion-fade-in 0.35s ease-in-out;
+}
+
+.accordion-content[data-open="false"] {
+    animation: accordion-fade-out 0.3s ease-in-out;
+}
+
+@keyframes accordion-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes accordion-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}

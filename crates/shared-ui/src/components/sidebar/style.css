@@ -1,0 +1,391 @@
+/* Sidebar - Collapsible navigation with cyberpunk styling */
+
+/* ─── Sidebar width tokens ─────────────────────────────────────────── */
+:root {
+    --sidebar-width: 16rem;
+    --sidebar-width-collapsed: 3rem;
+    --sidebar-rail-width: 4px;
+}
+
+/* ─── Provider layout ──────────────────────────────────────────────── */
+.sidebar-provider {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* ─── Sidebar container ────────────────────────────────────────────── */
+.sidebar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: var(--sidebar-width);
+    min-height: 100vh;
+    background: var(--color-surface);
+    border-right: var(--cyber-border-width) solid var(--color-border);
+    transition: width var(--transition-base), box-shadow var(--transition-base);
+    overflow: hidden;
+    flex-shrink: 0;
+    z-index: 40;
+}
+
+.sidebar[data-state="open"] {
+    width: var(--sidebar-width);
+}
+
+.sidebar[data-state="closed"] {
+    width: var(--sidebar-width-collapsed);
+}
+
+/* Neon accent on left edge */
+.sidebar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--cyber-border-width);
+    background: var(--color-primary);
+    opacity: 0.3;
+    z-index: 1;
+}
+
+/* ─── Header / Footer ──────────────────────────────────────────────── */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-md);
+    border-bottom: var(--cyber-border-width) solid var(--color-border);
+    min-height: 3.5rem;
+}
+
+.sidebar-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-md);
+    border-top: var(--cyber-border-width) solid var(--color-border);
+    margin-top: auto;
+}
+
+/* ─── Content ──────────────────────────────────────────────────────── */
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--space-sm) 0;
+}
+
+/* Custom scrollbar for cyberpunk feel */
+.sidebar-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+    background: var(--primary-color-6);
+    border-radius: var(--radius-full);
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+}
+
+/* ─── Groups ───────────────────────────────────────────────────────── */
+.sidebar-group {
+    padding: var(--space-sm) 0;
+}
+
+.sidebar-group-label {
+    padding: var(--space-xs) var(--space-md);
+    font-family: var(--cyber-font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-group-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ─── Menu ─────────────────────────────────────────────────────────── */
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.sidebar-menu-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-menu-button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 2px solid transparent;
+    transition: background var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast);
+}
+
+.sidebar-menu-button:hover {
+    background: var(--primary-color-5);
+    color: var(--color-primary);
+}
+
+.sidebar-menu-button:focus-visible {
+    outline: none;
+    background: var(--primary-color-5);
+    box-shadow: inset 0 0 0 1px var(--focused-border-color);
+}
+
+.sidebar-menu-button[data-active="true"] {
+    color: var(--color-primary);
+    background: var(--primary-color-5);
+    border-left-color: var(--color-primary);
+    box-shadow: inset 2px 0 8px rgba(0, 240, 255, 0.08);
+}
+
+/* ─── Sub-menu ─────────────────────────────────────────────────────── */
+.sidebar-menu-sub {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-left: var(--space-lg);
+    border-left: var(--cyber-border-width) solid var(--primary-color-6);
+    margin-left: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.sidebar-menu-sub-item {
+    display: flex;
+}
+
+.sidebar-menu-sub-button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    font-family: var(--font-family);
+    font-size: var(--font-size-xs);
+    color: var(--secondary-color-3);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast),
+                color var(--transition-fast);
+}
+
+.sidebar-menu-sub-button:hover {
+    background: var(--primary-color-5);
+    color: var(--color-primary);
+}
+
+.sidebar-menu-sub-button:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 1px var(--focused-border-color);
+}
+
+.sidebar-menu-sub-button[data-active="true"] {
+    color: var(--color-primary);
+    background: var(--primary-color-5);
+}
+
+/* ─── Trigger ──────────────────────────────────────────────────────── */
+.sidebar-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: var(--cyber-border-width) solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--primary-color-4);
+    color: var(--color-on-surface);
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    transition: color var(--transition-fast),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+
+.sidebar-trigger:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: var(--cyber-neon-glow);
+}
+
+.sidebar-trigger:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+/* ─── Separator ────────────────────────────────────────────────────── */
+.sidebar-separator {
+    border: none;
+    height: var(--cyber-border-width);
+    background: var(--color-border);
+    margin: var(--space-sm) var(--space-md);
+}
+
+/* ─── Inset (main content area) ────────────────────────────────────── */
+.sidebar-inset {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ─── Rail ─────────────────────────────────────────────────────────── */
+.sidebar-rail {
+    position: absolute;
+    top: 0;
+    right: calc(-1 * var(--sidebar-rail-width) / 2);
+    bottom: 0;
+    width: var(--sidebar-rail-width);
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: col-resize;
+    z-index: 41;
+    transition: background var(--transition-fast);
+}
+
+.sidebar-rail:hover {
+    background: var(--color-primary);
+    box-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+}
+
+/* ─── Collapsed state: hide text, show only icons ──────────────────── */
+.sidebar[data-state="closed"] .sidebar-group-label,
+.sidebar[data-state="closed"] .sidebar-menu-sub,
+.sidebar[data-state="closed"] .sidebar-menu-button span {
+    display: none;
+}
+
+.sidebar[data-state="closed"] .sidebar-menu-button {
+    justify-content: center;
+    padding: var(--space-sm);
+}
+
+/* ─── Mobile backdrop (hidden on desktop) ─────────────────────────── */
+.sidebar-backdrop {
+    display: none;
+}
+
+/* ─── Desktop: sidebar always visible ──────────────────────────────── */
+@media (min-width: 769px) {
+    /* Sidebar always visible on desktop, regardless of data-state */
+    .sidebar {
+        width: var(--sidebar-width) !important;
+        position: relative;
+    }
+
+    /* No backdrop needed on desktop */
+    .sidebar-backdrop {
+        display: none !important;
+    }
+
+    /* Hide trigger (hamburger) on desktop - sidebar always visible */
+    .sidebar-trigger {
+        display: none;
+    }
+
+    /* Hide rail on desktop - no collapse toggle */
+    .sidebar-rail {
+        display: none;
+    }
+
+    /* Override collapsed text hiding on desktop - always show text */
+    .sidebar[data-state="closed"] .sidebar-group-label,
+    .sidebar[data-state="closed"] .sidebar-menu-sub {
+        display: block;
+    }
+
+    .sidebar[data-state="closed"] .sidebar-menu-button span {
+        display: inline;
+    }
+
+    .sidebar[data-state="closed"] .sidebar-menu-button {
+        justify-content: flex-start;
+        padding: var(--space-sm) var(--space-md);
+    }
+}
+
+/* ─── Mobile responsive: sidebar as overlay ────────────────────────── */
+@media (max-width: 768px) {
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 49;
+        background: rgba(5, 5, 16, 0.6);
+        backdrop-filter: blur(2px);
+        animation: sidebar-backdrop-in var(--transition-base) ease;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 50;
+        width: var(--sidebar-width);
+        box-shadow: var(--shadow-lg);
+        transition: transform var(--transition-base), visibility var(--transition-base);
+    }
+
+    .sidebar[data-state="closed"] {
+        transform: translateX(-100%);
+        visibility: hidden;
+    }
+
+    .sidebar[data-state="open"] {
+        transform: translateX(0);
+        visibility: visible;
+    }
+
+    /* On mobile, sidebar inset takes full width */
+    .sidebar-inset {
+        width: 100%;
+    }
+}
+
+@keyframes sidebar-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

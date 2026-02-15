@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO excludable_delays\n            (court_id, case_id, start_date, end_date, reason,\n             statutory_reference, days_excluded, order_reference)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n        RETURNING id, court_id, case_id, start_date, end_date, reason,\n                  COALESCE(statutory_reference, '') as \"statutory_reference!\",\n                  days_excluded, order_reference\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "end_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "statutory_reference!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "days_excluded",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "order_reference",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      false,
+      true
+    ]
+  },
+  "hash": "1f04f9ab59035d0961cb3019f155d57ef024e77bbae30b096e61d4b56d06b3b1"
+}

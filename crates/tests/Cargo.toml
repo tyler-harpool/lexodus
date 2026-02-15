@@ -1,0 +1,23 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "tests"
+path = "src/lib.rs"
+
+[dependencies]
+server = { path = "../server", features = ["server"] }
+shared-types = { path = "../shared-types", features = ["server"] }
+axum = { workspace = true }
+tokio = { workspace = true }
+sqlx = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+dotenvy = { workspace = true }
+tower = { version = "0.5", features = ["util"] }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+reqwest = { workspace = true }

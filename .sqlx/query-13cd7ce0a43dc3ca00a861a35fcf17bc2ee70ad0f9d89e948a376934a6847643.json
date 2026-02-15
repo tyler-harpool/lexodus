@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE device_authorizations SET status = 'expired' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "13cd7ce0a43dc3ca00a861a35fcf17bc2ee70ad0f9d89e948a376934a6847643"
+}

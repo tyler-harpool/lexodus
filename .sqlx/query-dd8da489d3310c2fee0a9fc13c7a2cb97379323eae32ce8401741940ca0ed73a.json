@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, sentencing_id, defendant_id, prior_case_number,\n               jurisdiction, offense, conviction_date, sentence_length_months,\n               points_assigned, created_at\n        FROM prior_sentences\n        WHERE sentencing_id = $1 AND court_id = $2\n        ORDER BY conviction_date DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "sentencing_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "defendant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "prior_case_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "jurisdiction",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "offense",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "conviction_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "sentence_length_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "points_assigned",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "dd8da489d3310c2fee0a9fc13c7a2cb97379323eae32ce8401741940ca0ed73a"
+}

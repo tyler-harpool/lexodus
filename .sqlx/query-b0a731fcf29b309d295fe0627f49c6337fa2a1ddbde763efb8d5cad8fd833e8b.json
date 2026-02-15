@@ -1,0 +1,119 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id, court_id, attorney_id, party_id, case_id,\n            representation_type, status, start_date, end_date,\n            lead_counsel, local_counsel, court_appointed,\n            limited_appearance, cja_appointment_id, scope_of_representation,\n            withdrawal_reason, notes\n        FROM representations\n        WHERE court_id = $1 AND attorney_id = $2 AND status = 'Active'\n        ORDER BY start_date DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "attorney_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "party_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "representation_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "start_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "end_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "lead_counsel",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "local_counsel",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "court_appointed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "limited_appearance",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "cja_appointment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "scope_of_representation",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "withdrawal_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "notes",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "b0a731fcf29b309d295fe0627f49c6337fa2a1ddbde763efb8d5cad8fd833e8b"
+}

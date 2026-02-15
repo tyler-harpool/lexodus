@@ -1,0 +1,100 @@
+.cyber-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.cyber-tooltip-trigger {
+    cursor: pointer;
+}
+
+.cyber-tooltip-content {
+    position: absolute;
+    z-index: 1000;
+    padding: 0.5rem 0.75rem;
+    background: var(--primary-color-4);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    max-width: 280px;
+    box-shadow:
+        0 0 8px color-mix(in srgb, var(--color-primary) 30%, transparent),
+        0 4px 12px rgba(0, 0, 0, 0.4);
+    animation: cyber-tooltip-fade-in 0.15s ease-out;
+    pointer-events: none;
+}
+
+.cyber-tooltip-content[data-state="closed"] {
+    animation: cyber-tooltip-fade-out 0.1s ease-in forwards;
+}
+
+.cyber-tooltip-content[data-side="top"] {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 6px;
+}
+
+.cyber-tooltip-content[data-side="bottom"] {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 6px;
+}
+
+.cyber-tooltip-content[data-side="left"] {
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 6px;
+}
+
+.cyber-tooltip-content[data-side="right"] {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 6px;
+}
+
+.cyber-tooltip[data-disabled="true"] .cyber-tooltip-trigger {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@keyframes cyber-tooltip-fade-in {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+}
+
+@keyframes cyber-tooltip-fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .cyber-tooltip-content {
+        width: max-content;
+        min-width: min(200px, 85vw);
+        max-width: 85vw;
+        font-size: var(--font-size-xs);
+    }
+
+    /* Right-align tooltips on mobile to prevent viewport overflow */
+    .cyber-tooltip-content[data-side="top"],
+    .cyber-tooltip-content[data-side="bottom"] {
+        left: auto;
+        right: 0;
+        transform: none;
+    }
+}

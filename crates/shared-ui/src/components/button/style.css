@@ -1,0 +1,115 @@
+/* Button - Cyberpunk-styled interactive button */
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius);
+    font-family: var(--cyber-font-mono);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border: var(--cyber-border-width) solid transparent;
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: background var(--transition-fast),
+                color var(--transition-fast),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+}
+
+.button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+.button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+/* Primary */
+.button[data-style="primary"] {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border-color: var(--color-primary);
+}
+
+.button[data-style="primary"]:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    box-shadow: var(--cyber-neon-glow);
+}
+
+.button[data-style="primary"]:active:not(:disabled) {
+    box-shadow: var(--cyber-neon-glow-strong);
+}
+
+/* Scanline overlay for primary buttons */
+.button[data-style="primary"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, var(--cyber-scanline-opacity)) 2px,
+        rgba(0, 0, 0, var(--cyber-scanline-opacity)) 4px
+    );
+    pointer-events: none;
+}
+
+/* Secondary */
+.button[data-style="secondary"] {
+    background: var(--primary-color-5);
+    color: var(--secondary-color-1);
+    border-color: var(--color-border);
+}
+
+.button[data-style="secondary"]:hover:not(:disabled) {
+    background: var(--primary-color-6);
+    border-color: var(--secondary-color-5);
+}
+
+/* Destructive */
+.button[data-style="destructive"] {
+    background: var(--color-danger);
+    color: var(--color-on-danger);
+    border-color: var(--color-danger);
+}
+
+.button[data-style="destructive"]:hover:not(:disabled) {
+    box-shadow: 0 0 8px rgba(255, 0, 64, 0.5), 0 0 20px rgba(255, 0, 64, 0.2);
+}
+
+/* Outline */
+.button[data-style="outline"] {
+    background: transparent;
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.button[data-style="outline"]:hover:not(:disabled) {
+    background: var(--primary-color-5);
+    box-shadow: var(--cyber-neon-glow);
+}
+
+/* Ghost */
+.button[data-style="ghost"] {
+    background: transparent;
+    color: var(--color-on-surface);
+    border-color: transparent;
+}
+
+.button[data-style="ghost"]:hover:not(:disabled) {
+    background: var(--primary-color-5);
+    color: var(--color-primary);
+}

@@ -1,0 +1,123 @@
+/* ============================================
+   CYBERPUNK — Neon-lit dark & clean light
+   ============================================ */
+
+/* Dark (default) */
+:root,
+[data-theme="cyberpunk"],
+[data-theme="dark"] {
+    --dark: initial;
+    --light: ;
+
+    --primary-color-1: #050510;
+    --primary-color-2: #0a0a14;
+    --primary-color-3: #0f0f1e;
+    --primary-color-4: #141428;
+    --primary-color-5: #1a1a32;
+    --primary-color-6: #24243c;
+    --primary-color-7: #2e2e50;
+    --primary-color-8: #3a3a7a;
+    --primary-color-9: #4a4a90;
+
+    --secondary-color-1: #e0e0ff;
+    --secondary-color-2: #c8c8f0;
+    --secondary-color-3: #a0a0d0;
+    --secondary-color-4: #8080b0;
+    --secondary-color-5: #606090;
+    --secondary-color-6: #505080;
+    --secondary-color-7: #404070;
+
+    --color-background: var(--primary-color-2);
+    --color-surface: var(--primary-color-3);
+    --color-surface-raised: var(--primary-color-5);
+    --color-surface-dialog: var(--primary-color-6);
+    --color-on-surface: var(--secondary-color-1);
+    --color-on-surface-muted: var(--secondary-color-4);
+
+    --color-border: var(--primary-color-6);
+    --color-border-focus: var(--color-primary);
+
+    --color-primary: #00f0ff;
+    --color-primary-hover: #33f5ff;
+    --color-on-primary: #050510;
+
+    --color-secondary: #bd00ff;
+    --color-secondary-hover: #d040ff;
+    --color-on-secondary: #ffffff;
+
+    --color-danger: #ff0040;
+    --color-on-danger: #ffffff;
+    --color-success: #00ff41;
+    --color-on-success: #050510;
+    --color-warning: #ffb800;
+    --color-on-warning: #050510;
+
+    --focused-border-color: var(--color-primary);
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5), 0 0 4px rgba(0, 240, 255, 0.05);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0, 240, 255, 0.08);
+
+    --cyber-neon-glow: 0 0 8px rgba(0, 240, 255, 0.4), 0 0 20px rgba(0, 240, 255, 0.15);
+    --cyber-neon-glow-strong: 0 0 12px rgba(0, 240, 255, 0.6), 0 0 30px rgba(0, 240, 255, 0.25);
+    --cyber-scanline-opacity: 0.03;
+}
+
+/* Light */
+[data-theme="light"] {
+    --dark: ;
+    --light: initial;
+
+    --primary-color-1: #ffffff;
+    --primary-color-2: #f0f0fa;
+    --primary-color-3: #e8e8f5;
+    --primary-color-4: #d8d8e8;
+    --primary-color-5: #c8c8d8;
+    --primary-color-6: #b0b0c8;
+    --primary-color-7: #9090a8;
+    --primary-color-8: #707088;
+    --primary-color-9: #505070;
+
+    --secondary-color-1: #0a0a14;
+    --secondary-color-2: #1a1a2e;
+    --secondary-color-3: #2e2e48;
+    --secondary-color-4: #505070;
+    --secondary-color-5: #8080a0;
+    --secondary-color-6: #a0a0c0;
+    --secondary-color-7: #c0c0d8;
+
+    --color-background: var(--primary-color-2);
+    --color-surface: var(--primary-color-1);
+    --color-surface-raised: var(--primary-color-3);
+    --color-surface-dialog: var(--primary-color-1);
+    --color-on-surface: var(--secondary-color-1);
+    --color-on-surface-muted: var(--secondary-color-4);
+
+    --color-border: var(--primary-color-5);
+    --color-border-focus: #0090a0;
+
+    --color-primary: #0090a0;
+    --color-primary-hover: #007888;
+    --color-on-primary: #ffffff;
+
+    --color-secondary: #8a00cc;
+    --color-secondary-hover: #7000aa;
+    --color-on-secondary: #ffffff;
+
+    --color-danger: #cc0033;
+    --color-on-danger: #ffffff;
+    --color-success: #00aa2e;
+    --color-on-success: #ffffff;
+    --color-warning: #cc8800;
+    --color-on-warning: #ffffff;
+
+    --focused-border-color: var(--color-primary);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+    --cyber-neon-glow: 0 0 6px rgba(0, 144, 160, 0.3);
+    --cyber-neon-glow-strong: 0 0 10px rgba(0, 144, 160, 0.5);
+    --cyber-scanline-opacity: 0;
+}

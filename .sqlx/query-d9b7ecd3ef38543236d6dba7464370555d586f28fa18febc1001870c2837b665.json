@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, opinion_id, headnote_number, topic, text, key_number\n        FROM opinion_headnotes\n        WHERE opinion_id = $1 AND court_id = $2\n        ORDER BY headnote_number ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "opinion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "headnote_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "topic",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "key_number",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "d9b7ecd3ef38543236d6dba7464370555d586f28fa18febc1001870c2837b665"
+}

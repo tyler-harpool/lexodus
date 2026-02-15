@@ -1,0 +1,11 @@
+/target
+*.db
+*.db-journal
+.env
+.env.production
+config.toml
+dist/
+signoz/
+.DS_Store
+postman/node_modules/
+postman/results.json

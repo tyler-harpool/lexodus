@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM config_overrides\n        WHERE court_id = $1 AND scope = $2 AND scope_id = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a5fc685b0d596617763e46c8559f0f3be8ee0f9ec0e7cce5e8f7981616ed0152"
+}

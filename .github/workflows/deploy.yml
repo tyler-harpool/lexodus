@@ -1,0 +1,80 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Fly.io
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/ci_test
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Validate Fly.io app exists
+        id: fly-check
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "FLY_API_TOKEN not set — skipping deploy"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          APP_NAME=$(grep '^app' fly.toml | head -1 | sed "s/app *= *['\"]\\(.*\\)['\"].*/\\1/")
+          if echo "$APP_NAME" | grep -q '{{'; then
+            echo "fly.toml contains template placeholder ($APP_NAME) — skipping deploy"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! flyctl apps list --json | grep -q "\"$APP_NAME\""; then
+            echo "Fly.io app '$APP_NAME' not found — skipping deploy"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.fly-check.outputs.skip != 'true'
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        if: steps.fly-check.outputs.skip != 'true'
+
+      - name: Install sqlx-cli
+        if: steps.fly-check.outputs.skip != 'true'
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      - name: Run migrations
+        if: steps.fly-check.outputs.skip != 'true'
+        run: cargo sqlx migrate run
+
+      - name: Generate sqlx offline cache
+        if: steps.fly-check.outputs.skip != 'true'
+        run: cargo sqlx prepare --workspace -- --features server/server
+
+      - name: Deploy to Fly.io
+        if: steps.fly-check.outputs.skip != 'true'
+        run: flyctl deploy --remote-only

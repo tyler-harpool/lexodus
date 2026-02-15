@@ -1,0 +1,13 @@
+/* Form - Cyberpunk-styled form wrapper with spacing */
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    width: 100%;
+}
+
+/* Consistent spacing between form children */
+.form > * + * {
+    margin-top: 0; /* gap handles spacing, reset any defaults */
+}

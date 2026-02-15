@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE representations\n            SET status = 'Substituted', end_date = NOW(), withdrawal_reason = 'Client Request'\n            WHERE id = $1 AND court_id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce167298f5713d9dd7396c97d71b9b6b3328349fa25cf7c52e58013b6f864703"
+}

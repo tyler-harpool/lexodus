@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT oc.cited_opinion_id as \"cited_opinion_id!\", COUNT(*) as \"cite_count!\"\n        FROM opinion_citations oc\n        WHERE oc.court_id = $1 AND oc.cited_opinion_id IS NOT NULL\n        GROUP BY oc.cited_opinion_id\n        ORDER BY COUNT(*) DESC\n        LIMIT 10\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cited_opinion_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "cite_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "af951604aa16b6d6fb4a42f35b4b9f746eefb422e0d57ea9733dc366c1719f41"
+}

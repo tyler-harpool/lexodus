@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE docket_attachments\n        SET uploaded_at = NOW(), updated_at = NOW()\n        WHERE id = $1 AND court_id = $2 AND uploaded_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "35182ec0ace262d1e7f6fc1c187e6e553c3cb7faa0a9e216d3ad603c45518dee"
+}

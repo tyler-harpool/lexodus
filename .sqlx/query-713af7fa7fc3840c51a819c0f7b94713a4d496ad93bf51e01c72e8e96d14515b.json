@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM victims WHERE id = $1 AND court_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "713af7fa7fc3840c51a819c0f7b94713a4d496ad93bf51e01c72e8e96d14515b"
+}

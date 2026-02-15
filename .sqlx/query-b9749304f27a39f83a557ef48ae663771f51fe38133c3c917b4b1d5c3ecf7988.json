@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM excludable_delays WHERE id = $1 AND court_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b9749304f27a39f83a557ef48ae663771f51fe38133c3c917b4b1d5c3ecf7988"
+}

@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO bop_designations\n            (court_id, sentencing_id, defendant_id, facility, security_level,\n             designation_date, designation_reason, rdap_eligible, rdap_enrolled)\n        VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, false)\n        RETURNING id, court_id, sentencing_id, defendant_id, facility,\n                  security_level, designation_date, designation_reason,\n                  rdap_eligible, rdap_enrolled, created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "sentencing_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "defendant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "facility",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "security_level",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "designation_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "designation_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "rdap_eligible",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "rdap_enrolled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e4e395aa1d305f03318eef4af5ab9a038817ff5352b915f381742da88de5565e"
+}

@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE charges SET\n            count_number        = COALESCE($3, count_number),\n            statute             = COALESCE($4, statute),\n            offense_description = COALESCE($5, offense_description),\n            statutory_max_months = COALESCE($6, statutory_max_months),\n            statutory_min_months = COALESCE($7, statutory_min_months),\n            plea                = COALESCE($8, plea),\n            plea_date           = COALESCE($9, plea_date),\n            verdict             = COALESCE($10, verdict),\n            verdict_date        = COALESCE($11, verdict_date)\n        WHERE id = $1 AND court_id = $2\n        RETURNING id, court_id, defendant_id, count_number, statute,\n                  offense_description, statutory_max_months, statutory_min_months,\n                  COALESCE(plea, 'Not Yet Entered') as \"plea!\",\n                  plea_date,\n                  COALESCE(verdict, '') as \"verdict!\",\n                  verdict_date\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "defendant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "count_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "statute",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "offense_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "statutory_max_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "statutory_min_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "plea!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "plea_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "verdict!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "verdict_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      true,
+      null,
+      true
+    ]
+  },
+  "hash": "3e6b30ad7926bc6eca9818e5645df1b19d47cc69d65c31aaaa0d653fd7e1fd50"
+}

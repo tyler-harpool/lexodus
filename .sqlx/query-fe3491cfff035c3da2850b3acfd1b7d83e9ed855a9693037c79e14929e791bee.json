@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM judicial_orders WHERE id = $1 AND court_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fe3491cfff035c3da2850b3acfd1b7d83e9ed855a9693037c79e14929e791bee"
+}

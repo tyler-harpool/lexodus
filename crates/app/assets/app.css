@@ -1,0 +1,241 @@
+/* Lexodus app-specific styles */
+
+/* ─── Sidebar brand ────────────────────────────────────────────────── */
+.sidebar-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.sidebar-brand-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-primary);
+    letter-spacing: 0.05em;
+}
+
+.sidebar-brand-subtitle {
+    font-size: var(--font-size-xs);
+    color: var(--color-on-surface-muted);
+}
+
+/* ─── Court selector in sidebar footer ─────────────────────────────── */
+.sidebar-court-selector {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.sidebar-court-selector label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sidebar-court-selector select {
+    width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-sm);
+    background: var(--color-surface-raised);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.sidebar-court-selector select:focus {
+    outline: none;
+    border-color: var(--focused-border-color);
+}
+
+/* ─── Inset header (mobile hamburger area) ─────────────────────────── */
+.inset-header {
+    display: flex;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    min-height: 3rem;
+}
+
+@media (min-width: 769px) {
+    .inset-header {
+        display: none;
+    }
+}
+
+/* ─── Dashboard stats ──────────────────────────────────────────────── */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-lg);
+}
+
+.stat-number {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.stat-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ─── Page layout ──────────────────────────────────────────────────── */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-lg);
+}
+
+/* ─── Form inputs (global baseline) ────────────────────────────────── */
+input, textarea {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: var(--font-size-sm);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--focused-border-color);
+}
+
+.form-group {
+    margin-bottom: var(--space-md);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+/* ─── Form card ────────────────────────────────────────────────────── */
+.form-card {
+    background: var(--color-surface);
+    padding: var(--space-lg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.form-card h3 {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.form-card h3:first-child {
+    margin-top: 0;
+}
+
+.form-row {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.form-row .form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.form-group-wide {
+    min-width: 400px !important;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
+}
+
+/* ─── Alert ────────────────────────────────────────────────────────── */
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-md);
+    font-size: var(--font-size-sm);
+}
+
+.alert-error {
+    background: #fed7d7;
+    color: #9b2c2c;
+    border: 1px solid #fc8181;
+}
+
+/* ─── Calendar layout ─────────────────────────────────────────────── */
+.calendar-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: var(--space-lg);
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .calendar-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.calendar-widget {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-md);
+}
+
+.calendar-events-list {
+    min-width: 0;
+}
+
+.calendar-events-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+}
+
+.selected-date-info {
+    margin-top: var(--space-sm);
+    text-align: center;
+}
+
+/* ─── States ───────────────────────────────────────────────────────── */
+.loading {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--color-on-surface-muted);
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--space-2xl);
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.empty-state p {
+    color: var(--color-on-surface-muted);
+    margin: var(--space-sm) 0;
+}
+
+.text-muted {
+    color: var(--color-on-surface-muted);
+}

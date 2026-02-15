@@ -1,0 +1,66 @@
+/* Layout: sidebar, navbar, and top-level structural styles */
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+}
+
+.sidebar-brand-name {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-primary);
+    font-family: var(--cyber-font-mono);
+}
+
+.sidebar-footer-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs);
+}
+
+.sidebar-footer-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+}
+
+.navbar-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    width: 100%;
+    padding: 0 var(--space-md);
+}
+
+.navbar-trigger-icon {
+    font-size: var(--font-size-lg);
+}
+
+.navbar-title {
+    font-weight: 600;
+    font-size: var(--font-size-md);
+    color: var(--color-on-surface);
+}
+
+.navbar-spacer {
+    flex: 1;
+}
+
+.dropdown-docs-link {
+    width: 100%;
+    cursor: pointer;
+}
+
+/* ---- Mobile responsive ---- */
+@media (max-width: 768px) {
+    .navbar-bar {
+        padding: 0 var(--space-sm);
+        gap: var(--space-sm);
+    }
+
+    .navbar-title {
+        font-size: var(--font-size-sm);
+    }
+}

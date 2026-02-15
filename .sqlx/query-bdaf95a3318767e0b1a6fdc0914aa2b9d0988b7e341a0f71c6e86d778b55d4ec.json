@@ -1,0 +1,119 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_id, name, aliases, usm_number, fbi_number,\n               date_of_birth,\n               COALESCE(citizenship_status, 'Unknown') as \"citizenship_status!\",\n               custody_status, bail_type,\n               bail_amount as \"bail_amount: f64\",\n               bond_conditions, bond_posted_date, surety_name,\n               created_at, updated_at\n        FROM defendants\n        WHERE case_id = $1 AND court_id = $2\n        ORDER BY created_at ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "aliases",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "usm_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "fbi_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "date_of_birth",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 8,
+        "name": "citizenship_status!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "custody_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "bail_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "bail_amount: f64",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "bond_conditions",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 13,
+        "name": "bond_posted_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "surety_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      null,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "bdaf95a3318767e0b1a6fdc0914aa2b9d0988b7e341a0f71c6e86d778b55d4ec"
+}

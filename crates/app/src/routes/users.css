@@ -1,0 +1,164 @@
+/* Users page styles */
+
+.users-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    width: 100%;
+}
+
+.users-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 0.5rem);
+    background: var(--color-surface);
+}
+
+.users-empty {
+    padding: var(--space-xl);
+    text-align: center;
+    color: var(--color-on-surface-muted);
+}
+
+.user-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-lg);
+    width: 100%;
+    cursor: default;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.user-display-name {
+    font-weight: 600;
+    color: var(--color-on-surface);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-username {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Tier column (badge or admin select) */
+.user-tier {
+    flex-shrink: 0;
+}
+
+.user-tier .cyber-select {
+    min-width: 7rem;
+}
+
+.user-tier .cyber-select-trigger {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--font-size-sm);
+    min-height: unset;
+    height: auto;
+}
+
+/* Court role column (badge or admin/clerk select) */
+.user-court-role {
+    flex-shrink: 0;
+    min-width: 8rem;
+}
+
+.user-court-role .cyber-select {
+    min-width: 8rem;
+}
+
+.user-court-role .cyber-select-trigger {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--font-size-sm);
+    min-height: unset;
+    height: auto;
+}
+
+/* "..." action trigger in user rows */
+.user-row .cyber-popover-trigger {
+    padding: 0.35rem 0.6rem;
+    border-radius: 4px;
+    color: var(--color-on-surface);
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+}
+
+.user-row .cyber-popover-trigger:hover {
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    color: var(--color-primary);
+}
+
+.popover-details {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.popover-name {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.popover-meta {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+}
+
+.dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-md) 0;
+}
+
+.dialog-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    padding-top: var(--space-sm);
+}
+
+/* ---- Mobile responsive ---- */
+@media (max-width: 768px) {
+    .user-row {
+        padding: var(--space-sm) var(--space-md);
+        gap: var(--space-sm);
+    }
+
+    .user-info {
+        flex: 1;
+    }
+
+    .user-tier,
+    .user-court-role {
+        display: none;
+    }
+
+    .dialog-form {
+        padding: var(--space-sm) 0;
+    }
+
+    .dialog-actions {
+        flex-direction: column;
+    }
+}

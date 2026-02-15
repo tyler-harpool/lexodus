@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(*) as \"count!\" FROM attorneys\n        WHERE court_id = $1\n          AND (\n            lower(first_name) LIKE $2\n            OR lower(last_name) LIKE $2\n            OR lower(bar_number) LIKE $2\n            OR lower(email) LIKE $2\n            OR lower(COALESCE(firm_name, '')) LIKE $2\n          )\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f32edb27d013a8c47c66923ad8a0bae79c83557c1fd85fc8dd04e3174a252319"
+}

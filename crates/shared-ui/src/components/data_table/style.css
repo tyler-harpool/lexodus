@@ -1,0 +1,33 @@
+.data-table {
+    overflow: visible;
+}
+
+.data-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.data-table th {
+    background: var(--color-surface-raised);
+    color: var(--color-on-surface);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.data-table .clickable {
+    cursor: pointer;
+}
+
+.data-table .clickable:hover {
+    background: var(--primary-color-5);
+}

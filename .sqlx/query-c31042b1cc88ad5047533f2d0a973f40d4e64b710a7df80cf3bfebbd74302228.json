@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(*) as \"count!\"\n        FROM criminal_cases\n        WHERE court_id = $1\n          AND ($2::TEXT IS NULL OR status = $2)\n          AND ($3::TEXT IS NULL OR crime_type = $3)\n          AND ($4::TEXT IS NULL OR priority = $4)\n          AND ($5::TEXT IS NULL OR title ILIKE $5 OR case_number ILIKE $5)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c31042b1cc88ad5047533f2d0a973f40d4e64b710a7df80cf3bfebbd74302228"
+}

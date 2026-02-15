@@ -1,0 +1,117 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO docket_entries\n                (court_id, case_id, entry_number, entry_type, description,\n                 filed_by, document_id, is_sealed, is_ex_parte, page_count,\n                 related_entries, service_list)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n            RETURNING id, court_id, case_id, entry_number, date_filed, date_entered,\n                      filed_by, entry_type, description, document_id,\n                      is_sealed, is_ex_parte, page_count, related_entries, service_list\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "entry_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "date_filed",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "date_entered",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "filed_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "entry_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_ex_parte",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "page_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "related_entries",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 14,
+        "name": "service_list",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid",
+        "Bool",
+        "Bool",
+        "Int4",
+        "Int4Array",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "9cfbf9a6eabee3f0006e291ee2acc81dc05ccf73c6ec8f54f13ed191eda78a76"
+}

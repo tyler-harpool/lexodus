@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT AVG(EXTRACT(EPOCH FROM (published_at - created_at)) / 86400.0)::FLOAT8 as \"avg: f64\"\n        FROM judicial_opinions\n        WHERE court_id = $1 AND published_at IS NOT NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "avg: f64",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "367605b6b6aa9c0b18e20ef9975e4935ff18b9af3f4ba65e17b72e0a8bdaf5ce"
+}

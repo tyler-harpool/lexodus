@@ -1,0 +1,102 @@
+/* Textarea - Multi-line cyberpunk text input */
+
+.textarea-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    width: 100%;
+}
+
+.textarea-label {
+    font-family: var(--cyber-font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--secondary-color-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.textarea {
+    display: block;
+    width: 100%;
+    min-height: 5rem;
+    padding: var(--space-sm) var(--space-md);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    color: var(--color-on-surface);
+    background: var(--primary-color-3);
+    border: var(--cyber-border-width) solid var(--color-border);
+    border-radius: var(--radius);
+    outline: none;
+    resize: vertical;
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast),
+                background var(--transition-fast);
+}
+
+.textarea::placeholder {
+    color: var(--color-on-surface-muted);
+}
+
+.textarea:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Default variant */
+.textarea[data-style="default"]:hover:not(:disabled) {
+    border-color: var(--secondary-color-5);
+    background: var(--primary-color-4);
+}
+
+.textarea[data-style="default"]:focus:not(:disabled) {
+    border-color: var(--focused-border-color);
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+/* Fade variant - softer background transition */
+.textarea[data-style="fade"] {
+    background: var(--primary-color-2);
+    border-color: transparent;
+}
+
+.textarea[data-style="fade"]:hover:not(:disabled) {
+    background: var(--primary-color-3);
+}
+
+.textarea[data-style="fade"]:focus:not(:disabled) {
+    background: var(--primary-color-3);
+    border-color: var(--focused-border-color);
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+/* Outline variant - transparent with strong border */
+.textarea[data-style="outline"] {
+    background: transparent;
+    border-color: var(--color-primary);
+}
+
+.textarea[data-style="outline"]:hover:not(:disabled) {
+    box-shadow: var(--cyber-neon-glow);
+}
+
+.textarea[data-style="outline"]:focus:not(:disabled) {
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+/* Ghost variant - minimal styling */
+.textarea[data-style="ghost"] {
+    background: transparent;
+    border-color: transparent;
+}
+
+.textarea[data-style="ghost"]:hover:not(:disabled) {
+    background: var(--primary-color-4);
+}
+
+.textarea[data-style="ghost"]:focus:not(:disabled) {
+    background: var(--primary-color-3);
+    border-color: var(--focused-border-color);
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}

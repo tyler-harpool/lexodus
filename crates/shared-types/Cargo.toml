@@ -1,0 +1,24 @@
+[package]
+name = "shared-types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+utoipa = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+validator = { workspace = true, optional = true }
+sqlx = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+toml = { workspace = true }
+
+[features]
+default = []
+openapi = ["dep:utoipa"]
+validation = ["dep:validator"]
+server = ["dep:axum", "dep:sqlx", "openapi"]

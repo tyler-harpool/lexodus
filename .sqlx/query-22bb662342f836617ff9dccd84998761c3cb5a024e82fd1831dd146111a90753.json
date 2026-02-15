@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, opinion_id, cited_opinion_id,\n               citation_text, citation_type, context, pinpoint_cite\n        FROM opinion_citations\n        WHERE opinion_id = $1 AND court_id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "opinion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "cited_opinion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "citation_text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "citation_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "context",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "pinpoint_cite",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "22bb662342f836617ff9dccd84998761c3cb5a024e82fd1831dd146111a90753"
+}

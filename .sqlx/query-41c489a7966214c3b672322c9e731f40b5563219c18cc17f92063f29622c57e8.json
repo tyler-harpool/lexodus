@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE evidence SET\n            description   = COALESCE($3, description),\n            evidence_type = COALESCE($4, evidence_type),\n            seized_date   = COALESCE($5, seized_date),\n            seized_by     = COALESCE($6, seized_by),\n            location      = COALESCE($7, location),\n            is_sealed     = COALESCE($8, is_sealed)\n        WHERE id = $1 AND court_id = $2\n        RETURNING id, court_id, case_id, description, evidence_type,\n                  seized_date, seized_by,\n                  COALESCE(location, '') as \"location!\",\n                  is_sealed, created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "evidence_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "seized_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "seized_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "41c489a7966214c3b672322c9e731f40b5563219c18cc17f92063f29622c57e8"
+}

@@ -1,0 +1,190 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_id, defendant_id, judge_id,\n               base_offense_level, specific_offense_level,\n               adjusted_offense_level, total_offense_level,\n               criminal_history_category, criminal_history_points,\n               guidelines_range_low_months, guidelines_range_high_months,\n               custody_months, probation_months,\n               fine_amount::FLOAT8 as \"fine_amount: f64\",\n               restitution_amount::FLOAT8 as \"restitution_amount: f64\",\n               forfeiture_amount::FLOAT8 as \"forfeiture_amount: f64\",\n               special_assessment::FLOAT8 as \"special_assessment: f64\",\n               departure_type, departure_reason,\n               variance_type, variance_justification,\n               supervised_release_months, appeal_waiver,\n               sentencing_date, judgment_date,\n               created_at, updated_at\n        FROM sentencing\n        WHERE court_id = $1\n          AND judgment_date IS NOT NULL\n          AND appeal_waiver = false\n          AND judgment_date + INTERVAL '14 days' > NOW()\n          AND judgment_date + INTERVAL '14 days' <= NOW() + INTERVAL '14 days'\n        ORDER BY judgment_date ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "defendant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "base_offense_level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "specific_offense_level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "adjusted_offense_level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_offense_level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "criminal_history_category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "criminal_history_points",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "guidelines_range_low_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "guidelines_range_high_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "custody_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "probation_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "fine_amount: f64",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 16,
+        "name": "restitution_amount: f64",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 17,
+        "name": "forfeiture_amount: f64",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 18,
+        "name": "special_assessment: f64",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 19,
+        "name": "departure_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "departure_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 21,
+        "name": "variance_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "variance_justification",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 23,
+        "name": "supervised_release_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 24,
+        "name": "appeal_waiver",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 25,
+        "name": "sentencing_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 26,
+        "name": "judgment_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 27,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 28,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "832d73a35883587f2ed1dc0399625f16d83814941e6b23e77796fa9e76c702bf"
+}

@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, deadline_id, recipient, reminder_type,\n               sent_at, acknowledged, acknowledged_at\n        FROM deadline_reminders\n        WHERE court_id = $1 AND acknowledged = false\n        ORDER BY sent_at ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "deadline_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "recipient",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "reminder_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "acknowledged",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "acknowledged_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ef5acc58eb4d9e26b5c232e6dc56eaaa04f47718ab4a45bd6f15f18f4b2cd472"
+}

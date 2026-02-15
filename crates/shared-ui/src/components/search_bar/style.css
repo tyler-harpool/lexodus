@@ -1,0 +1,12 @@
+.search-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.search-bar input,
+.search-bar select {
+    flex: 1;
+    min-width: 180px;
+}

@@ -1,0 +1,53 @@
+/* Input - Cyberpunk-styled text input */
+
+.input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    width: 100%;
+}
+
+.input-label {
+    font-family: var(--cyber-font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--secondary-color-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.input {
+    display: block;
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    color: var(--color-on-surface);
+    background: var(--primary-color-3);
+    border: var(--cyber-border-width) solid var(--color-border);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast),
+                background var(--transition-fast);
+}
+
+.input::placeholder {
+    color: var(--color-on-surface-muted);
+}
+
+.input:hover:not(:disabled) {
+    border-color: var(--secondary-color-5);
+    background: var(--primary-color-4);
+}
+
+.input:focus:not(:disabled) {
+    border-color: var(--focused-border-color);
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+.input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

@@ -1,0 +1,197 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT DISTINCT\n            p.id, p.court_id, p.case_id, p.party_type, p.party_role, p.name, p.entity_type,\n            p.first_name, p.middle_name, p.last_name, p.date_of_birth,\n            p.organization_name, p.address_street1, p.address_city, p.address_state,\n            p.address_zip, p.address_country, p.phone, p.email,\n            p.represented, p.pro_se, p.service_method, p.status,\n            p.joined_date, p.terminated_date,\n            p.ssn_last_four, p.ein, p.nef_sms_opt_in,\n            p.created_at, p.updated_at\n        FROM parties p\n        JOIN representations r ON r.party_id = p.id AND r.court_id = p.court_id\n        WHERE p.court_id = $1 AND r.attorney_id = $2 AND r.status = 'Active'\n        ORDER BY p.name ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "party_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "party_role",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "entity_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "middle_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "date_of_birth",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 11,
+        "name": "organization_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "address_street1",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "address_city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "address_state",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "address_zip",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "address_country",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "represented",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 20,
+        "name": "pro_se",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 21,
+        "name": "service_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 23,
+        "name": "joined_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 24,
+        "name": "terminated_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 25,
+        "name": "ssn_last_four",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 26,
+        "name": "ein",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 27,
+        "name": "nef_sms_opt_in",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 28,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 29,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8f9e39781eb82fa8c56e2c3071fc5ecd083749bd400b66a70f232bed0dc7aff8"
+}

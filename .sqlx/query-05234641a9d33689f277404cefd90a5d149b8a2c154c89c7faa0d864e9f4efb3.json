@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE device_authorizations\n           SET status = 'approved', user_id = $2, approved_at = NOW()\n           WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "05234641a9d33689f277404cefd90a5d149b8a2c154c89c7faa0d864e9f4efb3"
+}

@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT case_id, court_id, arrest_date, indictment_date,\n               arraignment_date,\n               COALESCE(trial_start_deadline, NOW() + INTERVAL '70 days') as \"trial_start_deadline!\",\n               days_elapsed, days_remaining, is_tolled, waived\n        FROM speedy_trial\n        WHERE court_id = $1\n          AND waived = FALSE\n          AND days_remaining <= 0\n        ORDER BY days_remaining ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "arrest_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "indictment_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "arraignment_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "trial_start_deadline!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "days_elapsed",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "days_remaining",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_tolled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "waived",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      null,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1db9248413fb7bff60711eeae00b71c295a4f3a5149b64f7b02c0ff632960b98"
+}

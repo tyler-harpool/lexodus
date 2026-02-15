@@ -1,0 +1,283 @@
+/* ============================================
+   CYBERPUNK THEME - Global Design Tokens
+   ============================================
+   Default theme for the shared-ui component library.
+   Uses DioxusLabs variable naming conventions for compatibility.
+   Theme switching via [data-theme] attribute on <html>.
+   ============================================ */
+
+/* ============================================
+   SHARED TOKENS (theme-independent)
+   ============================================ */
+:root {
+    /* Typography */
+    --font-family: system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+
+    /* Spacing */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+
+    /* Radii */
+    --radius: 4px;
+    --radius-sm: 2px;
+    --radius-lg: 8px;
+    --radius-full: 9999px;
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+    --transition-slow: 300ms ease;
+
+    /* Cyberpunk-specific extensions */
+    --cyber-neon-glow: 0 0 8px rgba(0, 240, 255, 0.4), 0 0 20px rgba(0, 240, 255, 0.15);
+    --cyber-neon-glow-strong: 0 0 12px rgba(0, 240, 255, 0.6), 0 0 30px rgba(0, 240, 255, 0.25);
+    --cyber-font-mono: var(--font-mono);
+    --cyber-scanline-opacity: 0.03;
+    --cyber-border-width: 1px;
+}
+
+/* ============================================
+   CYBERPUNK DARK (default)
+   ============================================ */
+:root,
+[data-theme="cyberpunk"],
+[data-theme="dark"] {
+    /* Primary palette - deep blue-black backgrounds */
+    --primary-color-1: #050510;
+    --primary-color-2: #0a0a14;
+    --primary-color-3: #0f0f1e;
+    --primary-color-4: #141428;
+    --primary-color-5: #1a1a32;
+    --primary-color-6: #24243c;
+    --primary-color-7: #2e2e50;
+    --primary-color-8: #3a3a7a;
+    --primary-color-9: #4a4a90;
+
+    /* Secondary palette - cool light text */
+    --secondary-color-1: #e0e0ff;
+    --secondary-color-2: #c8c8f0;
+    --secondary-color-3: #a0a0d0;
+    --secondary-color-4: #8080b0;
+    --secondary-color-5: #606090;
+    --secondary-color-6: #505080;
+    --secondary-color-7: #404070;
+
+    /* Semantic colors mapped from palette */
+    --color-background: var(--primary-color-2);
+    --color-surface: var(--primary-color-3);
+    --color-surface-raised: var(--primary-color-5);
+    --color-on-surface: var(--secondary-color-1);
+    --color-on-surface-muted: var(--secondary-color-4);
+
+    --color-border: var(--primary-color-6);
+    --color-border-focus: var(--color-primary);
+
+    /* Action colors - neon cyber palette */
+    --color-primary: #00f0ff;
+    --color-primary-hover: #33f5ff;
+    --color-on-primary: #050510;
+
+    --color-secondary: #bd00ff;
+    --color-secondary-hover: #d040ff;
+    --color-on-secondary: #ffffff;
+
+    --color-danger: #ff0040;
+    --color-on-danger: #ffffff;
+    --color-success: #00ff41;
+    --color-on-success: #050510;
+    --color-warning: #ffb800;
+    --color-on-warning: #050510;
+
+    /* Focused border */
+    --focused-border-color: var(--color-primary);
+
+    /* Shadows with neon tint */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5), 0 0 4px rgba(0, 240, 255, 0.05);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0, 240, 255, 0.08);
+}
+
+/* ============================================
+   CYBERPUNK LIGHT
+   ============================================ */
+[data-theme="light"] {
+    --primary-color-1: #ffffff;
+    --primary-color-2: #f0f0fa;
+    --primary-color-3: #e8e8f5;
+    --primary-color-4: #d8d8e8;
+    --primary-color-5: #c8c8d8;
+    --primary-color-6: #b0b0c8;
+    --primary-color-7: #9090a8;
+    --primary-color-8: #707088;
+    --primary-color-9: #505070;
+
+    --secondary-color-1: #0a0a14;
+    --secondary-color-2: #1a1a2e;
+    --secondary-color-3: #2e2e48;
+    --secondary-color-4: #505070;
+    --secondary-color-5: #8080a0;
+    --secondary-color-6: #a0a0c0;
+    --secondary-color-7: #c0c0d8;
+
+    --color-background: var(--primary-color-2);
+    --color-surface: var(--primary-color-1);
+    --color-surface-raised: var(--primary-color-3);
+    --color-on-surface: var(--secondary-color-1);
+    --color-on-surface-muted: var(--secondary-color-4);
+
+    --color-border: var(--primary-color-5);
+    --color-border-focus: #0090a0;
+
+    --color-primary: #0090a0;
+    --color-primary-hover: #007888;
+    --color-on-primary: #ffffff;
+
+    --color-secondary: #8a00cc;
+    --color-secondary-hover: #7000aa;
+    --color-on-secondary: #ffffff;
+
+    --color-danger: #cc0033;
+    --color-on-danger: #ffffff;
+    --color-success: #00aa2e;
+    --color-on-success: #ffffff;
+    --color-warning: #cc8800;
+    --color-on-warning: #ffffff;
+
+    --focused-border-color: var(--color-primary);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+    --cyber-neon-glow: 0 0 6px rgba(0, 144, 160, 0.3);
+    --cyber-neon-glow-strong: 0 0 10px rgba(0, 144, 160, 0.5);
+    --cyber-scanline-opacity: 0;
+}
+
+/* ============================================
+   GLOBAL RESET
+   ============================================ */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--color-background);
+    color: var(--color-on-surface);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--color-primary-hover);
+}
+
+/* ============================================
+   CYBERPUNK KEYFRAME ANIMATIONS
+   ============================================ */
+@keyframes neon-pulse {
+    0%, 100% {
+        box-shadow: var(--cyber-neon-glow);
+    }
+    50% {
+        box-shadow: var(--cyber-neon-glow-strong);
+    }
+}
+
+@keyframes glitch {
+    0%, 100% {
+        transform: translate(0);
+        opacity: 1;
+    }
+    20% {
+        transform: translate(-2px, 1px);
+    }
+    40% {
+        transform: translate(2px, -1px);
+    }
+    60% {
+        transform: translate(-1px, -1px);
+    }
+    80% {
+        transform: translate(1px, 1px);
+    }
+}
+
+@keyframes scanline {
+    0% {
+        transform: translateY(-100%);
+    }
+    100% {
+        transform: translateY(100vh);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-in-right {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slide-in-left {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slide-in-top {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-in-bottom {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}

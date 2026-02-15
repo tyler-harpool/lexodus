@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_number, title, description, crime_type,\n               status, priority, assigned_judge_id, district_code, location,\n               is_sealed, sealed_date, sealed_by, seal_reason,\n               opened_at, updated_at, closed_at\n        FROM criminal_cases\n        WHERE id = $1 AND court_id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "crime_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "priority",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "assigned_judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "district_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "sealed_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "sealed_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "seal_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "opened_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "closed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "4aafa497defd39650ae4f1403e0784631318e914c5263d34d611ee66917f0bc3"
+}

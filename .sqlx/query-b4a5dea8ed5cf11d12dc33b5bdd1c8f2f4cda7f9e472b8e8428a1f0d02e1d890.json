@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, defendant_id, count_number, statute,\n               offense_description, statutory_max_months, statutory_min_months,\n               COALESCE(plea, 'Not Yet Entered') as \"plea!\",\n               plea_date,\n               COALESCE(verdict, '') as \"verdict!\",\n               verdict_date\n        FROM charges\n        WHERE id = $1 AND court_id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "defendant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "count_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "statute",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "offense_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "statutory_max_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "statutory_min_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "plea!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "plea_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "verdict!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "verdict_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      true,
+      null,
+      true
+    ]
+  },
+  "hash": "b4a5dea8ed5cf11d12dc33b5bdd1c8f2f4cda7f9e472b8e8428a1f0d02e1d890"
+}

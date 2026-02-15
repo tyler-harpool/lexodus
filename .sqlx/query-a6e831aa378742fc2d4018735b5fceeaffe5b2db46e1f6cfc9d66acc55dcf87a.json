@@ -1,0 +1,180 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO attorneys (\n            court_id, bar_number, first_name, last_name, middle_name,\n            firm_name, email, phone, fax,\n            address_street1, address_street2, address_city,\n            address_state, address_zip, address_country\n        )\n        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)\n        RETURNING\n            id, court_id, bar_number, first_name, last_name, middle_name,\n            firm_name, email, phone, fax,\n            address_street1, address_street2, address_city,\n            address_state, address_zip, address_country,\n            status, cja_panel_member, cja_panel_districts,\n            languages_spoken, cases_handled, win_rate_percentage,\n            avg_case_duration_days, created_at, updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "bar_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "middle_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "firm_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "fax",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "address_street1",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "address_street2",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "address_city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "address_state",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "address_zip",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "address_country",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "cja_panel_member",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 18,
+        "name": "cja_panel_districts",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 19,
+        "name": "languages_spoken",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 20,
+        "name": "cases_handled",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 21,
+        "name": "win_rate_percentage",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 22,
+        "name": "avg_case_duration_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 23,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 24,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "a6e831aa378742fc2d4018735b5fceeaffe5b2db46e1f6cfc9d66acc55dcf87a"
+}

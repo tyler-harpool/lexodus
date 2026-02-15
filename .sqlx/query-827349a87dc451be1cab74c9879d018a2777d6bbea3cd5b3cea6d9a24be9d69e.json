@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO judge_signatures (court_id, judge_id, signature_data)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (court_id, judge_id)\n        DO UPDATE SET signature_data = EXCLUDED.signature_data, created_at = NOW()\n        RETURNING id, court_id, judge_id, signature_data, created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "signature_data",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "827349a87dc451be1cab74c9879d018a2777d6bbea3cd5b3cea6d9a24be9d69e"
+}

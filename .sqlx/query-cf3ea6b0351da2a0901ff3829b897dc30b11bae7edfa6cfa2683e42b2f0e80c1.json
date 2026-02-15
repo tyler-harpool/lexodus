@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO service_records\n                (court_id, document_id, party_id, service_method, served_by,\n                 successful, proof_of_service_filed, attempts)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, 1)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cf3ea6b0351da2a0901ff3829b897dc30b11bae7edfa6cfa2683e42b2f0e80c1"
+}

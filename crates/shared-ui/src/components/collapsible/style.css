@@ -1,0 +1,70 @@
+/* Collapsible - Cyberpunk Theme */
+
+.collapsible {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md, 0.5rem);
+    background-color: var(--color-surface);
+}
+
+.collapsible[data-disabled="true"] {
+    opacity: 0.4;
+}
+
+.collapsible-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    background-color: transparent;
+    color: var(--color-on-surface);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+.collapsible-trigger:hover:not(:disabled) {
+    color: var(--color-primary);
+    background-color: color-mix(in srgb, var(--color-surface) 95%, var(--color-primary) 5%);
+}
+
+.collapsible-trigger:focus-visible {
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+    z-index: 1;
+    position: relative;
+}
+
+.collapsible-trigger:disabled {
+    cursor: not-allowed;
+}
+
+.collapsible-content {
+    overflow: hidden;
+    transition: all var(--transition-base);
+}
+
+.collapsible-content[data-open="true"] {
+    padding: 0 1rem 0.75rem 1rem;
+    overflow: visible;
+    animation: collapsible-expand 0.2s ease-out;
+}
+
+.collapsible-content[data-open="false"] {
+    height: 0;
+    padding: 0;
+}
+
+@keyframes collapsible-expand {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

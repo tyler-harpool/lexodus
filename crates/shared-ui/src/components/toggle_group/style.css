@@ -1,0 +1,68 @@
+/* ToggleGroup - Cyberpunk Theme */
+
+.toggle-group {
+    display: inline-flex;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md, 0.5rem);
+    overflow: hidden;
+    background-color: var(--color-surface);
+}
+
+.toggle-group[data-orientation="vertical"] {
+    flex-direction: column;
+}
+
+.toggle-group-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-right: 1px solid var(--color-border);
+    background-color: transparent;
+    color: var(--color-on-surface);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+.toggle-group[data-orientation="vertical"] .toggle-group-item {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.toggle-group-item:last-child {
+    border-right: none;
+    border-bottom: none;
+}
+
+.toggle-group-item:hover:not([data-disabled="true"]):not([data-state="on"]) {
+    background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    color: var(--color-primary);
+}
+
+.toggle-group-item:focus-visible {
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+    z-index: 1;
+    position: relative;
+}
+
+.toggle-group-item[data-state="on"] {
+    background-color: var(--color-primary);
+    color: var(--color-on-primary, #000);
+    box-shadow: 0 0 8px var(--color-primary);
+}
+
+.toggle-group-item[data-state="on"]:hover:not([data-disabled="true"]) {
+    background-color: var(--color-primary);
+    filter: brightness(1.15);
+    box-shadow: 0 0 12px var(--color-primary);
+}
+
+.toggle-group-item[data-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+}

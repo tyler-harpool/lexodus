@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE charges SET\n                plea = $3,\n                plea_date = COALESCE($4, NOW())\n            WHERE id = $1 AND court_id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "355f2aa6964c9452aee88e55cf3ab68136812604cbd1999b0f0ff7db685d01f0"
+}

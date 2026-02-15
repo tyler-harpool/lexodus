@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, evidence_id, transferred_from, transferred_to,\n               date,\n               COALESCE(location, '') as \"location!\",\n               COALESCE(condition, '') as \"condition!\",\n               notes\n        FROM custody_transfers\n        WHERE evidence_id = $1 AND court_id = $2\n        ORDER BY date ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "evidence_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "transferred_from",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "transferred_to",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "condition!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "notes",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true
+    ]
+  },
+  "hash": "c1c1cf53b50b4b2fccf12c481ce88a41d46fd5d5b24905313c94ab725ea6380f"
+}

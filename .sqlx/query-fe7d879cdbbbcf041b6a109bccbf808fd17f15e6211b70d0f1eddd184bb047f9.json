@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, scope, scope_id, config_key, config_value,\n               created_at, updated_at\n        FROM config_overrides\n        WHERE court_id = $1 AND scope = $2 AND scope_id = $3\n        ORDER BY config_key\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "scope",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "scope_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "config_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "config_value",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fe7d879cdbbbcf041b6a109bccbf808fd17f15e6211b70d0f1eddd184bb047f9"
+}

@@ -1,0 +1,94 @@
+.cyber-slider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    touch-action: none;
+    width: 100%;
+}
+
+.cyber-slider[data-orientation="vertical"] {
+    flex-direction: column;
+    height: 200px;
+    width: auto;
+}
+
+.cyber-slider[data-disabled="true"] {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.cyber-slider-track {
+    position: relative;
+    flex-grow: 1;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface));
+    cursor: pointer;
+}
+
+.cyber-slider-track[data-orientation="horizontal"] {
+    height: 6px;
+}
+
+.cyber-slider-track[data-orientation="vertical"] {
+    width: 6px;
+    height: 100%;
+}
+
+.cyber-slider-range {
+    position: absolute;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent);
+}
+
+.cyber-slider-range[data-orientation="horizontal"] {
+    height: 100%;
+}
+
+.cyber-slider-range[data-orientation="vertical"] {
+    width: 100%;
+}
+
+.cyber-slider-thumb {
+    display: block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 2px solid var(--color-on-primary);
+    cursor: grab;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    transition: box-shadow 0.15s ease;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-primary) 40%, transparent);
+    padding: 0;
+}
+
+.cyber-slider-thumb[data-orientation="vertical"] {
+    transform: translate(-50%, 50%);
+    left: 50%;
+    top: auto;
+}
+
+.cyber-slider-thumb:hover {
+    box-shadow: 0 0 12px color-mix(in srgb, var(--color-primary) 60%, transparent);
+}
+
+.cyber-slider-thumb:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        0 0 16px color-mix(in srgb, var(--color-primary) 70%, transparent);
+}
+
+.cyber-slider-thumb[data-dragging="true"] {
+    cursor: grabbing;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--color-primary) 80%, transparent);
+    transform: translate(-50%, -50%) scale(1.15);
+}
+
+.cyber-slider-thumb[data-orientation="vertical"][data-dragging="true"] {
+    transform: translate(-50%, 50%) scale(1.15);
+}

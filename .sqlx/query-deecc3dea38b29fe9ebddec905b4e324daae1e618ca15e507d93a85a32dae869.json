@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE password_resets\n           SET used = true\n           WHERE token_hash = $1 AND expires_at > NOW() AND used = false\n           RETURNING email",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "deecc3dea38b29fe9ebddec905b4e324daae1e618ca15e507d93a85a32dae869"
+}

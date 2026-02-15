@@ -1,0 +1,51 @@
+[workspace]
+members = [
+    "crates/shared-types",
+    "crates/shared-ui",
+    "crates/server",
+    "crates/app",
+    "crates/tests",
+]
+resolver = "2"
+
+[workspace.dependencies]
+dioxus = { version = "0.7", features = ["router", "fullstack"] }
+dioxus-ssr = "0.7"
+dioxus-primitives = { git = "https://github.com/DioxusLabs/components", features = ["router", "web"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "migrate", "uuid", "json"] }
+reqwest = { version = "0.12", features = ["json"] }
+dotenvy = "0.15"
+axum = "0.8"
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-axum = "0.2"
+utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
+utoipa-scalar = { version = "0.3", features = ["axum"] }
+pretty_assertions = "1"
+dioxus-free-icons = { version = "0.10", features = ["font-awesome-solid"] }
+tracing = "0.1"
+log = "0.4"
+opentelemetry = { version = "0.31", features = ["logs"] }
+opentelemetry_sdk = { version = "0.31", features = ["logs"] }
+opentelemetry-otlp = { version = "0.31", features = ["grpc-tonic", "trace", "logs", "tls", "tls-roots"] }
+opentelemetry-appender-log = "0.31"
+tower-http = { version = "0.6", features = ["trace", "request-id", "util", "propagate-header"] }
+uuid = { version = "1", features = ["v4", "serde", "js"] }
+validator = { version = "0.19", features = ["derive"] }
+jsonwebtoken = "9"
+argon2 = "0.5"
+chrono = { version = "0.4", features = ["serde"] }
+oauth2 = "5"
+urlencoding = "2"
+cookie = { version = "0.18", features = ["percent-encode"] }
+async-stripe = { version = "0.41", features = ["runtime-tokio-hyper-rustls", "checkout", "billing", "webhook-events"] }
+aws-sdk-s3 = "1"
+aws-config = "1"
+base64 = "0.22"
+hex = "0.4"
+hmac = "0.12"
+rand = { version = "0.8", features = ["std_rng"] }
+sha2 = "0.10"
+toml = "0.8"

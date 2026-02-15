@@ -1,0 +1,308 @@
+/* Root: primitives render class="calendar", wrapper adds "cyber-calendar".
+   Target both so styles apply regardless of how Dioxus resolves duplicate attrs. */
+.cyber-calendar,
+.calendar {
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--primary-color-4);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: 8px;
+    box-shadow:
+        0 0 12px color-mix(in srgb, var(--color-primary) 20%, transparent),
+        0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Header and grid span both columns */
+.cyber-calendar > .cyber-calendar-header,
+.cyber-calendar > .cyber-calendar-grid,
+.calendar > [role="heading"],
+.calendar > .calendar-grid {
+    grid-column: 1 / -1;
+}
+
+.cyber-calendar[data-disabled="true"],
+.calendar[data-disabled="true"] {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.cyber-calendar-header,
+.calendar > [role="heading"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.cyber-calendar-navigation,
+.calendar-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.cyber-calendar-nav-btn,
+.calendar-nav-prev,
+.calendar-nav-next {
+    background: transparent;
+    color: var(--color-on-surface);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    padding: 0;
+    transition: all 0.15s ease;
+}
+
+.cyber-calendar-nav-btn:hover,
+.calendar-nav-prev:hover,
+.calendar-nav-next:hover {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.cyber-calendar-nav-btn:focus-visible,
+.calendar-nav-prev:focus-visible,
+.calendar-nav-next:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+.cyber-calendar-nav-btn:disabled,
+.calendar-nav-prev:disabled,
+.calendar-nav-next:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.cyber-calendar-month-title,
+.calendar-month-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+    color: var(--color-primary);
+    flex: 1;
+}
+
+.cyber-calendar-grid,
+.calendar-grid {
+    border-collapse: collapse;
+    width: auto;
+}
+
+.cyber-calendar-grid th,
+.calendar-grid th {
+    padding: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--color-primary);
+    opacity: 0.7;
+}
+
+.cyber-calendar-grid td,
+.calendar-grid td {
+    padding: 0.125rem;
+    text-align: center;
+}
+
+.cyber-calendar-grid td button,
+.calendar-grid td button,
+.cyber-calendar-day,
+.calendar-grid-cell {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-on-surface);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    transition: all 0.12s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.cyber-calendar-grid td button:hover,
+.calendar-grid td button:hover {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color: var(--color-primary);
+}
+
+.cyber-calendar-grid td button:focus-visible,
+.calendar-grid td button:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+.cyber-calendar-grid td button[data-selected="true"],
+.calendar-grid td button[data-selected="true"] {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 600;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent);
+}
+
+.cyber-calendar-grid td button[data-today="true"],
+.calendar-grid td button[data-today="true"] {
+    border: 1px solid var(--color-primary);
+}
+
+/* Outside-month days: primitive uses data-month="last" or data-month="next" */
+.cyber-calendar-grid td button[data-outside-month="true"],
+.calendar-grid td button[data-month="last"],
+.calendar-grid td button[data-month="next"] {
+    opacity: 0.3;
+}
+
+.cyber-calendar-grid td button[data-disabled="true"],
+.cyber-calendar-grid td button:disabled,
+.calendar-grid td button[data-disabled="true"],
+.calendar-grid td button:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+}
+
+.cyber-calendar-grid td button[data-in-range="true"],
+.calendar-grid td button[data-selection-between="true"] {
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    border-radius: 0;
+}
+
+.cyber-calendar-grid td button[data-range-start="true"],
+.calendar-grid td button[data-selection-start="true"] {
+    border-radius: 4px 0 0 4px;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.cyber-calendar-grid td button[data-range-end="true"],
+.calendar-grid td button[data-selection-end="true"] {
+    border-radius: 0 4px 4px 0;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+/* Select containers: month on left, year on right like the nav arrows */
+.calendar-month-select-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+}
+
+.calendar-year-select-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-self: end;
+}
+
+/* Native select: transparent overlay for click/focus, full coverage */
+.cyber-calendar-select-month,
+.cyber-calendar-select-year {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 0.85rem;
+    z-index: 1;
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+}
+
+/* Style native dropdown options for dark theme readability */
+.cyber-calendar-select-month option,
+.cyber-calendar-select-year option {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+}
+
+/* Custom display value: the visible styled element */
+.calendar-month-select-value,
+.calendar-year-select-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    pointer-events: none;
+}
+
+/* SVG chevron icon */
+.select-expand-icon {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: var(--color-primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+}
+
+/* Hover state: triggered via container */
+.calendar-month-select-container:hover .calendar-month-select-value,
+.calendar-year-select-container:hover .calendar-year-select-value {
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+/* Focus-visible on native select propagates visual to custom display */
+.cyber-calendar-select-month:focus-visible ~ .calendar-month-select-value,
+.cyber-calendar-select-year:focus-visible ~ .calendar-year-select-value {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+@media (max-width: 768px) {
+    .cyber-calendar,
+    .calendar {
+        max-width: 100%;
+        font-size: var(--font-size-sm);
+    }
+
+    .cyber-calendar-grid td button,
+    .calendar-grid td button,
+    .cyber-calendar-day,
+    .calendar-grid-cell {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.8rem;
+    }
+
+    .cyber-calendar-nav-btn,
+    .calendar-nav-prev,
+    .calendar-nav-next {
+        width: 1.75rem;
+        height: 1.75rem;
+        font-size: 0.8rem;
+    }
+}

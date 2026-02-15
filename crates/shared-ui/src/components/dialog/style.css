@@ -1,0 +1,121 @@
+.cyber-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    animation: cyber-dialog-backdrop-in 0.2s ease-out;
+}
+
+.cyber-dialog-overlay[data-state="closed"] {
+    animation: cyber-dialog-backdrop-out 0.15s ease-in forwards;
+    pointer-events: none;
+}
+
+.cyber-dialog-content {
+    position: relative;
+    min-width: 320px;
+    max-width: 520px;
+    width: 90vw;
+    padding: 1.5rem;
+    background: var(--color-surface-dialog);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: 8px;
+    box-shadow:
+        0 0 20px color-mix(in srgb, var(--color-primary) 30%, transparent),
+        0 16px 48px rgba(0, 0, 0, 0.6);
+    animation: cyber-dialog-content-in 0.25s ease-out;
+}
+
+.cyber-dialog-overlay[data-state="closed"] .cyber-dialog-content {
+    animation: cyber-dialog-content-out 0.15s ease-in forwards;
+}
+
+.cyber-dialog-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.cyber-dialog-description {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    color: var(--color-on-surface);
+    opacity: 0.85;
+    line-height: 1.5;
+}
+
+.cyber-dialog-content button[aria-label="Close"] {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+    color: var(--color-on-surface);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.15s ease;
+}
+
+.cyber-dialog-content button[aria-label="Close"]:hover {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    border-color: var(--color-primary);
+}
+
+.cyber-dialog-content button[aria-label="Close"]:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+@keyframes cyber-dialog-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes cyber-dialog-backdrop-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes cyber-dialog-content-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes cyber-dialog-content-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+@media (max-width: 768px) {
+    .cyber-dialog-content {
+        max-width: 95vw;
+        padding: var(--space-md);
+    }
+}

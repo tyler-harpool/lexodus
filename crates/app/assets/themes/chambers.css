@@ -1,0 +1,64 @@
+/* ============================================
+   CHAMBERS — Warm judicial dark theme
+   Inspired by wood-paneled courtrooms. Warm
+   charcoal with gold accents, low eye strain
+   for extended evening sessions.
+   ============================================ */
+
+[data-theme="chambers"] {
+    --dark: initial;
+    --light: ;
+
+    --primary-color-1: #1a1412;
+    --primary-color-2: #1f1a17;
+    --primary-color-3: #2a2320;
+    --primary-color-4: #332b27;
+    --primary-color-5: #3d3430;
+    --primary-color-6: #504540;
+    --primary-color-7: #6b5d55;
+    --primary-color-8: #8a7a70;
+    --primary-color-9: #a89888;
+
+    --secondary-color-1: #f5f0eb;
+    --secondary-color-2: #e8e0d8;
+    --secondary-color-3: #d4c8bc;
+    --secondary-color-4: #a89888;
+    --secondary-color-5: #8a7a70;
+    --secondary-color-6: #6b5d55;
+    --secondary-color-7: #504540;
+
+    --color-background: var(--primary-color-2);
+    --color-surface: var(--primary-color-3);
+    --color-surface-raised: var(--primary-color-5);
+    --color-surface-dialog: var(--primary-color-4);
+    --color-on-surface: var(--secondary-color-1);
+    --color-on-surface-muted: var(--secondary-color-4);
+
+    --color-border: var(--primary-color-6);
+    --color-border-focus: var(--color-primary);
+
+    --color-primary: #d4a855;
+    --color-primary-hover: #e0bc72;
+    --color-on-primary: #1a1412;
+
+    --color-secondary: #9c6b4a;
+    --color-secondary-hover: #b07d5c;
+    --color-on-secondary: #f5f0eb;
+
+    --color-danger: #c0392b;
+    --color-on-danger: #f5f0eb;
+    --color-success: #5a8a5c;
+    --color-on-success: #f5f0eb;
+    --color-warning: #d4a855;
+    --color-on-warning: #1a1412;
+
+    --focused-border-color: var(--color-primary);
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.45);
+
+    --cyber-neon-glow: 0 0 6px rgba(212, 168, 85, 0.2);
+    --cyber-neon-glow-strong: 0 0 10px rgba(212, 168, 85, 0.3);
+    --cyber-scanline-opacity: 0;
+}

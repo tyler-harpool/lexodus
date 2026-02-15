@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS products (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    price DOUBLE PRECISION NOT NULL DEFAULT 0,
+    category TEXT NOT NULL DEFAULT 'Hardware',
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

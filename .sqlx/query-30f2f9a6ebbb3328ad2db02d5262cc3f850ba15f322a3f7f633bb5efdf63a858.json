@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE documents\n        SET replaced_by_document_id = $3, is_stricken = true\n        WHERE id = $1 AND court_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "30f2f9a6ebbb3328ad2db02d5262cc3f850ba15f322a3f7f633bb5efdf63a858"
+}

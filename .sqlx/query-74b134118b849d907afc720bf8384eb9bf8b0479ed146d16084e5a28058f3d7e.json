@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id, court_id, attorney_id, check_date, case_id,\n            party_names, adverse_parties, cleared, waiver_obtained, notes\n        FROM conflict_checks\n        WHERE court_id = $1 AND attorney_id = $2\n        ORDER BY check_date DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "attorney_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "check_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "party_names",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 6,
+        "name": "adverse_parties",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 7,
+        "name": "cleared",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "waiver_obtained",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "notes",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "74b134118b849d907afc720bf8384eb9bf8b0479ed146d16084e5a28058f3d7e"
+}

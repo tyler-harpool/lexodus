@@ -1,0 +1,18 @@
+/* Separator - Cyberpunk Theme */
+
+.separator {
+    background-color: var(--color-border);
+    flex-shrink: 0;
+    transition: background-color var(--transition-fast);
+}
+
+.separator[data-orientation="horizontal"] {
+    height: 1px;
+    width: 100%;
+}
+
+.separator[data-orientation="vertical"] {
+    width: 1px;
+    height: 100%;
+    align-self: stretch;
+}

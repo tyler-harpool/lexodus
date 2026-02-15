@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_verifications\n           SET verified_at = NOW()\n           WHERE token_hash = $1 AND expires_at > NOW() AND verified_at IS NULL\n           RETURNING user_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "51117a201891027f0c82a06b6d5b7976861adcd5b3f272d8e2004fdcb9baf057"
+}

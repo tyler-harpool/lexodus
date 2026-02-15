@@ -1,0 +1,20 @@
+[application]
+name = "lexodus"
+default_platform = "web"
+
+[application.tools]
+app = { manifest = "crates/app/Cargo.toml" }
+
+[web.app]
+title = "Lexodus"
+
+[web.watcher]
+watch_path = ["crates"]
+reload_html = true
+
+[server]
+port = 8080
+
+[web.resource.dev]
+style = []
+script = []

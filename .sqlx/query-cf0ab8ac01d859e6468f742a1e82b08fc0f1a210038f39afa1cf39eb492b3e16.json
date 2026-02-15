@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO opinion_citations\n            (court_id, opinion_id, cited_opinion_id, citation_text,\n             citation_type, context, pinpoint_cite)\n        VALUES ($1, $2, $3, $4, $5, $6, $7)\n        RETURNING id, court_id, opinion_id, cited_opinion_id,\n                  citation_text, citation_type, context, pinpoint_cite\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "opinion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "cited_opinion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "citation_text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "citation_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "context",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "pinpoint_cite",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "cf0ab8ac01d859e6468f742a1e82b08fc0f1a210038f39afa1cf39eb492b3e16"
+}

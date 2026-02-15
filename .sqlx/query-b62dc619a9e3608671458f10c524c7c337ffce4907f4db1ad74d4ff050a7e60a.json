@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = (SELECT id FROM users WHERE email = $1) AND revoked = FALSE",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b62dc619a9e3608671458f10c524c7c337ffce4907f4db1ad74d4ff050a7e60a"
+}

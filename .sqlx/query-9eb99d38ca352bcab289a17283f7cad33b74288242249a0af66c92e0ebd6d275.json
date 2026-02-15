@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO charges\n            (court_id, defendant_id, count_number, statute, offense_description,\n             statutory_max_months, statutory_min_months, plea, plea_date,\n             verdict, verdict_date)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n        RETURNING id, court_id, defendant_id, count_number, statute,\n                  offense_description, statutory_max_months, statutory_min_months,\n                  COALESCE(plea, 'Not Yet Entered') as \"plea!\",\n                  plea_date,\n                  COALESCE(verdict, '') as \"verdict!\",\n                  verdict_date\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "defendant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "count_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "statute",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "offense_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "statutory_max_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "statutory_min_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "plea!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "plea_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "verdict!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "verdict_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Int4",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      true,
+      null,
+      true
+    ]
+  },
+  "hash": "9eb99d38ca352bcab289a17283f7cad33b74288242249a0af66c92e0ebd6d275"
+}

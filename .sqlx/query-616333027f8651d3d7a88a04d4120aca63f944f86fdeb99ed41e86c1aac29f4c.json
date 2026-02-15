@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) as \"count!\" FROM sentencing WHERE court_id = $1 AND judge_id = $2 AND variance_type IS NOT NULL AND variance_type != 'None'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "616333027f8651d3d7a88a04d4120aca63f944f86fdeb99ed41e86c1aac29f4c"
+}

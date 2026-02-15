@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id, court_id, document_id, party_id, service_date,\n            service_method, served_by, proof_of_service_filed, successful, attempts, notes,\n            certificate_of_service\n        FROM service_records\n        WHERE court_id = $1\n          AND ($2::uuid IS NULL OR document_id = $2)\n          AND ($3::uuid IS NULL OR party_id = $3)\n        ORDER BY service_date DESC\n        LIMIT $4 OFFSET $5\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "party_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "service_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "service_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "served_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "proof_of_service_filed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "successful",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "attempts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "certificate_of_service",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "ca1ef69ca208b8d8979b9d5e8260f8243c94327f69b8800e338afa83a0446d27"
+}

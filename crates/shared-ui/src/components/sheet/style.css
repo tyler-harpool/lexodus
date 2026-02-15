@@ -1,0 +1,167 @@
+/* Sheet - Sliding panel overlay with cyberpunk styling */
+
+.sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(5, 5, 16, 0.7);
+    backdrop-filter: blur(4px);
+    animation: sheet-fade-in var(--transition-base) ease;
+}
+
+@keyframes sheet-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.sheet-panel {
+    position: fixed;
+    z-index: 51;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border: var(--cyber-border-width) solid var(--color-border);
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+}
+
+/* Side positioning and animations */
+.sheet-panel[data-side="right"] {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(24rem, 90vw);
+    border-left: var(--cyber-border-width) solid var(--color-primary);
+    animation: slide-in-right var(--transition-slow) ease;
+}
+
+.sheet-panel[data-side="left"] {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(24rem, 90vw);
+    border-right: var(--cyber-border-width) solid var(--color-primary);
+    animation: slide-in-left var(--transition-slow) ease;
+}
+
+.sheet-panel[data-side="top"] {
+    top: 0;
+    left: 0;
+    right: 0;
+    max-height: 80vh;
+    border-bottom: var(--cyber-border-width) solid var(--color-primary);
+    animation: slide-in-top var(--transition-slow) ease;
+}
+
+.sheet-panel[data-side="bottom"] {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 80vh;
+    border-top: var(--cyber-border-width) solid var(--color-primary);
+    animation: slide-in-bottom var(--transition-slow) ease;
+}
+
+/* Neon accent glow on the panel edge */
+.sheet-panel[data-side="right"] {
+    box-shadow: -4px 0 16px rgba(0, 240, 255, 0.1), var(--shadow-lg);
+}
+
+.sheet-panel[data-side="left"] {
+    box-shadow: 4px 0 16px rgba(0, 240, 255, 0.1), var(--shadow-lg);
+}
+
+.sheet-panel[data-side="top"] {
+    box-shadow: 0 4px 16px rgba(0, 240, 255, 0.1), var(--shadow-lg);
+}
+
+.sheet-panel[data-side="bottom"] {
+    box-shadow: 0 -4px 16px rgba(0, 240, 255, 0.1), var(--shadow-lg);
+}
+
+/* Reuse keyframes from theme */
+
+.sheet-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-lg);
+    border-bottom: var(--cyber-border-width) solid var(--color-border);
+}
+
+.sheet-title {
+    font-family: var(--cyber-font-mono);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-on-surface);
+    letter-spacing: 0.02em;
+}
+
+.sheet-description {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+    line-height: 1.5;
+}
+
+.sheet-content {
+    flex: 1;
+    padding: var(--space-lg);
+    overflow-y: auto;
+}
+
+.sheet-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    border-top: var(--cyber-border-width) solid var(--color-border);
+}
+
+.sheet-close {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: var(--cyber-border-width) solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--primary-color-4);
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    transition: color var(--transition-fast),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+    z-index: 1;
+}
+
+.sheet-close:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: var(--cyber-neon-glow);
+}
+
+.sheet-close:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+@media (max-width: 768px) {
+    .sheet-panel[data-side="right"],
+    .sheet-panel[data-side="left"] {
+        width: 100vw;
+    }
+
+    .sheet-content {
+        padding: var(--space-md);
+    }
+
+    .sheet-footer {
+        flex-shrink: 0;
+    }
+}

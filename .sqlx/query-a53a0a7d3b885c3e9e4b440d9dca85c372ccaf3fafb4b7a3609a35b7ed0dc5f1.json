@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) as \"count!\"\n           FROM motions m\n           JOIN case_assignments ca ON ca.case_id = m.case_id AND ca.court_id = m.court_id\n           WHERE ca.judge_id = $1 AND m.court_id = $2 AND m.status = 'Pending'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a53a0a7d3b885c3e9e4b440d9dca85c372ccaf3fafb4b7a3609a35b7ed0dc5f1"
+}

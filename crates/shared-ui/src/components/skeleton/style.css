@@ -1,0 +1,21 @@
+/* Skeleton - Loading placeholder with cyberpunk pulse */
+
+@keyframes skeleton-pulse {
+    0%, 100% {
+        opacity: 0.4;
+        box-shadow: none;
+    }
+    50% {
+        opacity: 0.8;
+        box-shadow: var(--cyber-neon-glow);
+    }
+}
+
+.skeleton {
+    display: block;
+    background: var(--primary-color-5);
+    border-radius: var(--radius);
+    border: var(--cyber-border-width) solid var(--color-border);
+    animation: skeleton-pulse 1.8s ease-in-out infinite;
+    min-height: 1rem;
+}

@@ -1,0 +1,99 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO docket_attachments\n            (court_id, docket_entry_id, filename, file_size, content_type, storage_key)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        RETURNING id, court_id, docket_entry_id, filename, file_size, content_type,\n                  storage_key, sealed, encryption, sha256, uploaded_at, created_at, updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "docket_entry_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "content_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "storage_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "encryption",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "sha256",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "uploaded_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "7b00f08f8bd4893581c980065d26a01a4ef6732bcdefad2f7d54954f75f73763"
+}

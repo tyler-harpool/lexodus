@@ -1,0 +1,102 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "gen-openapi"
+path = "src/bin/gen_openapi.rs"
+required-features = ["server"]
+
+[dependencies]
+shared-types = { path = "../shared-types", features = [] }
+dioxus = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Server-only dependencies (gated behind feature flag)
+sqlx = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
+utoipa-axum = { workspace = true, optional = true }
+utoipa-swagger-ui = { workspace = true, optional = true }
+utoipa-scalar = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+dotenvy = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+opentelemetry = { workspace = true, optional = true }
+opentelemetry_sdk = { workspace = true, optional = true }
+opentelemetry-otlp = { workspace = true, optional = true }
+opentelemetry-appender-log = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
+tower = { version = "0.5", features = ["util"], optional = true }
+tower-http = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
+validator = { workspace = true, optional = true }
+jsonwebtoken = { workspace = true, optional = true }
+argon2 = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+oauth2 = { workspace = true, optional = true }
+urlencoding = { workspace = true, optional = true }
+cookie = { workspace = true, optional = true }
+async-stripe = { workspace = true, optional = true }
+aws-sdk-s3 = { workspace = true, optional = true }
+aws-config = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+hex = { workspace = true, optional = true }
+hmac = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+tokio = { workspace = true }
+axum = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+dotenvy = { workspace = true }
+
+[features]
+default = []
+server = [
+    "dioxus/server",
+    "dep:sqlx",
+    "dep:tokio",
+    "dep:reqwest",
+    "dep:utoipa",
+    "dep:utoipa-axum",
+    "dep:utoipa-swagger-ui",
+    "dep:utoipa-scalar",
+    "dep:axum",
+    "dep:dotenvy",
+    "shared-types/openapi",
+    "shared-types/server",
+    "shared-types/validation",
+    "dep:validator",
+    "dep:tracing",
+    "dep:opentelemetry",
+    "dep:opentelemetry_sdk",
+    "dep:opentelemetry-otlp",
+    "dep:opentelemetry-appender-log",
+    "dep:log",
+    "dep:tower",
+    "dep:tower-http",
+    "dep:uuid",
+    "dep:jsonwebtoken",
+    "dep:argon2",
+    "dep:chrono",
+    "dep:oauth2",
+    "dep:urlencoding",
+    "dep:cookie",
+    "dep:aws-sdk-s3",
+    "dep:aws-config",
+    "dep:base64",
+    "dep:sha2",
+    "dep:async-stripe",
+    "dep:hmac",
+    "dep:hex",
+    "dep:rand",
+    "dep:toml",
+]

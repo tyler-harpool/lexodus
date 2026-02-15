@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO config_overrides (court_id, scope, scope_id, config_key, config_value)\n        VALUES ($1, $2, $3, $4, $5)\n        ON CONFLICT (court_id, scope, scope_id, config_key)\n        DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()\n        RETURNING id, court_id, scope, scope_id, config_key, config_value,\n                  created_at, updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "scope",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "scope_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "config_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "config_value",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4d457955c126e0c57cb7afc6ebfc0d82d0eb39e8e401c85a693d552d56ef1896"
+}

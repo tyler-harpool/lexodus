@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT AVG(custody_months)::FLOAT8 as \"avg: f64\"\n        FROM sentencing\n        WHERE court_id = $1 AND custody_months IS NOT NULL\n          AND (adjusted_offense_level IS NULL OR total_offense_level IS NULL\n               OR adjusted_offense_level <= total_offense_level)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "avg: f64",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "05cf60301149f46fa31038a58b970df9132c5efdf309223ab86993270d4901ea"
+}

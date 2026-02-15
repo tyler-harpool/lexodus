@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE attorneys\n        SET status = $3, updated_at = NOW()\n        WHERE id = ANY($1) AND court_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2e1031991156ed61db7926b20758f5266fcb192263dbf867b7bcf870a9ae4262"
+}

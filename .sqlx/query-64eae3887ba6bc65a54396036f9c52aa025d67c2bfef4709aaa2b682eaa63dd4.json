@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COALESCE(json_object_agg(opinion_type, cnt), '{}')::TEXT as \"json!\"\n        FROM (SELECT opinion_type, COUNT(*) as cnt FROM judicial_opinions WHERE court_id = $1 GROUP BY opinion_type) sub\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "json!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "64eae3887ba6bc65a54396036f9c52aa025d67c2bfef4709aaa2b682eaa63dd4"
+}

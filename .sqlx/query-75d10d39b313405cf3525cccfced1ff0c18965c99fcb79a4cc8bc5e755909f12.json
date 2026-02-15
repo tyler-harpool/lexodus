@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, victim_id, notification_type, sent_at,\n               method, content_summary, acknowledged, acknowledged_at\n        FROM victim_notifications\n        WHERE court_id = $1 AND victim_id = $2\n        ORDER BY sent_at DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "victim_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "notification_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "content_summary",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "acknowledged",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "acknowledged_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "75d10d39b313405cf3525cccfced1ff0c18965c99fcb79a4cc8bc5e755909f12"
+}

@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, name, title, district,\n               appointed_date, status, senior_status_date, courtroom,\n               current_caseload, max_caseload, specializations,\n               created_at, updated_at\n        FROM judges\n        WHERE court_id = $1 AND (name ILIKE $2 OR district ILIKE $2)\n        ORDER BY name ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "district",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "appointed_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "senior_status_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "courtroom",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "current_caseload",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "max_caseload",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "specializations",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e939d583141a9c8edd4a1720e887bfa68ed52df88b62fe43d970618e190bfe93"
+}

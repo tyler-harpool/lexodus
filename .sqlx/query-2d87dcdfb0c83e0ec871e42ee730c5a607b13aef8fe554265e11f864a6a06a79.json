@@ -1,0 +1,154 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_id, case_name, docket_number,\n               author_judge_id, author_judge_name, opinion_type,\n               COALESCE(disposition, '') as \"disposition!\",\n               title,\n               COALESCE(syllabus, '') as \"syllabus!\",\n               content, status, is_published, is_precedential,\n               citation_volume, citation_reporter, citation_page,\n               filed_at, published_at, keywords, created_at, updated_at\n        FROM judicial_opinions\n        WHERE court_id = $1 AND is_precedential = true\n        ORDER BY published_at DESC NULLS LAST\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "case_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "docket_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "author_judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "author_judge_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "opinion_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "disposition!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "syllabus!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "is_published",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "is_precedential",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "citation_volume",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "citation_reporter",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "citation_page",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "filed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "keywords",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 21,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 22,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2d87dcdfb0c83e0ec871e42ee730c5a607b13aef8fe554265e11f864a6a06a79"
+}

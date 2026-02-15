@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO filing_uploads (court_id, filename, file_size, content_type, storage_key)\n        VALUES ($1, $2, $3, $4, $5)\n        RETURNING id, court_id, filename, file_size, content_type, storage_key,\n                  sha256, uploaded_at, created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "content_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "storage_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "sha256",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "uploaded_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "3f6e91321b288ab9bb7b4efccc15f94762ec4f4a7f2eca81640f1aea936fdace"
+}

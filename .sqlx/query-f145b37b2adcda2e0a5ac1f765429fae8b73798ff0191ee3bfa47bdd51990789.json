@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE documents\n        SET is_sealed = false,\n            sealing_level = 'Public',\n            seal_reason_code = NULL,\n            seal_motion_id = NULL\n        WHERE id = $1 AND court_id = $2\n        RETURNING id, court_id, case_id, title, document_type, storage_key,\n                  checksum, file_size, content_type, is_sealed, uploaded_by,\n                  source_attachment_id, created_at,\n                  sealing_level, seal_reason_code, seal_motion_id,\n                  replaced_by_document_id, is_stricken\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "document_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "storage_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "checksum",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "content_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "uploaded_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "source_attachment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "sealing_level",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "seal_reason_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "seal_motion_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 16,
+        "name": "replaced_by_document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 17,
+        "name": "is_stricken",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "f145b37b2adcda2e0a5ac1f765429fae8b73798ff0191ee3bfa47bdd51990789"
+}

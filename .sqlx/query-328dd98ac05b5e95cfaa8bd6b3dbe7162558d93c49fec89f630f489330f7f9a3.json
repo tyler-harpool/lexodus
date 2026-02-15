@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT stripe_subscription_id FROM subscriptions\n                   WHERE user_id = $1 AND status = 'active'\n                     AND stripe_subscription_id != $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "stripe_subscription_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "328dd98ac05b5e95cfaa8bd6b3dbe7162558d93c49fec89f630f489330f7f9a3"
+}

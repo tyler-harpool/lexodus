@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO custody_transfers\n            (court_id, evidence_id, transferred_from, transferred_to,\n             date, location, condition, notes)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n        RETURNING id, court_id, evidence_id, transferred_from, transferred_to,\n                  date,\n                  COALESCE(location, '') as \"location!\",\n                  COALESCE(condition, '') as \"condition!\",\n                  notes\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "evidence_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "transferred_from",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "transferred_to",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "condition!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "notes",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true
+    ]
+  },
+  "hash": "70375464164eb4a6f6c0171b866dbf24d2487267fbd67969969c2e7480b25446"
+}

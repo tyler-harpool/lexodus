@@ -1,0 +1,66 @@
+/* DetailList - Themed label/value pair display for detail pages */
+
+.detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+    font-size: var(--font-size-sm);
+    transition: background-color var(--transition-fast);
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-item:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 4%, transparent);
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    border-radius: var(--radius);
+}
+
+.detail-item-label {
+    font-weight: 600;
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    margin-right: var(--space-md);
+}
+
+.detail-item-value {
+    text-align: right;
+    color: var(--color-on-surface);
+    font-family: var(--cyber-font-mono);
+    font-size: var(--font-size-sm);
+}
+
+/* Grid layout for multiple cards side by side */
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--space-lg);
+}
+
+/* Footer row for metadata like IDs and timestamps */
+.detail-footer {
+    display: flex;
+    gap: var(--space-lg);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+    font-size: var(--font-size-xs);
+    color: var(--color-on-surface-muted);
+    font-family: var(--cyber-font-mono);
+}

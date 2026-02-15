@@ -1,0 +1,137 @@
+.cyber-menubar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--color-surface);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+    border-radius: 6px;
+}
+
+.cyber-menubar[data-disabled="true"] {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.cyber-menubar-menu {
+    position: relative;
+}
+
+.cyber-menubar-trigger {
+    background: transparent;
+    color: var(--color-on-surface);
+    border: none;
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.875rem;
+    transition: all 0.15s ease;
+}
+
+.cyber-menubar-trigger:hover {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color: var(--color-primary);
+}
+
+.cyber-menubar-trigger:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+.cyber-menubar-menu[data-state="open"] .cyber-menubar-trigger {
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    color: var(--color-primary);
+}
+
+.cyber-menubar-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 180px;
+    margin-top: 4px;
+    padding: 0.35rem;
+    background: var(--primary-color-4);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: 6px;
+    box-shadow:
+        0 0 12px color-mix(in srgb, var(--color-primary) 25%, transparent),
+        0 8px 24px rgba(0, 0, 0, 0.5);
+    animation: cyber-menubar-slide-in 0.12s ease-out;
+}
+
+.cyber-menubar-content[data-state="closed"] {
+    animation: cyber-menubar-slide-out 0.1s ease-in forwards;
+}
+
+.cyber-menubar-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    user-select: none;
+}
+
+.cyber-menubar-item:hover,
+.cyber-menubar-item:focus {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color: var(--color-primary);
+    outline: none;
+}
+
+.cyber-menubar-item:focus-visible {
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+.cyber-menubar-item[data-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.cyber-menubar-separator {
+    height: 1px;
+    margin: 0.35rem 0.5rem;
+    background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+@keyframes cyber-menubar-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes cyber-menubar-slide-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@media (max-width: 768px) {
+    .cyber-menubar {
+        flex-wrap: wrap;
+    }
+
+    .cyber-menubar-content {
+        position: fixed;
+        top: auto;
+        left: var(--space-md);
+        right: var(--space-md);
+        min-width: unset;
+        width: calc(100vw - 2 * var(--space-md, 1rem));
+        margin-top: 4px;
+    }
+}

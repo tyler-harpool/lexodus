@@ -1,0 +1,46 @@
+/* Toggle - Cyberpunk Theme */
+
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: var(--radius-md, 0.5rem);
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    color: var(--color-on-surface);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+.toggle:hover:not([data-disabled="true"]) {
+    background-color: var(--color-surface);
+    box-shadow: 0 0 6px var(--color-primary);
+}
+
+.toggle:focus-visible {
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+.toggle[data-state="on"] {
+    background-color: var(--color-primary);
+    color: var(--color-on-primary, #000);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 8px var(--color-primary);
+}
+
+.toggle[data-state="on"]:hover:not([data-disabled="true"]) {
+    background-color: var(--color-primary);
+    color: var(--color-on-primary, #000);
+    filter: brightness(1.15);
+    box-shadow: 0 0 12px var(--color-primary), 0 0 20px var(--color-primary);
+}
+
+.toggle[data-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+}

@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE conflict_checks\n        SET cleared = true\n        WHERE id = $1 AND court_id = $2\n        RETURNING\n            id, court_id, attorney_id, check_date, case_id,\n            party_names, adverse_parties, cleared, waiver_obtained, notes\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "attorney_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "check_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "party_names",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 6,
+        "name": "adverse_parties",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 7,
+        "name": "cleared",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "waiver_obtained",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "notes",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8b4f891052b1d836bfa2ad35cb9f35f00ccc710f1d7eae83b35638ad08d24efe"
+}

@@ -1,0 +1,61 @@
+/* Switch - Cyberpunk Theme */
+
+.switch {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    width: 2.75rem;
+    height: 1.5rem;
+    padding: 0.125rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    outline: none;
+    flex-shrink: 0;
+}
+
+.switch:hover:not([data-disabled="true"]) {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 6px var(--color-primary);
+}
+
+.switch:focus-visible {
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+.switch[data-state="checked"] {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 8px var(--color-primary);
+}
+
+.switch[data-state="checked"]:hover:not([data-disabled="true"]) {
+    box-shadow: 0 0 12px var(--color-primary), 0 0 20px var(--color-primary);
+}
+
+.switch[data-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.switch-thumb {
+    display: block;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 9999px;
+    background-color: var(--color-on-surface);
+    transition: transform var(--transition-fast);
+    will-change: transform;
+}
+
+.switch[data-state="checked"] .switch-thumb {
+    transform: translateX(1.25rem);
+    background-color: var(--color-on-primary, #000);
+}
+
+.switch[data-state="unchecked"] .switch-thumb {
+    transform: translateX(0);
+}

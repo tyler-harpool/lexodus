@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(*) as \"count!\"\n        FROM service_records\n        WHERE court_id = $1\n          AND ($2::uuid IS NULL OR document_id = $2)\n          AND ($3::uuid IS NULL OR party_id = $3)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5a52bc8df6ce8e119538fa4128257af4e5aae0bad8e67aa861e0b9c027bfd61d"
+}

@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO prior_sentences\n            (court_id, sentencing_id, defendant_id, prior_case_number,\n             jurisdiction, offense, conviction_date, sentence_length_months,\n             points_assigned)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n        RETURNING id, court_id, sentencing_id, defendant_id, prior_case_number,\n                  jurisdiction, offense, conviction_date, sentence_length_months,\n                  points_assigned, created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "sentencing_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "defendant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "prior_case_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "jurisdiction",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "offense",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "conviction_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "sentence_length_months",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "points_assigned",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "0cb2b89d69ef3332326629a05232be3f8b6bb16c324a6c190e96412e0d11d3e5"
+}

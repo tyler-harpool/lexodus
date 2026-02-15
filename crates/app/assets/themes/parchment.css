@@ -1,0 +1,64 @@
+/* ============================================
+   PARCHMENT — Warm document-reading light theme
+   Cream-toned surfaces reduce eye strain during
+   extended reading. Forest green accents evoke
+   traditional legal publishing.
+   ============================================ */
+
+[data-theme="parchment"] {
+    --dark: ;
+    --light: initial;
+
+    --primary-color-1: #fefcf8;
+    --primary-color-2: #faf6f0;
+    --primary-color-3: #f3ede4;
+    --primary-color-4: #e8e0d4;
+    --primary-color-5: #d4c8b8;
+    --primary-color-6: #b8a898;
+    --primary-color-7: #9a8878;
+    --primary-color-8: #7a6858;
+    --primary-color-9: #5a4838;
+
+    --secondary-color-1: #2c1e12;
+    --secondary-color-2: #3d2e20;
+    --secondary-color-3: #5a4838;
+    --secondary-color-4: #7a6858;
+    --secondary-color-5: #9a8878;
+    --secondary-color-6: #b8a898;
+    --secondary-color-7: #d4c8b8;
+
+    --color-background: var(--primary-color-2);
+    --color-surface: var(--primary-color-1);
+    --color-surface-raised: var(--primary-color-3);
+    --color-surface-dialog: var(--primary-color-1);
+    --color-on-surface: var(--secondary-color-1);
+    --color-on-surface-muted: var(--secondary-color-4);
+
+    --color-border: var(--primary-color-5);
+    --color-border-focus: #2e6b48;
+
+    --color-primary: #2e6b48;
+    --color-primary-hover: #245838;
+    --color-on-primary: #fefcf8;
+
+    --color-secondary: #6b4c2e;
+    --color-secondary-hover: #584024;
+    --color-on-secondary: #fefcf8;
+
+    --color-danger: #a82a2a;
+    --color-on-danger: #fefcf8;
+    --color-success: #2e6b48;
+    --color-on-success: #fefcf8;
+    --color-warning: #b87a2a;
+    --color-on-warning: #fefcf8;
+
+    --focused-border-color: var(--color-primary);
+
+    --shadow-sm: 0 1px 2px rgba(90, 72, 56, 0.08);
+    --shadow-md: 0 4px 6px rgba(90, 72, 56, 0.1);
+    --shadow-lg: 0 10px 15px rgba(90, 72, 56, 0.12);
+
+    --cyber-neon-glow: 0 0 0 1px rgba(46, 107, 72, 0.2);
+    --cyber-neon-glow-strong: 0 0 0 2px rgba(46, 107, 72, 0.3);
+    --cyber-scanline-opacity: 0;
+}

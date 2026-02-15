@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT DISTINCT\n            'Attorney already represents ' || p.name || ' in case ' || c.case_number as \"conflict!\"\n        FROM representations r\n        JOIN parties p ON p.id = r.party_id AND p.court_id = r.court_id\n        JOIN criminal_cases c ON c.id = r.case_id AND c.court_id = r.court_id\n        WHERE r.court_id = $1\n          AND r.attorney_id = $2\n          AND r.status = 'Active'\n          AND p.name = ANY($3)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "conflict!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "35f846b50dea93eebdbda688b04d8fee53dbf3009548338d817cc6f17e0a2aeb"
+}

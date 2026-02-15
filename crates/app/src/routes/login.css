@@ -1,0 +1,240 @@
+.auth-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    padding: var(--spacing-lg);
+}
+
+.auth-page .card {
+    width: 100%;
+    max-width: 420px;
+}
+
+.auth-error {
+    background: var(--color-error-container, rgba(255, 0, 0, 0.1));
+    color: var(--color-error, #ff4444);
+    border: 1px solid var(--color-error, #ff4444);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+.auth-field {
+    margin-bottom: var(--spacing-md);
+}
+
+.auth-field .label {
+    margin-bottom: var(--spacing-xs);
+}
+
+.auth-field .input-wrapper {
+    width: 100%;
+}
+
+.auth-submit.button {
+    width: 100%;
+    margin-top: var(--spacing-xl, 1.5rem);
+    padding: var(--spacing-md, 0.75rem) var(--spacing-lg, 1rem);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--cyber-font-mono, monospace);
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background var(--transition-fast, 0.15s), box-shadow var(--transition-fast, 0.15s);
+}
+
+.auth-submit.button:hover:not(:disabled) {
+    box-shadow: var(--cyber-neon-glow, 0 0 8px var(--color-primary));
+    opacity: 0.9;
+}
+
+.auth-submit.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.auth-link {
+    text-align: center;
+    width: 100%;
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-size-sm);
+}
+
+.auth-link a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+/* OAuth buttons */
+.auth-oauth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+/* OAuth links styled as outline buttons — these are <a> tags from Link,
+   not <button> elements, so we replicate the button outline styles here. */
+.auth-oauth-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius);
+    font-family: var(--cyber-font-mono);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-decoration: none;
+    background: transparent;
+    color: var(--color-primary);
+    border: var(--cyber-border-width) solid var(--color-primary);
+    transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.auth-oauth-btn:hover {
+    background: var(--primary-color-5);
+    box-shadow: var(--cyber-neon-glow);
+}
+
+.auth-oauth-btn[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Divider with "or" text */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.auth-divider .separator {
+    flex: 1;
+}
+
+.auth-divider-text {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+/* Success message */
+.auth-success {
+    background: var(--color-success-container, rgba(0, 200, 100, 0.1));
+    color: var(--color-success, #00c864);
+    border: 1px solid var(--color-success, #00c864);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+/* Set password section for OAuth accounts */
+.auth-set-password-info {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.5;
+}
+
+/* Forgot password link */
+.auth-forgot-password {
+    text-align: right;
+    margin-top: calc(-1 * var(--spacing-xs));
+    margin-bottom: var(--spacing-sm);
+}
+
+.auth-forgot-password a {
+    color: var(--color-primary);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+}
+
+.auth-forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* Per-field validation errors */
+.auth-field-error {
+    color: var(--color-error, #ff4444);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+/* Loading state for auth guard */
+.auth-guard-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    color: var(--color-on-surface-variant);
+}
+
+/* ── Device Authorization Flow ────────────────────── */
+
+.device-auth-instructions {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.device-auth-instructions p {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-size-sm);
+}
+
+.device-auth-code {
+    font-family: var(--cyber-font-mono, monospace);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md) var(--spacing-xl);
+    background: var(--color-surface-variant, rgba(0, 0, 0, 0.2));
+    user-select: all;
+}
+
+.device-auth-url {
+    font-family: var(--cyber-font-mono, monospace);
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface);
+    background: var(--color-surface-variant, rgba(0, 0, 0, 0.2));
+    border: 1px solid var(--color-outline, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    word-break: break-all;
+    user-select: all;
+}
+
+.device-auth-hint {
+    font-style: italic;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    animation: device-auth-pulse 2s ease-in-out infinite;
+}
+
+@keyframes device-auth-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}

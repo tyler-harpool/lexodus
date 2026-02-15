@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT r.party_id,\n               (a.first_name || ' ' || a.last_name) as \"attorney_name!\",\n               a.email as \"email?\",\n               a.phone as \"phone?\",\n               a.nef_sms_opt_in\n        FROM representations r\n        JOIN attorneys a ON a.id = r.attorney_id AND a.court_id = r.court_id\n        WHERE r.court_id = $1 AND r.case_id = $2 AND r.status = 'Active'\n        ORDER BY a.last_name ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "party_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "attorney_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "email?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "phone?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "nef_sms_opt_in",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "775afa059e23cfce9708923ecb9749a5b004d9935c57af5cc3e439c46e9c5212"
+}

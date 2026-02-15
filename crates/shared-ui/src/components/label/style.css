@@ -1,0 +1,16 @@
+/* Label - Cyberpunk Theme */
+
+.label {
+    color: var(--color-on-surface);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    cursor: default;
+    user-select: none;
+    transition: color var(--transition-fast);
+}
+
+.label:hover {
+    color: var(--color-primary);
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO court_role_requests (user_id, court_id, requested_role, status, reviewed_at, notes)\n               VALUES ($1, $2, 'clerk', 'approved', NOW(), 'Auto-approved via uscourts.gov email domain')\n               ON CONFLICT (user_id, court_id, status) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d4fd4797c94a74d15be879b5d7d7acb196893a4f050686703f2487c82d6739d7"
+}

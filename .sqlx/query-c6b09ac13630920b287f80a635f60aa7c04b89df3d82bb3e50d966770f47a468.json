@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            sr.id, sr.court_id, sr.document_id, sr.party_id,\n            p.name AS party_name, p.party_type,\n            sr.service_date, sr.service_method, sr.served_by,\n            sr.proof_of_service_filed, sr.successful, sr.attempts, sr.notes\n        FROM service_records sr\n        JOIN parties p ON p.id = sr.party_id\n        WHERE sr.court_id = $1 AND sr.document_id = $2\n        ORDER BY p.name ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "party_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "party_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "party_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "service_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "service_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "served_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "proof_of_service_filed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "successful",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "attempts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "notes",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c6b09ac13630920b287f80a635f60aa7c04b89df3d82bb3e50d966770f47a468"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT phone_number FROM users WHERE id = $1 AND phone_verified = true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "phone_number",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "ee6c98fa55d56aa33b5680dbafd2799f1dc71b92fbb2e70bc2dc937b5842d0c8"
+}

@@ -1,0 +1,558 @@
+{
+  "info": {
+    "name": "Dioxus Template API",
+    "description": "End-to-end API tests for the Dioxus Template project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "/health",
+          "host": [""],
+          "path": ["health"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Health check returns 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has status field', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('status');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"newman_user\",\n  \"email\": \"newman@test.local\",\n  \"password\": \"Newman!Test1234\",\n  \"display_name\": \"Newman Test User\"\n}"
+        },
+        "url": {
+          "raw": "/api/v1/auth/register",
+          "host": [""],
+          "path": ["api", "v1", "auth", "register"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Register returns 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response contains access_token', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('access_token');",
+              "    pm.environment.set('access_token', json.access_token);",
+              "});",
+              "",
+              "pm.test('Response contains user object', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('user');",
+              "    pm.expect(json.user).to.have.property('id');",
+              "    pm.expect(json.user.username).to.eql('newman_user');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"newman@test.local\",\n  \"password\": \"Newman!Test1234\"\n}"
+        },
+        "url": {
+          "raw": "/api/v1/auth/login",
+          "host": [""],
+          "path": ["api", "v1", "auth", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login returns 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains access_token', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('access_token');",
+              "    pm.environment.set('access_token', json.access_token);",
+              "});",
+              "",
+              "pm.test('Response contains user object', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('user');",
+              "    pm.expect(json.user.email).to.eql('newman@test.local');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "url": {
+          "raw": "/api/v1/users",
+          "host": [""],
+          "path": ["api", "v1", "users"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('List users returns 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is an array', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"newman_crud_user\",\n  \"display_name\": \"Newman CRUD User\"\n}"
+        },
+        "url": {
+          "raw": "/api/v1/users",
+          "host": [""],
+          "path": ["api", "v1", "users"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create user returns 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response contains user with id', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('id');",
+              "    pm.environment.set('user_id', json.id);",
+              "});",
+              "",
+              "pm.test('User has correct username', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json.username).to.eql('newman_crud_user');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "url": {
+          "raw": "/api/v1/users/",
+          "host": [""],
+          "path": ["api", "v1", "users", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get user returns 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct user', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('id');",
+              "    pm.expect(json.username).to.eql('newman_crud_user');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update User",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"newman_updated_user\",\n  \"display_name\": \"Newman Updated User\"\n}"
+        },
+        "url": {
+          "raw": "/api/v1/users/",
+          "host": [""],
+          "path": ["api", "v1", "users", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Update user returns 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('User was updated', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json.username).to.eql('newman_updated_user');",
+              "    pm.expect(json.display_name).to.eql('Newman Updated User');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete User",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "url": {
+          "raw": "/api/v1/users/",
+          "host": [""],
+          "path": ["api", "v1", "users", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Delete user returns 204', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Products",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "url": {
+          "raw": "/api/v1/products",
+          "host": [""],
+          "path": ["api", "v1", "products"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('List products returns 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is an array', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Product",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Newman Test Product\",\n  \"description\": \"A product created by Newman API tests\",\n  \"price\": 29.99,\n  \"category\": \"testing\",\n  \"status\": \"active\"\n}"
+        },
+        "url": {
+          "raw": "/api/v1/products",
+          "host": [""],
+          "path": ["api", "v1", "products"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create product returns 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response contains product with id', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('id');",
+              "    pm.environment.set('product_id', json.id);",
+              "});",
+              "",
+              "pm.test('Product has correct name', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json.name).to.eql('Newman Test Product');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update Product",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Newman Updated Product\",\n  \"description\": \"Updated by Newman API tests\",\n  \"price\": 39.99,\n  \"category\": \"testing\",\n  \"status\": \"active\"\n}"
+        },
+        "url": {
+          "raw": "/api/v1/products/",
+          "host": [""],
+          "path": ["api", "v1", "products", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Update product returns 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Product was updated', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json.name).to.eql('Newman Updated Product');",
+              "    pm.expect(json.price).to.eql(39.99);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete Product",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "url": {
+          "raw": "/api/v1/products/",
+          "host": [""],
+          "path": ["api", "v1", "products", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Delete product returns 204', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard Stats",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "url": {
+          "raw": "/api/v1/dashboard/stats",
+          "host": [""],
+          "path": ["api", "v1", "dashboard", "stats"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dashboard stats returns 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has expected fields', function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('total_users');",
+              "    pm.expect(json).to.have.property('total_products');",
+              "    pm.expect(json).to.have.property('active_products');",
+              "    pm.expect(json).to.have.property('recent_users');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer "
+          }
+        ],
+        "url": {
+          "raw": "/api/v1/auth/logout",
+          "host": [""],
+          "path": ["api", "v1", "auth", "logout"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout returns 204', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

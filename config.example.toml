@@ -1,0 +1,7 @@
+[features]
+oauth = false
+stripe = false
+mailgun = false
+twilio = false
+s3 = false
+telemetry = false

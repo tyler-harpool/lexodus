@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO service_records (\n                court_id, document_id, party_id, service_date,\n                service_method, served_by, proof_of_service_filed, successful, attempts,\n                certificate_of_service\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, false, true, 1, $7)\n            RETURNING\n                id, court_id, document_id, party_id, service_date,\n                service_method, served_by, proof_of_service_filed, successful, attempts, notes,\n                certificate_of_service\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "party_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "service_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "service_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "served_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "proof_of_service_filed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "successful",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "attempts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "certificate_of_service",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "3ecd68defe9f825ef22b1a9bec72e7996449a952e1a327da98df3151dd81dc28"
+}

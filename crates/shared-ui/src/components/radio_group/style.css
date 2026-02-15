@@ -1,0 +1,72 @@
+/* RadioGroup - Cyberpunk Theme */
+
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.radio-group[data-orientation="horizontal"] {
+    flex-direction: row;
+    gap: 1rem;
+}
+
+.radio-group[data-disabled="true"] {
+    opacity: 0.4;
+}
+
+.radio-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border-radius: 9999px;
+    border: 2px solid var(--color-border);
+    background-color: transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    outline: none;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.radio-item::after {
+    content: "";
+    display: block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: transparent;
+    transition: all var(--transition-fast);
+}
+
+.radio-item:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 6px var(--color-primary);
+}
+
+.radio-item:focus-visible {
+    box-shadow: 0 0 0 2px var(--focused-border-color), var(--cyber-neon-glow);
+}
+
+.radio-item[data-state="checked"] {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 8px var(--color-primary);
+}
+
+.radio-item[data-state="checked"]::after {
+    background-color: var(--color-primary);
+    box-shadow: 0 0 4px var(--color-primary);
+}
+
+.radio-item[data-state="checked"]:hover:not(:disabled) {
+    box-shadow: 0 0 12px var(--color-primary), 0 0 20px var(--color-primary);
+}
+
+.radio-item[data-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+}

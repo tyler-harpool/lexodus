@@ -1,0 +1,147 @@
+.cyber-alert-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    animation: cyber-alert-backdrop-in 0.2s ease-out;
+}
+
+.cyber-alert-dialog-overlay[data-state="closed"] {
+    animation: cyber-alert-backdrop-out 0.15s ease-in forwards;
+    pointer-events: none;
+}
+
+.cyber-alert-dialog-content {
+    position: relative;
+    min-width: 320px;
+    max-width: 480px;
+    width: 90vw;
+    padding: 1.5rem;
+    background: var(--color-surface-dialog);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: 8px;
+    box-shadow:
+        0 0 20px color-mix(in srgb, var(--color-primary) 30%, transparent),
+        0 16px 48px rgba(0, 0, 0, 0.6);
+    animation: cyber-alert-content-in 0.25s ease-out;
+}
+
+.cyber-alert-dialog-overlay[data-state="closed"] .cyber-alert-dialog-content {
+    animation: cyber-alert-content-out 0.15s ease-in forwards;
+}
+
+.cyber-alert-dialog-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.cyber-alert-dialog-description {
+    margin: 0 0 1.25rem 0;
+    font-size: 0.9rem;
+    color: var(--color-on-surface);
+    opacity: 0.85;
+    line-height: 1.5;
+}
+
+.cyber-alert-dialog-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.cyber-alert-dialog-action {
+    padding: 0.5rem 1.25rem;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+.cyber-alert-dialog-action:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--color-primary) 50%, transparent);
+}
+
+.cyber-alert-dialog-action:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+.cyber-alert-dialog-cancel {
+    padding: 0.5rem 1.25rem;
+    background: transparent;
+    color: var(--color-on-surface);
+    border: 1px solid color-mix(in srgb, var(--color-on-surface) 30%, transparent);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.cyber-alert-dialog-cancel:hover {
+    background: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
+    border-color: var(--color-on-surface);
+}
+
+.cyber-alert-dialog-cancel:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px var(--focused-border-color),
+        var(--cyber-neon-glow);
+}
+
+@keyframes cyber-alert-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes cyber-alert-backdrop-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes cyber-alert-content-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes cyber-alert-content-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+@media (max-width: 768px) {
+    .cyber-alert-dialog-content {
+        max-width: 95vw;
+        padding: var(--space-md);
+    }
+}

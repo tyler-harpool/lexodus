@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE motions SET\n            motion_type = COALESCE($3, motion_type),\n            filed_by    = COALESCE($4, filed_by),\n            description = COALESCE($5, description),\n            status      = COALESCE($6, status),\n            ruling_date = COALESCE($7, ruling_date),\n            ruling_text = COALESCE($8, ruling_text)\n        WHERE id = $1 AND court_id = $2\n        RETURNING id, court_id, case_id, motion_type, filed_by, description,\n                  filed_date, status, ruling_date, ruling_text\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "motion_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "filed_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "filed_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "ruling_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "ruling_text",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "f2348020159a60af41b926dad801a6201e18ef5e5ff9b6b7daac6c47f9abee22"
+}

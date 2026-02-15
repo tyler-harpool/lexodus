@@ -1,0 +1,121 @@
+/* ============================================
+   SOLARIZED — Ethan Schoonover's palette
+   ============================================ */
+
+/* Dark */
+[data-theme="solar"] {
+    --dark: initial;
+    --light: ;
+
+    --primary-color-1: #002b36;
+    --primary-color-2: #073642;
+    --primary-color-3: #0a3f4c;
+    --primary-color-4: #104959;
+    --primary-color-5: #1a5566;
+    --primary-color-6: #2a6373;
+    --primary-color-7: #3d7a8a;
+    --primary-color-8: #5693a3;
+    --primary-color-9: #6eaabb;
+
+    --secondary-color-1: #fdf6e3;
+    --secondary-color-2: #eee8d5;
+    --secondary-color-3: #c4bda8;
+    --secondary-color-4: #93a1a1;
+    --secondary-color-5: #839496;
+    --secondary-color-6: #657b83;
+    --secondary-color-7: #586e75;
+
+    --color-background: var(--primary-color-1);
+    --color-surface: var(--primary-color-2);
+    --color-surface-raised: var(--primary-color-4);
+    --color-surface-dialog: var(--primary-color-5);
+    --color-on-surface: var(--secondary-color-1);
+    --color-on-surface-muted: var(--secondary-color-4);
+
+    --color-border: var(--primary-color-5);
+    --color-border-focus: var(--color-primary);
+
+    --color-primary: #268bd2;
+    --color-primary-hover: #4aa3e0;
+    --color-on-primary: #fdf6e3;
+
+    --color-secondary: #6c71c4;
+    --color-secondary-hover: #858ae0;
+    --color-on-secondary: #fdf6e3;
+
+    --color-danger: #dc322f;
+    --color-on-danger: #fdf6e3;
+    --color-success: #859900;
+    --color-on-success: #fdf6e3;
+    --color-warning: #b58900;
+    --color-on-warning: #fdf6e3;
+
+    --focused-border-color: var(--color-primary);
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.4);
+
+    --cyber-neon-glow: 0 0 6px rgba(38, 139, 210, 0.3);
+    --cyber-neon-glow-strong: 0 0 10px rgba(38, 139, 210, 0.5);
+    --cyber-scanline-opacity: 0;
+}
+
+/* Light */
+[data-theme="solar-light"] {
+    --dark: ;
+    --light: initial;
+
+    --primary-color-1: #fdf6e3;
+    --primary-color-2: #eee8d5;
+    --primary-color-3: #e6dfcc;
+    --primary-color-4: #d6cfbc;
+    --primary-color-5: #c4bda8;
+    --primary-color-6: #a89f8a;
+    --primary-color-7: #93a1a1;
+    --primary-color-8: #839496;
+    --primary-color-9: #657b83;
+
+    --secondary-color-1: #002b36;
+    --secondary-color-2: #073642;
+    --secondary-color-3: #2e4a52;
+    --secondary-color-4: #586e75;
+    --secondary-color-5: #657b83;
+    --secondary-color-6: #839496;
+    --secondary-color-7: #93a1a1;
+
+    --color-background: var(--primary-color-2);
+    --color-surface: var(--primary-color-1);
+    --color-surface-raised: var(--primary-color-3);
+    --color-surface-dialog: var(--primary-color-1);
+    --color-on-surface: var(--secondary-color-1);
+    --color-on-surface-muted: var(--secondary-color-4);
+
+    --color-border: var(--primary-color-5);
+    --color-border-focus: #268bd2;
+
+    --color-primary: #268bd2;
+    --color-primary-hover: #1a6da8;
+    --color-on-primary: #fdf6e3;
+
+    --color-secondary: #6c71c4;
+    --color-secondary-hover: #565ba0;
+    --color-on-secondary: #fdf6e3;
+
+    --color-danger: #dc322f;
+    --color-on-danger: #fdf6e3;
+    --color-success: #859900;
+    --color-on-success: #fdf6e3;
+    --color-warning: #b58900;
+    --color-on-warning: #fdf6e3;
+
+    --focused-border-color: var(--color-primary);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+    --cyber-neon-glow: 0 0 6px rgba(38, 139, 210, 0.2);
+    --cyber-neon-glow-strong: 0 0 10px rgba(38, 139, 210, 0.35);
+    --cyber-scanline-opacity: 0;
+}

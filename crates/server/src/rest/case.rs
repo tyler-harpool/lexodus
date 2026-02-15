@@ -1,0 +1,834 @@
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    Json,
+};
+use sqlx::{Pool, Postgres};
+use uuid::Uuid;
+
+use shared_types::{
+    AddCaseEventRequest, AppError, CaseResponse, CaseSearchParams, CaseSearchResponse,
+    CaseStatistics, CreateCaseRequest, CriminalCase, FilingStatsResponse, PleaRequest,
+    SealCaseRequest, UpdateCaseRequest, UpdateCaseStatusRequest, UpdatePriorityRequest,
+    is_valid_case_status, is_valid_crime_type, is_valid_case_priority, is_valid_plea_type,
+    CASE_STATUSES, CASE_PRIORITIES, CRIME_TYPES,
+};
+use crate::error_convert::SqlxErrorExt;
+use crate::tenant::CourtId;
+
+/// POST /api/cases
+#[utoipa::path(
+    post,
+    path = "/api/cases",
+    request_body = CreateCaseRequest,
+    params(
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 201, description = "Case created", body = CaseResponse),
+        (status = 400, description = "Invalid request", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn create_case(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Json(body): Json<CreateCaseRequest>,
+) -> Result<(StatusCode, Json<CaseResponse>), AppError> {
+    if body.title.trim().is_empty() {
+        return Err(AppError::bad_request("title must not be empty"));
+    }
+
+    if !is_valid_crime_type(&body.crime_type) {
+        return Err(AppError::bad_request(format!(
+            "Invalid crime_type: {}. Valid values: {}",
+            body.crime_type,
+            CRIME_TYPES.join(", ")
+        )));
+    }
+
+    if let Some(ref p) = body.priority {
+        if !is_valid_case_priority(p) {
+            return Err(AppError::bad_request(format!(
+                "Invalid priority: {}. Valid values: {}",
+                p,
+                CASE_PRIORITIES.join(", ")
+            )));
+        }
+    }
+
+    let case = crate::repo::case::create(&pool, &court.0, body).await?;
+    Ok((StatusCode::CREATED, Json(CaseResponse::from(case))))
+}
+
+/// GET /api/cases/{id}
+#[utoipa::path(
+    get,
+    path = "/api/cases/{id}",
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Case found", body = CaseResponse),
+        (status = 404, description = "Not found", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn get_case(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(id): Path<String>,
+) -> Result<Json<CaseResponse>, AppError> {
+    let uuid = Uuid::parse_str(&id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    let case = crate::repo::case::find_by_id(&pool, &court.0, uuid)
+        .await?
+        .ok_or_else(|| AppError::not_found(format!("Case {} not found", id)))?;
+
+    Ok(Json(CaseResponse::from(case)))
+}
+
+/// DELETE /api/cases/{id}
+#[utoipa::path(
+    delete,
+    path = "/api/cases/{id}",
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 204, description = "Case deleted"),
+        (status = 404, description = "Not found", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn delete_case(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(id): Path<String>,
+) -> Result<StatusCode, AppError> {
+    let uuid = Uuid::parse_str(&id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    let deleted = crate::repo::case::delete(&pool, &court.0, uuid).await?;
+
+    if deleted {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(AppError::not_found(format!("Case {} not found", id)))
+    }
+}
+
+/// PATCH /api/cases/{id}/status
+#[utoipa::path(
+    patch,
+    path = "/api/cases/{id}/status",
+    request_body = UpdateCaseStatusRequest,
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Status updated", body = CaseResponse),
+        (status = 400, description = "Invalid status", body = AppError),
+        (status = 404, description = "Not found", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn update_case_status(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(id): Path<String>,
+    Json(body): Json<UpdateCaseStatusRequest>,
+) -> Result<Json<CaseResponse>, AppError> {
+    let uuid = Uuid::parse_str(&id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    if !is_valid_case_status(&body.status) {
+        return Err(AppError::bad_request(format!(
+            "Invalid status: {}. Valid values: {}",
+            body.status,
+            CASE_STATUSES.join(", ")
+        )));
+    }
+
+    let case = crate::repo::case::update_status(&pool, &court.0, uuid, &body.status)
+        .await?
+        .ok_or_else(|| AppError::not_found(format!("Case {} not found", id)))?;
+
+    Ok(Json(CaseResponse::from(case)))
+}
+
+/// PATCH /api/cases/{id}
+#[utoipa::path(
+    patch,
+    path = "/api/cases/{id}",
+    request_body = UpdateCaseRequest,
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Case updated", body = CaseResponse),
+        (status = 400, description = "Invalid request", body = AppError),
+        (status = 404, description = "Not found", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn update_case(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(id): Path<String>,
+    Json(body): Json<UpdateCaseRequest>,
+) -> Result<Json<CaseResponse>, AppError> {
+    let uuid = Uuid::parse_str(&id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    if let Some(ref ct) = body.crime_type {
+        if !is_valid_crime_type(ct) {
+            return Err(AppError::bad_request(format!(
+                "Invalid crime_type: {}. Valid values: {}",
+                ct,
+                CRIME_TYPES.join(", ")
+            )));
+        }
+    }
+
+    if let Some(ref s) = body.status {
+        if !is_valid_case_status(s) {
+            return Err(AppError::bad_request(format!(
+                "Invalid status: {}. Valid values: {}",
+                s,
+                CASE_STATUSES.join(", ")
+            )));
+        }
+    }
+
+    if let Some(ref p) = body.priority {
+        if !is_valid_case_priority(p) {
+            return Err(AppError::bad_request(format!(
+                "Invalid priority: {}. Valid values: {}",
+                p,
+                CASE_PRIORITIES.join(", ")
+            )));
+        }
+    }
+
+    if let Some(ref t) = body.title {
+        if t.trim().is_empty() {
+            return Err(AppError::bad_request("title must not be empty"));
+        }
+    }
+
+    let case = crate::repo::case::update(&pool, &court.0, uuid, body)
+        .await?
+        .ok_or_else(|| AppError::not_found(format!("Case {} not found", id)))?;
+
+    Ok(Json(CaseResponse::from(case)))
+}
+
+/// GET /api/cases
+#[utoipa::path(
+    get,
+    path = "/api/cases",
+    params(
+        CaseSearchParams,
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Search results", body = CaseSearchResponse)
+    ),
+    tag = "cases"
+)]
+pub async fn search_cases(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Query(params): Query<CaseSearchParams>,
+) -> Result<Json<CaseSearchResponse>, AppError> {
+    let offset = params.offset.unwrap_or(0).max(0);
+    let limit = params.limit.unwrap_or(20).clamp(1, 100);
+
+    if let Some(ref s) = params.status {
+        if !is_valid_case_status(s) {
+            return Err(AppError::bad_request(format!("Invalid status: {}", s)));
+        }
+    }
+
+    if let Some(ref ct) = params.crime_type {
+        if !is_valid_crime_type(ct) {
+            return Err(AppError::bad_request(format!("Invalid crime_type: {}", ct)));
+        }
+    }
+
+    if let Some(ref p) = params.priority {
+        if !is_valid_case_priority(p) {
+            return Err(AppError::bad_request(format!("Invalid priority: {}", p)));
+        }
+    }
+
+    let (cases, total) = crate::repo::case::search(
+        &pool,
+        &court.0,
+        params.status.as_deref(),
+        params.crime_type.as_deref(),
+        params.priority.as_deref(),
+        params.q.as_deref(),
+        offset,
+        limit,
+    )
+    .await?;
+
+    let response = CaseSearchResponse {
+        cases: cases.into_iter().map(CaseResponse::from).collect(),
+        total,
+    };
+
+    Ok(Json(response))
+}
+
+/// GET /api/cases/statistics
+#[utoipa::path(
+    get,
+    path = "/api/cases/statistics",
+    params(
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Case statistics", body = CaseStatistics)
+    ),
+    tag = "cases"
+)]
+pub async fn case_statistics(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+) -> Result<Json<CaseStatistics>, AppError> {
+    let total = sqlx::query_scalar!(
+        r#"SELECT COUNT(*) as "count!" FROM criminal_cases WHERE court_id = $1"#,
+        court.0,
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let by_status_raw = sqlx::query_scalar!(
+        r#"
+        SELECT COALESCE(
+            json_object_agg(status, cnt),
+            '{}'::json
+        )::TEXT as "json!"
+        FROM (
+            SELECT status, COUNT(*) as cnt
+            FROM criminal_cases
+            WHERE court_id = $1
+            GROUP BY status
+        ) sub
+        "#,
+        court.0,
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let by_crime_raw = sqlx::query_scalar!(
+        r#"
+        SELECT COALESCE(
+            json_object_agg(crime_type, cnt),
+            '{}'::json
+        )::TEXT as "json!"
+        FROM (
+            SELECT crime_type, COUNT(*) as cnt
+            FROM criminal_cases
+            WHERE court_id = $1
+            GROUP BY crime_type
+        ) sub
+        "#,
+        court.0,
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let avg_duration: Option<f64> = sqlx::query_scalar!(
+        r#"
+        SELECT AVG(EXTRACT(EPOCH FROM (COALESCE(closed_at, NOW()) - opened_at)) / 86400.0)::float8 as "avg"
+        FROM criminal_cases
+        WHERE court_id = $1
+        "#,
+        court.0,
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let by_status: serde_json::Value = serde_json::from_str(&by_status_raw)
+        .unwrap_or(serde_json::json!({}));
+    let by_crime_type: serde_json::Value = serde_json::from_str(&by_crime_raw)
+        .unwrap_or(serde_json::json!({}));
+
+    Ok(Json(CaseStatistics {
+        total,
+        by_status,
+        by_crime_type,
+        avg_duration_days: avg_duration,
+    }))
+}
+
+/// GET /api/cases/by-number/{case_number}
+#[utoipa::path(
+    get,
+    path = "/api/cases/by-number/{case_number}",
+    params(
+        ("case_number" = String, Path, description = "Case number"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Case found", body = CaseResponse),
+        (status = 404, description = "Not found", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn get_by_case_number(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(case_number): Path<String>,
+) -> Result<Json<CaseResponse>, AppError> {
+    let row = sqlx::query_as!(
+        CriminalCase,
+        r#"
+        SELECT id, court_id, case_number, title, description, crime_type,
+               status, priority, assigned_judge_id, district_code, location,
+               is_sealed, sealed_date, sealed_by, seal_reason,
+               opened_at, updated_at, closed_at
+        FROM criminal_cases
+        WHERE court_id = $1 AND case_number = $2
+        "#,
+        court.0,
+        case_number,
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?
+    .ok_or_else(|| AppError::not_found(format!("Case with number {} not found", case_number)))?;
+
+    Ok(Json(CaseResponse::from(row)))
+}
+
+/// GET /api/cases/by-judge/{judge_id}
+#[utoipa::path(
+    get,
+    path = "/api/cases/by-judge/{judge_id}",
+    params(
+        ("judge_id" = String, Path, description = "Judge UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Cases for judge", body = Vec<CaseResponse>)
+    ),
+    tag = "cases"
+)]
+pub async fn list_by_judge(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(judge_id): Path<String>,
+) -> Result<Json<Vec<CaseResponse>>, AppError> {
+    let uuid = Uuid::parse_str(&judge_id)
+        .map_err(|_| AppError::bad_request("Invalid judge UUID format"))?;
+
+    let rows = sqlx::query_as!(
+        CriminalCase,
+        r#"
+        SELECT id, court_id, case_number, title, description, crime_type,
+               status, priority, assigned_judge_id, district_code, location,
+               is_sealed, sealed_date, sealed_by, seal_reason,
+               opened_at, updated_at, closed_at
+        FROM criminal_cases
+        WHERE court_id = $1 AND assigned_judge_id = $2
+        ORDER BY opened_at DESC
+        "#,
+        court.0,
+        uuid,
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let response: Vec<CaseResponse> = rows.into_iter().map(CaseResponse::from).collect();
+    Ok(Json(response))
+}
+
+/// GET /api/cases/count-by-status/{status}
+#[utoipa::path(
+    get,
+    path = "/api/cases/count-by-status/{status}",
+    params(
+        ("status" = String, Path, description = "Case status"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Count of cases with status", body = serde_json::Value)
+    ),
+    tag = "cases"
+)]
+pub async fn count_by_status(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(status): Path<String>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    if !is_valid_case_status(&status) {
+        return Err(AppError::bad_request(format!(
+            "Invalid status: {}. Valid values: {}",
+            status,
+            CASE_STATUSES.join(", ")
+        )));
+    }
+
+    let count = sqlx::query_scalar!(
+        r#"SELECT COUNT(*) as "count!" FROM criminal_cases WHERE court_id = $1 AND status = $2"#,
+        court.0,
+        status,
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok(Json(serde_json::json!({ "status": status, "count": count })))
+}
+
+/// POST /api/cases/{id}/plea
+#[utoipa::path(
+    post,
+    path = "/api/cases/{id}/plea",
+    request_body = PleaRequest,
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Pleas entered", body = serde_json::Value),
+        (status = 400, description = "Invalid request", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn enter_plea(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(case_id): Path<String>,
+    Json(body): Json<PleaRequest>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let _case_uuid = Uuid::parse_str(&case_id)
+        .map_err(|_| AppError::bad_request("Invalid case UUID format"))?;
+
+    if body.charges.is_empty() {
+        return Err(AppError::bad_request("charges must not be empty"));
+    }
+
+    for entry in &body.charges {
+        if !is_valid_plea_type(&entry.plea) {
+            return Err(AppError::bad_request(format!(
+                "Invalid plea: {}",
+                entry.plea
+            )));
+        }
+    }
+
+    let mut updated_count = 0;
+    for entry in &body.charges {
+        let result = sqlx::query!(
+            r#"
+            UPDATE charges SET
+                plea = $3,
+                plea_date = COALESCE($4, NOW())
+            WHERE id = $1 AND court_id = $2
+            "#,
+            entry.charge_id,
+            court.0,
+            entry.plea,
+            entry.plea_date,
+        )
+        .execute(&pool)
+        .await
+        .map_err(SqlxErrorExt::into_app_error)?;
+
+        updated_count += result.rows_affected();
+    }
+
+    Ok(Json(serde_json::json!({
+        "updated": updated_count,
+        "total_charges": body.charges.len()
+    })))
+}
+
+/// POST /api/cases/{id}/events
+#[utoipa::path(
+    post,
+    path = "/api/cases/{id}/events",
+    request_body = AddCaseEventRequest,
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 201, description = "Case event added", body = serde_json::Value),
+        (status = 400, description = "Invalid request", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn add_case_event(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(case_id): Path<String>,
+    Json(body): Json<AddCaseEventRequest>,
+) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
+    let case_uuid = Uuid::parse_str(&case_id)
+        .map_err(|_| AppError::bad_request("Invalid case UUID format"))?;
+
+    if body.event_type.trim().is_empty() {
+        return Err(AppError::bad_request("event_type must not be empty"));
+    }
+
+    if body.description.trim().is_empty() {
+        return Err(AppError::bad_request("description must not be empty"));
+    }
+
+    // Verify the case exists
+    crate::repo::case::find_by_id(&pool, &court.0, case_uuid)
+        .await?
+        .ok_or_else(|| AppError::not_found(format!("Case {} not found", case_id)))?;
+
+    // Insert event as a case note with the event_type as note_type
+    let note_id: Uuid = sqlx::query_scalar!(
+        r#"
+        INSERT INTO case_notes (court_id, case_id, author, content, note_type)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+        "#,
+        court.0,
+        case_uuid,
+        body.event_type,
+        body.description,
+        "General",
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((StatusCode::CREATED, Json(serde_json::json!({
+        "event_id": note_id.to_string(),
+        "case_id": case_id,
+        "event_type": body.event_type,
+    }))))
+}
+
+/// PATCH /api/cases/{id}/priority
+#[utoipa::path(
+    patch,
+    path = "/api/cases/{id}/priority",
+    request_body = UpdatePriorityRequest,
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Priority updated", body = CaseResponse),
+        (status = 400, description = "Invalid priority", body = AppError),
+        (status = 404, description = "Not found", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn update_priority(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(id): Path<String>,
+    Json(body): Json<UpdatePriorityRequest>,
+) -> Result<Json<CaseResponse>, AppError> {
+    let uuid = Uuid::parse_str(&id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    if !is_valid_case_priority(&body.priority) {
+        return Err(AppError::bad_request(format!(
+            "Invalid priority: {}. Valid values: {}",
+            body.priority,
+            CASE_PRIORITIES.join(", ")
+        )));
+    }
+
+    let row = sqlx::query_as!(
+        CriminalCase,
+        r#"
+        UPDATE criminal_cases SET
+            priority = $3,
+            updated_at = NOW()
+        WHERE id = $1 AND court_id = $2
+        RETURNING id, court_id, case_number, title, description, crime_type,
+                  status, priority, assigned_judge_id, district_code, location,
+                  is_sealed, sealed_date, sealed_by, seal_reason,
+                  opened_at, updated_at, closed_at
+        "#,
+        uuid,
+        court.0,
+        body.priority,
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?
+    .ok_or_else(|| AppError::not_found(format!("Case {} not found", id)))?;
+
+    Ok(Json(CaseResponse::from(row)))
+}
+
+/// POST /api/cases/{id}/seal
+#[utoipa::path(
+    post,
+    path = "/api/cases/{id}/seal",
+    request_body = SealCaseRequest,
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Case sealed", body = CaseResponse),
+        (status = 404, description = "Not found", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn seal_case(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(id): Path<String>,
+    Json(body): Json<SealCaseRequest>,
+) -> Result<Json<CaseResponse>, AppError> {
+    let uuid = Uuid::parse_str(&id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    if body.sealed_by.trim().is_empty() {
+        return Err(AppError::bad_request("sealed_by must not be empty"));
+    }
+
+    let row = sqlx::query_as!(
+        CriminalCase,
+        r#"
+        UPDATE criminal_cases SET
+            is_sealed = true,
+            sealed_date = NOW(),
+            sealed_by = $3,
+            seal_reason = $4,
+            updated_at = NOW()
+        WHERE id = $1 AND court_id = $2
+        RETURNING id, court_id, case_number, title, description, crime_type,
+                  status, priority, assigned_judge_id, district_code, location,
+                  is_sealed, sealed_date, sealed_by, seal_reason,
+                  opened_at, updated_at, closed_at
+        "#,
+        uuid,
+        court.0,
+        body.sealed_by,
+        body.seal_reason,
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?
+    .ok_or_else(|| AppError::not_found(format!("Case {} not found", id)))?;
+
+    Ok(Json(CaseResponse::from(row)))
+}
+
+/// POST /api/cases/{id}/unseal
+#[utoipa::path(
+    post,
+    path = "/api/cases/{id}/unseal",
+    params(
+        ("id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Case unsealed", body = CaseResponse),
+        (status = 404, description = "Not found", body = AppError)
+    ),
+    tag = "cases"
+)]
+pub async fn unseal_case(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(id): Path<String>,
+) -> Result<Json<CaseResponse>, AppError> {
+    let uuid = Uuid::parse_str(&id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    let row = sqlx::query_as!(
+        CriminalCase,
+        r#"
+        UPDATE criminal_cases SET
+            is_sealed = false,
+            sealed_date = NULL,
+            sealed_by = NULL,
+            seal_reason = NULL,
+            updated_at = NOW()
+        WHERE id = $1 AND court_id = $2
+        RETURNING id, court_id, case_number, title, description, crime_type,
+                  status, priority, assigned_judge_id, district_code, location,
+                  is_sealed, sealed_date, sealed_by, seal_reason,
+                  opened_at, updated_at, closed_at
+        "#,
+        uuid,
+        court.0,
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?
+    .ok_or_else(|| AppError::not_found(format!("Case {} not found", id)))?;
+
+    Ok(Json(CaseResponse::from(row)))
+}
+
+/// GET /api/cases/{case_id}/filing-stats
+#[utoipa::path(
+    get,
+    path = "/api/cases/{case_id}/filing-stats",
+    params(
+        ("case_id" = String, Path, description = "Case UUID"),
+        ("X-Court-District" = String, Header, description = "Court district ID")
+    ),
+    responses(
+        (status = 200, description = "Filing statistics for the case", body = FilingStatsResponse)
+    ),
+    tag = "cases"
+)]
+pub async fn get_filing_stats(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(case_id): Path<String>,
+) -> Result<Json<FilingStatsResponse>, AppError> {
+    let uuid = Uuid::parse_str(&case_id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    let total: i64 = sqlx::query_scalar!(
+        r#"SELECT COUNT(*) as "count!" FROM docket_entries WHERE court_id = $1 AND case_id = $2"#,
+        &court.0,
+        uuid,
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let type_counts = sqlx::query!(
+        r#"SELECT entry_type, COUNT(*) as "count!" FROM docket_entries WHERE court_id = $1 AND case_id = $2 GROUP BY entry_type"#,
+        &court.0,
+        uuid,
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let mut by_type = std::collections::HashMap::new();
+    for row in type_counts {
+        by_type.insert(row.entry_type, row.count);
+    }
+
+    Ok(Json(FilingStatsResponse {
+        case_id,
+        total_filings: total,
+        by_type,
+    }))
+}

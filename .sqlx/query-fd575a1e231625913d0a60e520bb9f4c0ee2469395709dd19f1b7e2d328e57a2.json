@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE subscriptions SET status = 'canceled', updated_at = NOW()\n                       WHERE user_id = $1 AND status = 'active'\n                         AND stripe_subscription_id != $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fd575a1e231625913d0a60e520bb9f4c0ee2469395709dd19f1b7e2d328e57a2"
+}

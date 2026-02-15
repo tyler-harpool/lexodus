@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE subscriptions\n           SET status = $2, cancel_at_period_end = $3,\n               current_period_start = $4, current_period_end = $5,\n               updated_at = NOW()\n           WHERE stripe_subscription_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ee5921db7a997213a9577f455c21916d51c14e69afd59ec0420425ba58e1cc5b"
+}

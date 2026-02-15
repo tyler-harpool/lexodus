@@ -1,0 +1,110 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE judges SET\n            name               = COALESCE($3, name),\n            title              = COALESCE($4, title),\n            district           = COALESCE($5, district),\n            appointed_date     = COALESCE($6, appointed_date),\n            status             = COALESCE($7, status),\n            senior_status_date = COALESCE($8, senior_status_date),\n            courtroom          = COALESCE($9, courtroom),\n            max_caseload       = COALESCE($10, max_caseload),\n            specializations    = COALESCE($11, specializations),\n            updated_at         = NOW()\n        WHERE id = $1 AND court_id = $2\n        RETURNING id, court_id, name, title, district,\n                  appointed_date, status, senior_status_date, courtroom,\n                  current_caseload, max_caseload, specializations,\n                  created_at, updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "district",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "appointed_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "senior_status_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "courtroom",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "current_caseload",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "max_caseload",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "specializations",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Int4",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "461856a4227b6216d2a37d3538af3c29dd4a18329c34de21f9a99155dd5b5e1c"
+}
