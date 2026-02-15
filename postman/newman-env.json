@@ -3,6 +3,7 @@
   "name": "Lexodus Smoke Test",
   "values": [
     { "key": "base_url", "value": "http://localhost:8080", "enabled": true },
+    { "key": "baseUrl", "value": "http://localhost:8080", "enabled": true },
     { "key": "test_email", "value": "newman-smoke@test.com", "enabled": true },
     { "key": "test_password", "value": "TestPassword123!", "enabled": true },
     { "key": "test_username", "value": "newman_smoke_user", "enabled": true },
