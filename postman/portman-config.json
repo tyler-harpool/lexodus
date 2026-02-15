@@ -357,5 +357,250 @@
     "GET::/api/todos/{id}",
 
     "POST::/api/service-records"
+  ],
+  "overwrites": [
+    {
+      "openApiOperationId": "register",
+      "overwriteRequestBody": [
+        {
+          "key": "username",
+          "value": "{{test_username}}",
+          "overwrite": true
+        },
+        {
+          "key": "email",
+          "value": "{{test_email}}",
+          "overwrite": true
+        },
+        {
+          "key": "password",
+          "value": "{{test_password}}",
+          "overwrite": true
+        },
+        {
+          "key": "display_name",
+          "value": "{{test_display_name}}",
+          "overwrite": true
+        }
+      ]
+    },
+    {
+      "openApiOperationId": "login",
+      "overwriteRequestBody": [
+        {
+          "key": "email",
+          "value": "{{test_email}}",
+          "overwrite": true
+        },
+        {
+          "key": "password",
+          "value": "{{test_password}}",
+          "overwrite": true
+        }
+      ]
+    },
+    {
+      "openApiOperationId": "create_case",
+      "overwriteRequestBody": [
+        { "key": "title", "value": "United States v. Rodriguez", "overwrite": true },
+        { "key": "crime_type", "value": "Felony", "overwrite": true },
+        { "key": "district_code", "value": "district9", "overwrite": true },
+        { "key": "description", "value": "Federal narcotics conspiracy charge under 21 USC 846", "overwrite": true },
+        { "key": "priority", "value": "high", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_attorney",
+      "overwriteRequestBody": [
+        { "key": "bar_number", "value": "NY-2019-04521", "overwrite": true },
+        { "key": "first_name", "value": "Maria", "overwrite": true },
+        { "key": "last_name", "value": "Martinez", "overwrite": true },
+        { "key": "email", "value": "mmartinez@martinez-pllc.com", "overwrite": true },
+        { "key": "phone", "value": "212-555-0142", "overwrite": true },
+        { "key": "firm_name", "value": "Martinez & Associates PLLC", "overwrite": true },
+        { "key": "address.street1", "value": "500 Pearl Street", "overwrite": true },
+        { "key": "address.city", "value": "New York", "overwrite": true },
+        { "key": "address.state", "value": "NY", "overwrite": true },
+        { "key": "address.zip_code", "value": "10007", "overwrite": true },
+        { "key": "address.country", "value": "USA", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_judge",
+      "overwriteRequestBody": [
+        { "key": "name", "value": "Hon. Catherine R. Thornton", "overwrite": true },
+        { "key": "title", "value": "District Judge", "overwrite": true },
+        { "key": "district", "value": "district9", "overwrite": true },
+        { "key": "courtroom", "value": "3B", "overwrite": true },
+        { "key": "status", "value": "active", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_defendant",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "name", "value": "Carlos Eduardo Rodriguez", "overwrite": true },
+        { "key": "custody_status", "value": "detained", "overwrite": true },
+        { "key": "bail_type", "value": "cash", "overwrite": true },
+        { "key": "bail_amount", "value": 250000, "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_party",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "party_type", "value": "defendant", "overwrite": true },
+        { "key": "name", "value": "Carlos Eduardo Rodriguez", "overwrite": true },
+        { "key": "entity_type", "value": "individual", "overwrite": true },
+        { "key": "pro_se", "value": false, "overwrite": true },
+        { "key": "service_method", "value": "electronic", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_docket_entry",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "entry_type", "value": "Motion", "overwrite": true },
+        { "key": "description", "value": "Motion to Suppress Evidence obtained during warrantless search", "overwrite": true },
+        { "key": "filed_by", "value": "Maria Martinez", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "submit_filing",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "document_type", "value": "Motion", "overwrite": true },
+        { "key": "title", "value": "Motion to Suppress Evidence", "overwrite": true },
+        { "key": "filed_by", "value": "Maria Martinez, Esq.", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_motion",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "motion_type", "value": "suppress", "overwrite": true },
+        { "key": "filed_by", "value": "Defense", "overwrite": true },
+        { "key": "description", "value": "Motion to suppress evidence obtained during warrantless vehicle search on I-95", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_charge",
+      "overwriteRequestBody": [
+        { "key": "defendant_id", "value": "{{created_defendant_id}}", "overwrite": true },
+        { "key": "count_number", "value": 1, "overwrite": true },
+        { "key": "statute", "value": "21 USC 846", "overwrite": true },
+        { "key": "offense_description", "value": "Conspiracy to distribute controlled substances", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_evidence",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "description", "value": "Seized narcotics from vehicle trunk - 2.3kg cocaine", "overwrite": true },
+        { "key": "evidence_type", "value": "physical", "overwrite": true },
+        { "key": "location", "value": "DEA Evidence Vault, SDNY", "overwrite": true },
+        { "key": "seized_by", "value": "DEA Special Agent Torres", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_order",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
+        { "key": "order_type", "value": "detention", "overwrite": true },
+        { "key": "title", "value": "Order of Pretrial Detention", "overwrite": true },
+        { "key": "content", "value": "Defendant is ordered detained pending trial per 18 USC 3142(e). Court finds defendant poses flight risk and danger to community.", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_opinion",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
+        { "key": "opinion_type", "value": "memorandum", "overwrite": true },
+        { "key": "title", "value": "Memorandum Opinion on Motion to Suppress", "overwrite": true },
+        { "key": "content", "value": "The Court denies defendant's motion to suppress. The automobile exception to the Fourth Amendment warrant requirement applies.", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_deadline",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "title", "value": "Pretrial motions filing deadline", "overwrite": true },
+        { "key": "due_at", "value": "2026-04-15T17:00:00Z", "overwrite": true },
+        { "key": "notes", "value": "Per scheduling order, all pretrial motions must be filed by this date", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "schedule_event",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
+        { "key": "event_type", "value": "status_conference", "overwrite": true },
+        { "key": "scheduled_date", "value": "2026-03-20T10:00:00Z", "overwrite": true },
+        { "key": "duration_minutes", "value": 30, "overwrite": true },
+        { "key": "courtroom", "value": "3B", "overwrite": true },
+        { "key": "description", "value": "Initial status conference - case scheduling and discovery deadlines", "overwrite": true },
+        { "key": "participants", "value": ["Defense counsel", "AUSA", "Defendant"], "overwrite": true },
+        { "key": "is_public", "value": true, "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_sentencing",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "defendant_id", "value": "{{created_defendant_id}}", "overwrite": true },
+        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_rule",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "rule_number", "value": "16", "overwrite": true },
+        { "key": "title", "value": "Discovery and Inspection", "overwrite": true },
+        { "key": "description", "value": "Federal Rule of Criminal Procedure 16 - Government and defendant disclosure obligations", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_conflict_check",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "attorney_id", "value": "{{created_attorney_id}}", "overwrite": true },
+        { "key": "check_type", "value": "initial", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_template",
+      "overwriteRequestBody": [
+        { "key": "name", "value": "Standard Detention Order", "overwrite": true },
+        { "key": "content", "value": "ORDERED that defendant {{defendant_name}} is detained pending trial pursuant to 18 USC 3142(e).", "overwrite": true },
+        { "key": "template_type", "value": "detention", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_case_note",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "content", "value": "Defense counsel requests 30-day continuance for additional discovery review. Government does not oppose.", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_todo",
+      "overwriteRequestBody": [
+        { "key": "title", "value": "Review Brady material production from AUSA", "overwrite": true },
+        { "key": "user_id", "value": "{{test_user_id}}", "overwrite": true },
+        { "key": "description", "value": "Government disclosed 450 pages of discovery per Rule 16. Review for exculpatory material.", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperationId": "create_service_record",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "document_id", "value": "{{created_filing_id}}", "overwrite": true },
+        { "key": "served_to", "value": "AUSA Jennifer Walsh", "overwrite": true },
+        { "key": "service_method", "value": "electronic", "overwrite": true }
+      ]
+    }
   ]
 }
