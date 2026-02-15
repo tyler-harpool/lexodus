@@ -2202,6 +2202,25 @@ pub async fn delete_calendar_event(court_id: String, id: String) -> Result<(), S
     }
 }
 
+/// List all calendar events for a specific case.
+#[server]
+pub async fn list_calendar_by_case(court_id: String, case_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::calendar;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid = Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+
+    let rows = calendar::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let response: Vec<shared_types::CalendarEntryResponse> =
+        rows.into_iter().map(shared_types::CalendarEntryResponse::from).collect();
+    Ok(serde_json::to_string(&response).unwrap_or_default())
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Deadline server functions
 // ═══════════════════════════════════════════════════════════════
