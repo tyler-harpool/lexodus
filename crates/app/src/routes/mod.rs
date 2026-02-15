@@ -8,6 +8,7 @@ pub mod dashboard;
 pub mod deadlines;
 pub mod defendants;
 pub mod device_auth;
+pub mod district_picker;
 pub mod docket;
 pub mod documents;
 pub mod evidence;
@@ -32,7 +33,7 @@ pub mod users;
 pub mod victims;
 
 use crate::auth::{use_auth, use_sidebar_visibility};
-use crate::ProfileState;
+use crate::{CourtContext, ProfileState};
 use dioxus::prelude::*;
 use dioxus_free_icons::icons::ld_icons::{
     LdBell, LdBookOpen, LdBriefcase, LdCalendar, LdClock, LdFileText, LdFolder,
@@ -214,7 +215,15 @@ fn AuthGuard() -> Element {
     match result {
         Some(Ok(Some(user))) => {
             if !auth.is_authenticated() {
-                auth.set_user(user);
+                auth.set_user(user.clone());
+                // Auto-select an accessible district if the current one is not in the user's court_roles
+                let mut ctx = use_context::<CourtContext>();
+                let current = ctx.court_id.read().clone();
+                if user.role != "admin" && !user.court_roles.contains_key(&current) {
+                    if let Some(first_court) = user.court_roles.keys().next() {
+                        ctx.court_id.set(first_court.clone());
+                    }
+                }
             }
             rsx! { Outlet::<Route> {} }
         }
@@ -303,6 +312,7 @@ fn AppLayout() -> Element {
                             "Lexodus"
                         }
                     }
+                    district_picker::DistrictPicker {}
                 }
 
                 SidebarSeparator {}

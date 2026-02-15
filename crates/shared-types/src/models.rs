@@ -167,9 +167,16 @@ pub struct UserWithMembership {
     pub display_name: String,
     pub role: String,
     pub tier: String,
+    #[serde(default)]
+    pub email: String,
+    #[serde(default)]
+    pub phone_number: Option<String>,
     /// Role in the requested court ("" if none).
     #[serde(default)]
     pub court_role: String,
+    /// All court memberships: court_id -> role.
+    #[serde(default)]
+    pub all_court_roles: std::collections::HashMap<String, String>,
 }
 
 /// Aggregated dashboard statistics.

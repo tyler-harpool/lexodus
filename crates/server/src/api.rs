@@ -3262,6 +3262,8 @@ struct UserRow {
     display_name: String,
     role: String,
     tier: String,
+    email: Option<String>,
+    phone_number: Option<String>,
     court_roles: serde_json::Value,
 }
 
@@ -3302,7 +3304,7 @@ pub async fn list_users_with_memberships(
 
     let rows = sqlx::query_as!(
         UserRow,
-        "SELECT id, username, display_name, role, tier, court_roles FROM users"
+        "SELECT id, username, display_name, role, tier, email, phone_number, court_roles FROM users"
     )
     .fetch_all(db)
     .await
@@ -3317,13 +3319,20 @@ pub async fn list_users_with_memberships(
                 .unwrap_or("")
                 .to_string();
 
+            // Parse full court_roles JSONB into HashMap
+            let all_court_roles: std::collections::HashMap<String, String> =
+                serde_json::from_value(row.court_roles).unwrap_or_default();
+
             UserWithMembership {
                 id: row.id,
                 username: row.username,
                 display_name: row.display_name,
                 role: row.role,
                 tier: row.tier,
+                email: row.email.unwrap_or_default(),
+                phone_number: row.phone_number,
                 court_role,
+                all_court_roles,
             }
         })
         .collect();

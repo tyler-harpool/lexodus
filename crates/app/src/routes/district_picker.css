@@ -1,0 +1,111 @@
+/* ── District Picker ── */
+
+.district-picker {
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.district-picker-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.district-picker-trigger:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-primary);
+}
+
+.district-picker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: var(--color-primary-foreground, #fff);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.district-picker-label {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.district-picker-chevron {
+    font-size: 10px;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+/* Hide label & chevron when sidebar is collapsed */
+[data-state="closed"] .district-picker-label,
+[data-state="closed"] .district-picker-chevron {
+    display: none;
+}
+
+[data-state="closed"] .district-picker-trigger {
+    justify-content: center;
+    padding: var(--space-xs);
+}
+
+/* Position dropdown to the right of sidebar instead of off-screen left */
+.district-picker .cyber-dropdown-menu-content {
+    left: 0;
+    right: auto;
+    min-width: 220px;
+}
+
+/* Dropdown items */
+.district-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+}
+
+.district-item-check {
+    width: 16px;
+    flex-shrink: 0;
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.district-item-name {
+    flex: 1;
+}
+
+.district-request-link {
+    color: var(--color-primary);
+    font-size: var(--font-size-sm);
+}
+
+/* ── Request Access Dialog ── */
+
+.request-access-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+}
+
+.request-access-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
