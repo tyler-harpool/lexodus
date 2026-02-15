@@ -45,7 +45,75 @@
       "bearer": {
         "token": "{{access_token}}"
       }
-    }
+    },
+    "orderOfOperations": [
+      "POST::/api/v1/auth/register",
+      "POST::/api/v1/auth/login",
+      "GET::/health",
+
+      "POST::/api/cases",
+      "GET::/api/cases",
+      "GET::/api/cases/{id}",
+
+      "POST::/api/attorneys",
+      "GET::/api/attorneys",
+      "GET::/api/attorneys/{id}",
+
+      "POST::/api/judges",
+      "GET::/api/judges",
+      "GET::/api/judges/{id}",
+
+      "POST::/api/defendants",
+      "GET::/api/defendants/{id}",
+
+      "POST::/api/parties",
+      "GET::/api/parties/{id}",
+
+      "POST::/api/docket/entries",
+      "GET::/api/docket/entries/{id}",
+
+      "POST::/api/filings",
+      "GET::/api/filings/{id}",
+
+      "POST::/api/motions",
+      "GET::/api/motions/{id}",
+
+      "POST::/api/charges",
+      "GET::/api/charges/{id}",
+
+      "POST::/api/evidence",
+      "GET::/api/evidence/{id}",
+
+      "POST::/api/orders",
+      "GET::/api/orders/{id}",
+
+      "POST::/api/opinions",
+      "GET::/api/opinions/{id}",
+
+      "POST::/api/deadlines",
+      "GET::/api/deadlines/{id}",
+
+      "POST::/api/calendar/events",
+
+      "POST::/api/sentencing",
+      "GET::/api/sentencing/{id}",
+
+      "POST::/api/rules",
+      "GET::/api/rules/{id}",
+
+      "POST::/api/conflict-checks",
+
+      "POST::/api/templates/orders",
+      "GET::/api/templates/orders/{id}",
+
+      "POST::/api/case-notes",
+      "GET::/api/case-notes/{id}",
+
+      "POST::/api/todos",
+      "GET::/api/todos/{id}",
+
+      "POST::/api/service-records"
+    ]
   },
   "tests": {
     "contractTests": [
@@ -289,74 +357,6 @@
         }
       ]
     }
-  ],
-  "orderOfOperations": [
-    "POST::/api/v1/auth/register",
-    "POST::/api/v1/auth/login",
-    "GET::/health",
-
-    "POST::/api/cases",
-    "GET::/api/cases",
-    "GET::/api/cases/{id}",
-
-    "POST::/api/attorneys",
-    "GET::/api/attorneys",
-    "GET::/api/attorneys/{id}",
-
-    "POST::/api/judges",
-    "GET::/api/judges",
-    "GET::/api/judges/{id}",
-
-    "POST::/api/defendants",
-    "GET::/api/defendants/{id}",
-
-    "POST::/api/parties",
-    "GET::/api/parties/{id}",
-
-    "POST::/api/docket/entries",
-    "GET::/api/docket/entries/{id}",
-
-    "POST::/api/filings",
-    "GET::/api/filings/{id}",
-
-    "POST::/api/motions",
-    "GET::/api/motions/{id}",
-
-    "POST::/api/charges",
-    "GET::/api/charges/{id}",
-
-    "POST::/api/evidence",
-    "GET::/api/evidence/{id}",
-
-    "POST::/api/orders",
-    "GET::/api/orders/{id}",
-
-    "POST::/api/opinions",
-    "GET::/api/opinions/{id}",
-
-    "POST::/api/deadlines",
-    "GET::/api/deadlines/{id}",
-
-    "POST::/api/calendar/events",
-
-    "POST::/api/sentencing",
-    "GET::/api/sentencing/{id}",
-
-    "POST::/api/rules",
-    "GET::/api/rules/{id}",
-
-    "POST::/api/conflict-checks",
-
-    "POST::/api/templates/orders",
-    "GET::/api/templates/orders/{id}",
-
-    "POST::/api/case-notes",
-    "GET::/api/case-notes/{id}",
-
-    "POST::/api/todos",
-    "GET::/api/todos/{id}",
-
-    "POST::/api/service-records"
   ],
   "overwrites": [
     {
