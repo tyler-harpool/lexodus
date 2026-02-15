@@ -40,6 +40,7 @@ const namedVarMap = {
   reminder_id: "{{reminder_id}}",
   draft_id: "{{draft_id}}",
   comment_id: "{{comment_id}}",
+  victim_id: "{{victim_id}}",
 };
 
 // Static path variable values (not IDs)
@@ -49,12 +50,12 @@ const staticVarMap = {
   court: "district9",
   cja_district: "district12",
   area: "criminal",
-  status: "active",
+  status: "Active",
   district: "district9",
   case_number: "1:26-cr-00042",
   courtroom: "3B",
   entry_type: "motion",
-  deadline_type: "pretrial-motion",
+  deadline_type: "open",
   text: "motion",
   firm_name: "Martinez-and-Associates-PLLC",
   party_name: "United-States-v-Rodriguez",
@@ -114,6 +115,20 @@ function resolveId(path) {
   return "{{id}}";
 }
 
+// Context-sensitive status path variable resolution
+const statusByPrefix = [
+  ["/api/cases/count-by-status", "filed"],
+  ["/api/attorneys/status", "Active"],
+  ["/api/judges/status", "Active"],
+];
+
+function resolveStatus(path) {
+  for (const [prefix, val] of statusByPrefix) {
+    if (path.startsWith(prefix)) return val;
+  }
+  return "Active";
+}
+
 let fixCount = 0;
 
 function walkItems(items) {
@@ -126,10 +141,25 @@ function walkItems(items) {
       const path = getPath(item.request.url);
       for (const v of item.request.url.variable) {
         const key = v.key;
-        if (v.value === "nost" || v.value === "<string>" || v.value === "63215786" || v.value === "ut anim laborum" || v.value === "26687816") {
+        // Match any Portman-generated placeholder: lorem ipsum words, random numbers, UUIDs, known defaults
+        const isPlaceholder = (val) => {
+          if (!val) return false;
+          if (val === "<string>" || val === "nost") return true;
+          if (/^-?\d{3,}$/.test(val)) return true;  // numeric placeholders
+          // UUID format (Portman generates random UUIDs for UUID params)
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) return true;
+          // urn:uuid: prefixed UUIDs
+          if (/^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) return true;
+          // Latin/lorem ipsum: 1-5 lowercase words
+          if (/^[a-z]+( [a-z]+){0,4}$/i.test(val) && val.length < 50) return true;
+          return false;
+        };
+        if (isPlaceholder(v.value)) {
           let newVal = null;
           if (key === "id") {
             newVal = resolveId(path);
+          } else if (key === "status") {
+            newVal = resolveStatus(path);
           } else if (namedVarMap[key]) {
             newVal = namedVarMap[key];
           } else if (staticVarMap[key]) {

@@ -5,7 +5,7 @@
       "// Auth: register or login, store access_token",
       "if (pm.collectionVariables.get('access_token')) { return; }",
       "",
-      "const baseUrl = pm.environment.get('base_url') || 'http://localhost:8080';",
+      "const baseUrl = pm.environment.get('base_url') || pm.environment.get('baseUrl') || 'http://localhost:8080';",
       "const email = pm.environment.get('test_email');",
       "const password = pm.environment.get('test_password');",
       "const username = pm.environment.get('test_username');",
@@ -52,67 +52,55 @@
       "GET::/health",
 
       "POST::/api/cases",
+      "POST::/api/attorneys",
+      "POST::/api/judges",
+      "POST::/api/defendants",
+      "POST::/api/parties",
+      "POST::/api/docket/entries",
+      "POST::/api/filings",
+      "POST::/api/motions",
+      "POST::/api/charges",
+      "POST::/api/evidence",
+      "POST::/api/orders",
+      "POST::/api/opinions",
+      "POST::/api/deadlines",
+      "POST::/api/calendar/events",
+      "POST::/api/sentencing",
+      "POST::/api/rules",
+      "POST::/api/conflict-checks",
+      "POST::/api/templates/orders",
+      "POST::/api/case-notes",
+      "POST::/api/todos",
+      "POST::/api/service-records",
+      "POST::/api/judges/assignments",
+      "POST::/api/custody-transfers",
+      "POST::/api/representations",
+
       "GET::/api/cases",
       "GET::/api/cases/{id}",
-
-      "POST::/api/attorneys",
       "GET::/api/attorneys",
       "GET::/api/attorneys/{id}",
-
-      "POST::/api/judges",
       "GET::/api/judges",
       "GET::/api/judges/{id}",
-
-      "POST::/api/defendants",
       "GET::/api/defendants/{id}",
-
-      "POST::/api/parties",
       "GET::/api/parties/{id}",
-
-      "POST::/api/docket/entries",
       "GET::/api/docket/entries/{id}",
-
-      "POST::/api/filings",
       "GET::/api/filings/{id}",
-
-      "POST::/api/motions",
       "GET::/api/motions/{id}",
-
-      "POST::/api/charges",
       "GET::/api/charges/{id}",
-
-      "POST::/api/evidence",
       "GET::/api/evidence/{id}",
-
-      "POST::/api/orders",
       "GET::/api/orders/{id}",
-
-      "POST::/api/opinions",
       "GET::/api/opinions/{id}",
-
-      "POST::/api/deadlines",
       "GET::/api/deadlines/{id}",
-
-      "POST::/api/calendar/events",
-
-      "POST::/api/sentencing",
       "GET::/api/sentencing/{id}",
-
-      "POST::/api/rules",
       "GET::/api/rules/{id}",
-
-      "POST::/api/conflict-checks",
-
-      "POST::/api/templates/orders",
       "GET::/api/templates/orders/{id}",
-
-      "POST::/api/case-notes",
       "GET::/api/case-notes/{id}",
-
-      "POST::/api/todos",
       "GET::/api/todos/{id}",
 
-      "POST::/api/service-records"
+      "DELETE::/api/cases/{id}",
+      "DELETE::/api/attorneys/{id}",
+      "DELETE::/api/judges/{id}"
     ]
   },
   "tests": {
@@ -152,267 +140,148 @@
   },
   "assignVariables": [
     {
-      "openApiOperationId": "register",
+      "openApiOperation": "POST::/api/cases",
       "collectionVariables": [
-        {
-          "responseBodyProp": "access_token",
-          "name": "access_token"
-        },
-        {
-          "responseBodyProp": "user.id",
-          "name": "test_user_id"
-        }
+        { "responseBodyProp": "id", "name": "created_case_id" },
+        { "responseBodyProp": "case_number", "name": "created_case_number" }
       ]
     },
     {
-      "openApiOperationId": "create_case",
+      "openApiOperation": "POST::/api/attorneys",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_case_id"
-        },
-        {
-          "responseBodyProp": "case_number",
-          "name": "created_case_number"
-        }
+        { "responseBodyProp": "id", "name": "created_attorney_id" }
       ]
     },
     {
-      "openApiOperationId": "create_attorney",
+      "openApiOperation": "POST::/api/judges",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_attorney_id"
-        }
+        { "responseBodyProp": "id", "name": "created_judge_id" }
       ]
     },
     {
-      "openApiOperationId": "create_judge",
+      "openApiOperation": "POST::/api/defendants",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_judge_id"
-        }
+        { "responseBodyProp": "id", "name": "created_defendant_id" }
       ]
     },
     {
-      "openApiOperationId": "create_defendant",
+      "openApiOperation": "POST::/api/parties",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_defendant_id"
-        }
+        { "responseBodyProp": "id", "name": "created_party_id" }
       ]
     },
     {
-      "openApiOperationId": "create_party",
+      "openApiOperation": "POST::/api/docket/entries",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_party_id"
-        }
+        { "responseBodyProp": "id", "name": "created_docket_entry_id" }
       ]
     },
     {
-      "openApiOperationId": "create_docket_entry",
+      "openApiOperation": "POST::/api/filings",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_docket_entry_id"
-        }
+        { "responseBodyProp": "id", "name": "created_filing_id" }
       ]
     },
     {
-      "openApiOperationId": "submit_filing",
+      "openApiOperation": "POST::/api/motions",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_filing_id"
-        }
+        { "responseBodyProp": "id", "name": "created_motion_id" }
       ]
     },
     {
-      "openApiOperationId": "create_motion",
+      "openApiOperation": "POST::/api/orders",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_motion_id"
-        }
+        { "responseBodyProp": "id", "name": "created_order_id" }
       ]
     },
     {
-      "openApiOperationId": "create_order",
+      "openApiOperation": "POST::/api/opinions",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_order_id"
-        }
+        { "responseBodyProp": "id", "name": "created_opinion_id" }
       ]
     },
     {
-      "openApiOperationId": "create_opinion",
+      "openApiOperation": "POST::/api/evidence",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_opinion_id"
-        }
+        { "responseBodyProp": "id", "name": "created_evidence_id" }
       ]
     },
     {
-      "openApiOperationId": "create_evidence",
+      "openApiOperation": "POST::/api/charges",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_evidence_id"
-        }
+        { "responseBodyProp": "id", "name": "created_charge_id" }
       ]
     },
     {
-      "openApiOperationId": "create_charge",
+      "openApiOperation": "POST::/api/calendar/events",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_charge_id"
-        }
+        { "responseBodyProp": "id", "name": "created_event_id" }
       ]
     },
     {
-      "openApiOperationId": "schedule_event",
+      "openApiOperation": "POST::/api/deadlines",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_event_id"
-        }
+        { "responseBodyProp": "id", "name": "created_deadline_id" }
       ]
     },
     {
-      "openApiOperationId": "create_deadline",
+      "openApiOperation": "POST::/api/sentencing",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_deadline_id"
-        }
+        { "responseBodyProp": "id", "name": "created_sentencing_id" }
       ]
     },
     {
-      "openApiOperationId": "create_sentencing",
+      "openApiOperation": "POST::/api/rules",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_sentencing_id"
-        }
+        { "responseBodyProp": "id", "name": "created_rule_id" }
       ]
     },
     {
-      "openApiOperationId": "create_rule",
+      "openApiOperation": "POST::/api/conflict-checks",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_rule_id"
-        }
+        { "responseBodyProp": "id", "name": "created_conflict_id" }
       ]
     },
     {
-      "openApiOperationId": "create_conflict_check",
+      "openApiOperation": "POST::/api/templates/orders",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_conflict_id"
-        }
+        { "responseBodyProp": "id", "name": "created_template_id" }
       ]
     },
     {
-      "openApiOperationId": "create_template",
+      "openApiOperation": "POST::/api/todos",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_template_id"
-        }
+        { "responseBodyProp": "id", "name": "created_todo_id" }
       ]
     },
     {
-      "openApiOperationId": "create_todo",
+      "openApiOperation": "POST::/api/case-notes",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_todo_id"
-        }
+        { "responseBodyProp": "id", "name": "created_case_note_id" }
       ]
     },
     {
-      "openApiOperationId": "create_case_note",
+      "openApiOperation": "POST::/api/service-records",
       "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_case_note_id"
-        }
-      ]
-    },
-    {
-      "openApiOperationId": "create_service_record",
-      "collectionVariables": [
-        {
-          "responseBodyProp": "id",
-          "name": "created_service_record_id"
-        }
+        { "responseBodyProp": "id", "name": "created_service_record_id" }
       ]
     }
   ],
   "overwrites": [
     {
-      "openApiOperationId": "register",
-      "overwriteRequestBody": [
-        {
-          "key": "username",
-          "value": "{{test_username}}",
-          "overwrite": true
-        },
-        {
-          "key": "email",
-          "value": "{{test_email}}",
-          "overwrite": true
-        },
-        {
-          "key": "password",
-          "value": "{{test_password}}",
-          "overwrite": true
-        },
-        {
-          "key": "display_name",
-          "value": "{{test_display_name}}",
-          "overwrite": true
-        }
-      ]
-    },
-    {
-      "openApiOperationId": "login",
-      "overwriteRequestBody": [
-        {
-          "key": "email",
-          "value": "{{test_email}}",
-          "overwrite": true
-        },
-        {
-          "key": "password",
-          "value": "{{test_password}}",
-          "overwrite": true
-        }
-      ]
-    },
-    {
-      "openApiOperationId": "create_case",
+      "openApiOperation": "POST::/api/cases",
       "overwriteRequestBody": [
         { "key": "title", "value": "United States v. Rodriguez", "overwrite": true },
-        { "key": "crime_type", "value": "Felony", "overwrite": true },
+        { "key": "crime_type", "value": "fraud", "overwrite": true },
         { "key": "district_code", "value": "district9", "overwrite": true },
         { "key": "description", "value": "Federal narcotics conspiracy charge under 21 USC 846", "overwrite": true },
         { "key": "priority", "value": "high", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_attorney",
+      "openApiOperation": "POST::/api/attorneys",
       "overwriteRequestBody": [
-        { "key": "bar_number", "value": "NY-2019-04521", "overwrite": true },
+        { "key": "bar_number", "value": "NY-{{$timestamp}}", "overwrite": true },
         { "key": "first_name", "value": "Maria", "overwrite": true },
         { "key": "last_name", "value": "Martinez", "overwrite": true },
         { "key": "email", "value": "mmartinez@martinez-pllc.com", "overwrite": true },
@@ -426,47 +295,56 @@
       ]
     },
     {
-      "openApiOperationId": "create_judge",
+      "openApiOperation": "POST::/api/judges",
       "overwriteRequestBody": [
         { "key": "name", "value": "Hon. Catherine R. Thornton", "overwrite": true },
-        { "key": "title", "value": "District Judge", "overwrite": true },
+        { "key": "title", "value": "Judge", "overwrite": true },
         { "key": "district", "value": "district9", "overwrite": true },
         { "key": "courtroom", "value": "3B", "overwrite": true },
-        { "key": "status", "value": "active", "overwrite": true }
+        { "key": "status", "value": "Active", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_defendant",
+      "openApiOperation": "POST::/api/defendants",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "name", "value": "Carlos Eduardo Rodriguez", "overwrite": true },
-        { "key": "custody_status", "value": "detained", "overwrite": true },
-        { "key": "bail_type", "value": "cash", "overwrite": true },
+        { "key": "citizenship_status", "value": "Citizen", "overwrite": true },
+        { "key": "custody_status", "value": "In Custody", "overwrite": true },
+        { "key": "bail_type", "value": "Cash", "overwrite": true },
         { "key": "bail_amount", "value": 250000, "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_party",
+      "openApiOperation": "POST::/api/parties",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
-        { "key": "party_type", "value": "defendant", "overwrite": true },
+        { "key": "party_type", "value": "Defendant", "overwrite": true },
         { "key": "name", "value": "Carlos Eduardo Rodriguez", "overwrite": true },
-        { "key": "entity_type", "value": "individual", "overwrite": true },
+        { "key": "first_name", "value": "Carlos", "overwrite": true },
+        { "key": "last_name", "value": "Rodriguez", "overwrite": true },
+        { "key": "entity_type", "value": "Individual", "overwrite": true },
+        { "key": "party_role", "value": "Lead", "overwrite": true },
         { "key": "pro_se", "value": false, "overwrite": true },
-        { "key": "service_method", "value": "electronic", "overwrite": true }
+        { "key": "service_method", "value": "Electronic", "overwrite": true },
+        { "key": "date_of_birth", "value": "1985-07-22", "overwrite": true },
+        { "key": "email", "value": "c.rodriguez@example.com", "overwrite": true },
+        { "key": "phone", "value": "212-555-0199", "overwrite": true },
+        { "key": "ein", "value": null, "overwrite": true },
+        { "key": "fax", "value": null, "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_docket_entry",
+      "openApiOperation": "POST::/api/docket/entries",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
-        { "key": "entry_type", "value": "Motion", "overwrite": true },
+        { "key": "entry_type", "value": "motion", "overwrite": true },
         { "key": "description", "value": "Motion to Suppress Evidence obtained during warrantless search", "overwrite": true },
         { "key": "filed_by", "value": "Maria Martinez", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "submit_filing",
+      "openApiOperation": "POST::/api/filings",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "document_type", "value": "Motion", "overwrite": true },
@@ -475,55 +353,64 @@
       ]
     },
     {
-      "openApiOperationId": "create_motion",
+      "openApiOperation": "POST::/api/motions",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
-        { "key": "motion_type", "value": "suppress", "overwrite": true },
+        { "key": "motion_type", "value": "Suppress", "overwrite": true },
         { "key": "filed_by", "value": "Defense", "overwrite": true },
-        { "key": "description", "value": "Motion to suppress evidence obtained during warrantless vehicle search on I-95", "overwrite": true }
+        { "key": "description", "value": "Motion to suppress evidence obtained during warrantless vehicle search on I-95", "overwrite": true },
+        { "key": "status", "value": "Pending", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_charge",
+      "openApiOperation": "POST::/api/charges",
       "overwriteRequestBody": [
         { "key": "defendant_id", "value": "{{created_defendant_id}}", "overwrite": true },
         { "key": "count_number", "value": 1, "overwrite": true },
         { "key": "statute", "value": "21 USC 846", "overwrite": true },
-        { "key": "offense_description", "value": "Conspiracy to distribute controlled substances", "overwrite": true }
+        { "key": "offense_description", "value": "Conspiracy to distribute controlled substances", "overwrite": true },
+        { "key": "plea", "value": "Not Yet Entered", "overwrite": true },
+        { "key": "verdict", "value": null, "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_evidence",
+      "openApiOperation": "POST::/api/evidence",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "description", "value": "Seized narcotics from vehicle trunk - 2.3kg cocaine", "overwrite": true },
-        { "key": "evidence_type", "value": "physical", "overwrite": true },
+        { "key": "evidence_type", "value": "Physical", "overwrite": true },
         { "key": "location", "value": "DEA Evidence Vault, SDNY", "overwrite": true },
         { "key": "seized_by", "value": "DEA Special Agent Torres", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_order",
+      "openApiOperation": "POST::/api/orders",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
-        { "key": "order_type", "value": "detention", "overwrite": true },
+        { "key": "order_type", "value": "Detention", "overwrite": true },
         { "key": "title", "value": "Order of Pretrial Detention", "overwrite": true },
-        { "key": "content", "value": "Defendant is ordered detained pending trial per 18 USC 3142(e). Court finds defendant poses flight risk and danger to community.", "overwrite": true }
+        { "key": "content", "value": "Defendant is ordered detained pending trial per 18 USC 3142(e).", "overwrite": true },
+        { "key": "status", "value": "Draft", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_opinion",
+      "openApiOperation": "POST::/api/opinions",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
-        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
-        { "key": "opinion_type", "value": "memorandum", "overwrite": true },
+        { "key": "author_judge_id", "value": "{{created_judge_id}}", "overwrite": true },
+        { "key": "author_judge_name", "value": "Hon. Catherine R. Thornton", "overwrite": true },
+        { "key": "opinion_type", "value": "Memorandum", "overwrite": true },
+        { "key": "case_name", "value": "United States v. Rodriguez", "overwrite": true },
+        { "key": "docket_number", "value": "{{created_case_number}}", "overwrite": true },
         { "key": "title", "value": "Memorandum Opinion on Motion to Suppress", "overwrite": true },
-        { "key": "content", "value": "The Court denies defendant's motion to suppress. The automobile exception to the Fourth Amendment warrant requirement applies.", "overwrite": true }
+        { "key": "content", "value": "The Court denies defendant motion to suppress.", "overwrite": true },
+        { "key": "disposition", "value": "Dismissed", "overwrite": true },
+        { "key": "status", "value": "Draft", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_deadline",
+      "openApiOperation": "POST::/api/deadlines",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "title", "value": "Pretrial motions filing deadline", "overwrite": true },
@@ -532,7 +419,7 @@
       ]
     },
     {
-      "openApiOperationId": "schedule_event",
+      "openApiOperation": "POST::/api/calendar/events",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
@@ -546,24 +433,32 @@
       ]
     },
     {
-      "openApiOperationId": "create_sentencing",
+      "openApiOperation": "POST::/api/sentencing",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "defendant_id", "value": "{{created_defendant_id}}", "overwrite": true },
-        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true }
+        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
+        { "key": "criminal_history_category", "value": "I", "overwrite": true },
+        { "key": "offense_level", "value": 12, "overwrite": true },
+        { "key": "departure_type", "value": "None", "overwrite": true },
+        { "key": "variance_type", "value": "None", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_rule",
+      "openApiOperation": "POST::/api/rules",
       "overwriteRequestBody": [
-        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
-        { "key": "rule_number", "value": "16", "overwrite": true },
-        { "key": "title", "value": "Discovery and Inspection", "overwrite": true },
-        { "key": "description", "value": "Federal Rule of Criminal Procedure 16 - Government and defendant disclosure obligations", "overwrite": true }
+        { "key": "name", "value": "Discovery and Inspection", "overwrite": true },
+        { "key": "description", "value": "Federal Rule of Criminal Procedure 16 - Government and defendant disclosure obligations", "overwrite": true },
+        { "key": "source", "value": "Federal Rules of Criminal Procedure", "overwrite": true },
+        { "key": "category", "value": "Discovery", "overwrite": true },
+        { "key": "priority", "value": 1, "overwrite": true },
+        { "key": "citation", "value": "Fed. R. Crim. P. 16", "overwrite": true },
+        { "key": "effective_date", "value": "2025-12-01T00:00:00Z", "overwrite": true },
+        { "key": "status", "value": "Active", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_conflict_check",
+      "openApiOperation": "POST::/api/conflict-checks",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "attorney_id", "value": "{{created_attorney_id}}", "overwrite": true },
@@ -571,22 +466,22 @@
       ]
     },
     {
-      "openApiOperationId": "create_template",
+      "openApiOperation": "POST::/api/templates/orders",
       "overwriteRequestBody": [
         { "key": "name", "value": "Standard Detention Order", "overwrite": true },
-        { "key": "content", "value": "ORDERED that defendant {{defendant_name}} is detained pending trial pursuant to 18 USC 3142(e).", "overwrite": true },
+        { "key": "content", "value": "ORDERED that defendant is detained pending trial pursuant to 18 USC 3142(e).", "overwrite": true },
         { "key": "template_type", "value": "detention", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_case_note",
+      "openApiOperation": "POST::/api/case-notes",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "content", "value": "Defense counsel requests 30-day continuance for additional discovery review. Government does not oppose.", "overwrite": true }
       ]
     },
     {
-      "openApiOperationId": "create_todo",
+      "openApiOperation": "POST::/api/todos",
       "overwriteRequestBody": [
         { "key": "title", "value": "Review Brady material production from AUSA", "overwrite": true },
         { "key": "user_id", "value": "{{test_user_id}}", "overwrite": true },
@@ -594,12 +489,429 @@
       ]
     },
     {
-      "openApiOperationId": "create_service_record",
+      "openApiOperation": "POST::/api/service-records",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
-        { "key": "document_id", "value": "{{created_filing_id}}", "overwrite": true },
+        { "key": "document_id", "value": "{{created_order_id}}", "overwrite": true },
+        { "key": "party_id", "value": "{{created_party_id}}", "overwrite": true },
+        { "key": "served_by", "value": "Maria Martinez, Esq.", "overwrite": true },
         { "key": "served_to", "value": "AUSA Jennifer Walsh", "overwrite": true },
-        { "key": "service_method", "value": "electronic", "overwrite": true }
+        { "key": "service_method", "value": "Electronic", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/judges/assignments",
+      "overwriteRequestBody": [
+        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "assignment_type", "value": "Initial", "overwrite": true },
+        { "key": "previous_judge_id", "value": null, "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/custody-transfers",
+      "overwriteRequestBody": [
+        { "key": "evidence_id", "value": "{{created_evidence_id}}", "overwrite": true },
+        { "key": "from_custodian", "value": "DEA Special Agent Torres", "overwrite": true },
+        { "key": "to_custodian", "value": "USMS Evidence Control", "overwrite": true },
+        { "key": "reason", "value": "Transfer to court custody for trial exhibit", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/representations",
+      "overwriteRequestBody": [
+        { "key": "attorney_id", "value": "{{created_attorney_id}}", "overwrite": true },
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "party_id", "value": "{{created_party_id}}", "overwrite": true },
+        { "key": "representation_type", "value": "Private", "overwrite": true },
+        { "key": "cja_appointment_id", "value": null, "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/signatures",
+      "overwriteRequestBody": [
+        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
+        { "key": "signature_data", "value": "base64-encoded-signature-image-data", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/events",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "event_kind", "value": "text_entry", "overwrite": true },
+        { "key": "description", "value": "Case status updated to arraigned", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/cases/{id}/victims",
+      "overwriteRequestBody": [
+        { "key": "name", "value": "Jane Doe", "overwrite": true },
+        { "key": "victim_type", "value": "Individual", "overwrite": true },
+        { "key": "contact_email", "value": "victim-advocate@district9.uscourts.gov", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/attorneys/{id}/bar-admissions",
+      "overwriteRequestBody": [
+        { "key": "state", "value": "NY", "overwrite": true },
+        { "key": "bar_number", "value": "NY-2019-04521", "overwrite": true },
+        { "key": "status", "value": "Active", "overwrite": true },
+        { "key": "admission_date", "value": "2019-06-15T00:00:00Z", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/attorneys/{id}/disciplinary-actions",
+      "overwriteRequestBody": [
+        { "key": "action_type", "value": "Reprimand", "overwrite": true },
+        { "key": "description", "value": "Failure to timely file brief", "overwrite": true },
+        { "key": "date", "value": "2025-01-15", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/attorneys/{id}/federal-admissions",
+      "overwriteRequestBody": [
+        { "key": "court_name", "value": "Southern District of New York", "overwrite": true },
+        { "key": "admission_date", "value": "2019-09-01T00:00:00Z", "overwrite": true },
+        { "key": "status", "value": "Active", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/attorneys/{id}/practice-areas",
+      "overwriteRequestBody": [
+        { "key": "area", "value": "criminal defense", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/attorneys/{id}/pro-hac-vice",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "sponsoring_attorney_id", "value": "{{created_attorney_id}}", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/attorneys/{id}/cja-appointments",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/attorneys/{id}/ecf-registration",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Active", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/attorneys/bulk/update-status",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Active", "overwrite": true },
+        { "key": "attorney_ids", "value": ["{{created_attorney_id}}"], "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/judges/{judge_id}/conflicts",
+      "overwriteRequestBody": [
+        { "key": "conflict_type", "value": "Financial", "overwrite": true },
+        { "key": "party_name", "value": "Rodriguez Industries LLC", "overwrite": true },
+        { "key": "description", "value": "Judge spouse holds stock in defendant company", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/judges/{judge_id}/recusals",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "filed_by", "value": "Defense Counsel", "overwrite": true },
+        { "key": "reason", "value": "Financial conflict of interest", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/judges/{id}",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Active", "overwrite": true },
+        { "key": "title", "value": "Judge", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/cases/{id}",
+      "overwriteRequestBody": [
+        { "key": "crime_type", "value": "fraud", "overwrite": true },
+        { "key": "priority", "value": "high", "overwrite": true },
+        { "key": "status", "value": "arraigned", "overwrite": true },
+        { "key": "title", "value": "Updated Case Title", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/attorneys/{attorney_id}/cases",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "role", "value": "Defense Counsel", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/case-notes/{id}",
+      "overwriteRequestBody": [
+        { "key": "note_type", "value": "General", "overwrite": true },
+        { "key": "content", "value": "Updated case note content", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/cases/{id}/status",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "arraigned", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/cases/{id}/plea",
+      "overwriteRequestBody": [
+        { "key": "plea", "value": "Not Guilty", "overwrite": true },
+        { "key": "defendant_id", "value": "{{created_defendant_id}}", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/features/override",
+      "overwriteRequestBody": [
+        { "key": "scope", "value": "district", "overwrite": true },
+        { "key": "feature_path", "value": "case-management", "overwrite": true },
+        { "key": "enabled", "value": true, "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/deadlines/reminders/send",
+      "overwriteRequestBody": [
+        { "key": "deadline_id", "value": "{{created_deadline_id}}", "overwrite": true },
+        { "key": "reminder_type", "value": "Email", "overwrite": true },
+        { "key": "recipient", "value": "clerk@district9.uscourts.gov", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/deadlines/calculate",
+      "overwriteRequestBody": [
+        { "key": "rule_code", "value": "STA-70", "overwrite": true },
+        { "key": "start_date", "value": "2026-02-15", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/filings/upload/init",
+      "overwriteRequestBody": [
+        { "key": "filename", "value": "motion-to-suppress.pdf", "overwrite": true },
+        { "key": "content_type", "value": "application/pdf", "overwrite": true },
+        { "key": "file_size", "value": 1024000, "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/representations/substitute",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "old_attorney_id", "value": "{{created_attorney_id}}", "overwrite": true },
+        { "key": "new_attorney_id", "value": "{{created_attorney_id}}", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/representations/migrate",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "old_attorney_id", "value": "{{created_attorney_id}}", "overwrite": true },
+        { "key": "new_attorney_id", "value": "{{created_attorney_id}}", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/extensions/{extension_id}/ruling",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Granted", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/recusals/{recusal_id}/ruling",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Denied", "overwrite": true },
+        { "key": "ruling_reason", "value": "Insufficient grounds for recusal", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/recusals/{recusal_id}/process",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Denied", "overwrite": true },
+        { "key": "ruling_reason", "value": "Insufficient grounds for recusal", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/documents/from-attachment",
+      "overwriteRequestBody": [
+        { "key": "docket_attachment_id", "value": "{{created_docket_entry_id}}", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/service-records/bulk/{document_id}",
+      "overwriteRequestBody": [
+        { "key": "parties", "value": [{ "party_id": "{{created_party_id}}", "service_method": "Electronic" }], "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/calendar/events/{event_id}/status",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "confirmed", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/deadlines/{id}/status",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "met", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/orders/{order_id}",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Draft", "overwrite": true },
+        { "key": "order_type", "value": "Detention", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/parties/{id}/status",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Active", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/charges/{id}",
+      "overwriteRequestBody": [
+        { "key": "plea", "value": "Not Guilty", "overwrite": true },
+        { "key": "verdict", "value": "Not Guilty", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/defendants/{id}",
+      "overwriteRequestBody": [
+        { "key": "citizenship_status", "value": "Citizen", "overwrite": true },
+        { "key": "custody_status", "value": "In Custody", "overwrite": true },
+        { "key": "bail_type", "value": "Cash", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/templates/orders/{template_id}",
+      "overwriteRequestBody": [
+        { "key": "template_type", "value": "detention", "overwrite": true },
+        { "key": "order_type", "value": "Detention", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/attorneys/{id}/pro-hac-vice/{case_id}/status",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Active", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/cases/{id}/victims/{victim_id}/notifications",
+      "overwriteRequestBody": [
+        { "key": "notification_type", "value": "Hearing Scheduled", "overwrite": true },
+        { "key": "message", "value": "A hearing has been scheduled in your case", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/features",
+      "overwriteRequestBody": [
+        { "key": "feature_path", "value": "case-management", "overwrite": true },
+        { "key": "enabled", "value": true, "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/features/implementation",
+      "overwriteRequestBody": [
+        { "key": "feature_path", "value": "case-management", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/features/manager",
+      "overwriteRequestBody": [
+        { "key": "feature_path", "value": "case-management", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/sentencing/{id}",
+      "overwriteRequestBody": [
+        { "key": "criminal_history_category", "value": "I", "overwrite": true },
+        { "key": "departure_type", "value": "None", "overwrite": true },
+        { "key": "variance_type", "value": "None", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/rules/{id}",
+      "overwriteRequestBody": [
+        { "key": "category", "value": "Discovery", "overwrite": true },
+        { "key": "source", "value": "Federal Rules of Criminal Procedure", "overwrite": true },
+        { "key": "status", "value": "Active", "overwrite": true },
+        { "key": "effective_date", "value": "2025-12-01T00:00:00Z", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/opinions/{opinion_id}/votes",
+      "overwriteRequestBody": [
+        { "key": "judge_id", "value": "{{created_judge_id}}", "overwrite": true },
+        { "key": "vote_type", "value": "Join", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/motions/{id}",
+      "overwriteRequestBody": [
+        { "key": "motion_type", "value": "Suppress", "overwrite": true },
+        { "key": "status", "value": "Pending", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/evidence/{id}",
+      "overwriteRequestBody": [
+        { "key": "evidence_type", "value": "Physical", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PATCH::/api/opinions/{opinion_id}",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Draft", "overwrite": true },
+        { "key": "disposition", "value": "Dismissed", "overwrite": true },
+        { "key": "opinion_type", "value": "Memorandum", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/sentencing/{id}/bop-designation",
+      "overwriteRequestBody": [
+        { "key": "security_level", "value": "Medium", "overwrite": true },
+        { "key": "facility_name", "value": "FCI Otisville", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/cases/{id}/victims/{victim_id}/notifications",
+      "overwriteRequestBody": [
+        { "key": "notification_type", "value": "Hearing Scheduled", "overwrite": true },
+        { "key": "method", "value": "Email", "overwrite": true },
+        { "key": "message", "value": "A hearing has been scheduled in your case", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/parties/{id}",
+      "overwriteRequestBody": [
+        { "key": "party_type", "value": "Defendant", "overwrite": true },
+        { "key": "entity_type", "value": "Individual", "overwrite": true },
+        { "key": "service_method", "value": "Electronic", "overwrite": true },
+        { "key": "status", "value": "Active", "overwrite": true },
+        { "key": "date_of_birth", "value": "1985-07-22", "overwrite": true },
+        { "key": "party_role", "value": "Lead", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/opinions/{opinion_id}/drafts",
+      "overwriteRequestBody": [
+        { "key": "status", "value": "Draft", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/cases/{id}/speedy-trial/start",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/cases/{id}/speedy-trial/exclude",
+      "overwriteRequestBody": [
+        { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
+        { "key": "days_excluded", "value": 30, "overwrite": true }
       ]
     }
   ],
@@ -607,76 +919,13 @@
     {
       "openApiOperation": "*::/*",
       "scripts": [
-        "pm.request.headers.add({ key: 'X-Court-District', value: pm.environment.get('district') || 'district9' });",
-        "",
-        "// Dynamic path variable resolution from captured collection variables",
-        "const path = pm.request.url.getPath();",
-        "const pathIdMap = {",
-        "  '/api/attorneys': 'created_attorney_id',",
-        "  '/api/cases': 'created_case_id',",
-        "  '/api/judges': 'created_judge_id',",
-        "  '/api/defendants': 'created_defendant_id',",
-        "  '/api/parties': 'created_party_id',",
-        "  '/api/docket': 'created_docket_entry_id',",
-        "  '/api/calendar': 'created_event_id',",
-        "  '/api/deadlines': 'created_deadline_id',",
-        "  '/api/evidence': 'created_evidence_id',",
-        "  '/api/charges': 'created_charge_id',",
-        "  '/api/motions': 'created_motion_id',",
-        "  '/api/orders': 'created_order_id',",
-        "  '/api/opinions': 'created_opinion_id',",
-        "  '/api/sentencing': 'created_sentencing_id',",
-        "  '/api/rules': 'created_rule_id',",
-        "  '/api/templates': 'created_template_id',",
-        "  '/api/todos': 'created_todo_id',",
-        "  '/api/case-notes': 'created_case_note_id',",
-        "  '/api/service-records': 'created_service_record_id',",
-        "  '/api/filings': 'created_filing_id',",
-        "  '/api/conflict-checks': 'created_conflict_id'",
-        "};",
-        "",
-        "// Named variable mappings (non-id path params)",
-        "const namedVarMap = {",
-        "  'case_id': 'created_case_id',",
-        "  'attorney_id': 'created_attorney_id',",
-        "  'judge_id': 'created_judge_id',",
-        "  'defendant_id': 'created_defendant_id',",
-        "  'party_id': 'created_party_id',",
-        "  'entry_id': 'created_docket_entry_id',",
-        "  'event_id': 'created_event_id',",
-        "  'deadline_id': 'created_deadline_id',",
-        "  'evidence_id': 'created_evidence_id',",
-        "  'charge_id': 'created_charge_id',",
-        "  'motion_id': 'created_motion_id',",
-        "  'order_id': 'created_order_id',",
-        "  'opinion_id': 'created_opinion_id',",
-        "  'sentencing_id': 'created_sentencing_id',",
-        "  'rule_id': 'created_rule_id',",
-        "  'template_id': 'created_template_id',",
-        "  'todo_id': 'created_todo_id',",
-        "  'filing_id': 'created_filing_id',",
-        "  'conflict_id': 'created_conflict_id',",
-        "  'docket_entry_id': 'created_docket_entry_id',",
-        "  'document_id': 'created_filing_id',",
-        "  'user_id': 'test_user_id'",
-        "};",
-        "",
-        "if (pm.request.url.variables && pm.request.url.variables.count() > 0) {",
-        "  pm.request.url.variables.each(function(v) {",
-        "    if (v.key === 'id') {",
-        "      for (var prefix in pathIdMap) {",
-        "        if (path.indexOf(prefix) === 0) {",
-        "          var val = pm.collectionVariables.get(pathIdMap[prefix]) || pm.environment.get(pathIdMap[prefix]);",
-        "          if (val) { v.set(val); }",
-        "          break;",
-        "        }",
-        "      }",
-        "    } else if (namedVarMap[v.key]) {",
-        "      var mapped = pm.collectionVariables.get(namedVarMap[v.key]) || pm.environment.get(namedVarMap[v.key]);",
-        "      if (mapped) { v.set(mapped); }",
-        "    }",
-        "  });",
-        "}"
+        "pm.request.headers.upsert({ key: 'X-Court-District', value: pm.environment.get('district') || 'district9' });"
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/todos",
+      "scripts": [
+        "try { var b = JSON.parse(pm.request.body.raw); var uid = pm.collectionVariables.get('test_user_id') || '1'; b.user_id = parseInt(uid, 10); pm.request.body.raw = JSON.stringify(b); } catch(e) {}"
       ]
     }
   ]
