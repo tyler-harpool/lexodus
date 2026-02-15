@@ -43,6 +43,16 @@ const primaryCreates = [
   "POST::/api/custody-transfers",
   "POST::/api/representations",
   "POST::/api/signatures",
+  // Secondary creates (depend on primary entities)
+  "POST::/api/cases/{id}/victims",
+  "POST::/api/judges/{judge_id}/conflicts",
+  "POST::/api/judges/{judge_id}/recusals",
+  "POST::/api/opinions/{opinion_id}/drafts",
+  "POST::/api/opinions/{opinion_id}/drafts/{draft_id}/comments",
+  "POST::/api/cases/{id}/speedy-trial/start",
+  "POST::/api/filings/upload/init",
+  "POST::/api/features/override",
+  "POST::/api/events",
 ];
 
 function getOperationKey(item) {

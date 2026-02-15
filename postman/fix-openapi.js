@@ -122,7 +122,7 @@ const enumDefs = {
   party_type: [
     "Plaintiff", "Defendant", "Appellant", "Appellee", "Petitioner",
     "Respondent", "Intervenor", "Amicus Curiae", "Third Party",
-    "Government", "Witness", "Counter-Claimant", "Cross-Claimant", "Other"
+    "Government", "Witness", "Counter-Claimant", "Cross-Claimant", "Other", "Unknown"
   ],
 
   // Party roles

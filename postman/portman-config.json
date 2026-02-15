@@ -75,6 +75,17 @@
       "POST::/api/judges/assignments",
       "POST::/api/custody-transfers",
       "POST::/api/representations",
+      "POST::/api/signatures",
+
+      "POST::/api/cases/{id}/victims",
+      "POST::/api/judges/{judge_id}/conflicts",
+      "POST::/api/judges/{judge_id}/recusals",
+      "POST::/api/opinions/{opinion_id}/drafts",
+      "POST::/api/opinions/{opinion_id}/drafts/{draft_id}/comments",
+      "POST::/api/cases/{id}/speedy-trial/start",
+      "POST::/api/filings/upload/init",
+      "POST::/api/features/override",
+      "POST::/api/events",
 
       "GET::/api/cases",
       "GET::/api/cases/{id}",
@@ -149,7 +160,8 @@
     {
       "openApiOperation": "POST::/api/attorneys",
       "collectionVariables": [
-        { "responseBodyProp": "id", "name": "created_attorney_id" }
+        { "responseBodyProp": "id", "name": "created_attorney_id" },
+        { "responseBodyProp": "bar_number", "name": "created_bar_number" }
       ]
     },
     {
@@ -179,7 +191,8 @@
     {
       "openApiOperation": "POST::/api/filings",
       "collectionVariables": [
-        { "responseBodyProp": "id", "name": "created_filing_id" }
+        { "responseBodyProp": "filing_id", "name": "created_filing_id" },
+        { "responseBodyProp": "document_id", "name": "created_document_id" }
       ]
     },
     {
@@ -265,6 +278,78 @@
       "collectionVariables": [
         { "responseBodyProp": "id", "name": "created_service_record_id" }
       ]
+    },
+    {
+      "openApiOperation": "POST::/api/representations",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_representation_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/judges/assignments",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_assignment_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/custody-transfers",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_custody_transfer_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/cases/{id}/victims",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_victim_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/judges/{judge_id}/conflicts",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_conflict_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/judges/{judge_id}/recusals",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_recusal_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/opinions/{opinion_id}/drafts",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_draft_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/opinions/{opinion_id}/drafts/{draft_id}/comments",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_comment_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/filings/upload/init",
+      "collectionVariables": [
+        { "responseBodyProp": "upload_id", "name": "created_upload_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/deadlines/{deadline_id}/extensions",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_extension_id" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/features/override",
+      "collectionVariables": [
+        { "responseBodyProp": "feature_path", "name": "created_feature_path" }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/signatures",
+      "collectionVariables": [
+        { "responseBodyProp": "id", "name": "created_signature_id" }
+      ]
     }
   ],
   "overwrites": [
@@ -340,7 +425,8 @@
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "entry_type", "value": "motion", "overwrite": true },
         { "key": "description", "value": "Motion to Suppress Evidence obtained during warrantless search", "overwrite": true },
-        { "key": "filed_by", "value": "Maria Martinez", "overwrite": true }
+        { "key": "filed_by", "value": "Maria Martinez", "overwrite": true },
+        { "key": "document_id", "value": null, "overwrite": true }
       ]
     },
     {
@@ -349,7 +435,9 @@
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "document_type", "value": "Motion", "overwrite": true },
         { "key": "title", "value": "Motion to Suppress Evidence", "overwrite": true },
-        { "key": "filed_by", "value": "Maria Martinez, Esq.", "overwrite": true }
+        { "key": "filed_by", "value": "Maria Martinez, Esq.", "overwrite": true },
+        { "key": "sealing_level", "value": null, "overwrite": true },
+        { "key": "upload_id", "value": null, "overwrite": true }
       ]
     },
     {
@@ -492,11 +580,12 @@
       "openApiOperation": "POST::/api/service-records",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
-        { "key": "document_id", "value": "{{created_order_id}}", "overwrite": true },
+        { "key": "document_id", "value": "{{created_document_id}}", "overwrite": true },
         { "key": "party_id", "value": "{{created_party_id}}", "overwrite": true },
         { "key": "served_by", "value": "Maria Martinez, Esq.", "overwrite": true },
         { "key": "served_to", "value": "AUSA Jennifer Walsh", "overwrite": true },
-        { "key": "service_method", "value": "Electronic", "overwrite": true }
+        { "key": "service_method", "value": "Electronic", "overwrite": true },
+        { "key": "service_date", "value": null, "overwrite": true }
       ]
     },
     {
@@ -539,7 +628,9 @@
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "event_kind", "value": "text_entry", "overwrite": true },
-        { "key": "description", "value": "Case status updated to arraigned", "overwrite": true }
+        { "key": "entry_type", "value": "notice", "overwrite": true },
+        { "key": "description", "value": "Case status updated to arraigned", "overwrite": true },
+        { "key": "filed_by", "value": "Clerk of Court", "overwrite": true }
       ]
     },
     {
@@ -643,7 +734,8 @@
       "openApiOperation": "POST::/api/attorneys/{attorney_id}/cases",
       "overwriteRequestBody": [
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
-        { "key": "role", "value": "Defense Counsel", "overwrite": true }
+        { "key": "representation_type", "value": "Private", "overwrite": true },
+        { "key": "role", "value": "Lead", "overwrite": true }
       ]
     },
     {
@@ -723,14 +815,16 @@
       "openApiOperation": "PATCH::/api/recusals/{recusal_id}/ruling",
       "overwriteRequestBody": [
         { "key": "status", "value": "Denied", "overwrite": true },
-        { "key": "ruling_reason", "value": "Insufficient grounds for recusal", "overwrite": true }
+        { "key": "ruling_reason", "value": "Insufficient grounds for recusal", "overwrite": true },
+        { "key": "replacement_judge_id", "value": null, "overwrite": true }
       ]
     },
     {
       "openApiOperation": "POST::/api/recusals/{recusal_id}/process",
       "overwriteRequestBody": [
         { "key": "status", "value": "Denied", "overwrite": true },
-        { "key": "ruling_reason", "value": "Insufficient grounds for recusal", "overwrite": true }
+        { "key": "ruling_reason", "value": "Insufficient grounds for recusal", "overwrite": true },
+        { "key": "replacement_judge_id", "value": null, "overwrite": true }
       ]
     },
     {
@@ -742,6 +836,10 @@
     {
       "openApiOperation": "POST::/api/service-records/bulk/{document_id}",
       "overwriteRequestBody": [
+        { "key": "party_ids", "value": ["{{created_party_id}}"], "overwrite": true },
+        { "key": "served_by", "value": "Maria Martinez, Esq.", "overwrite": true },
+        { "key": "service_method", "value": "Electronic", "overwrite": true },
+        { "key": "service_date", "value": null, "overwrite": true },
         { "key": "parties", "value": [{ "party_id": "{{created_party_id}}", "service_method": "Electronic" }], "overwrite": true }
       ]
     },
@@ -913,6 +1011,48 @@
         { "key": "case_id", "value": "{{created_case_id}}", "overwrite": true },
         { "key": "days_excluded", "value": 30, "overwrite": true }
       ]
+    },
+    {
+      "openApiOperation": "PUT::/api/admin/court-memberships",
+      "overwriteRequestBody": [
+        { "key": "user_id", "value": "{{test_user_id}}", "overwrite": true },
+        { "key": "court_id", "value": "district9", "overwrite": true },
+        { "key": "role", "value": "clerk", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/v1/users/{user_id}/tier",
+      "overwriteRequestBody": [
+        { "key": "tier", "value": "pro", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/v1/users",
+      "overwriteRequestBody": [
+        { "key": "username", "value": "portman_test_user", "overwrite": true },
+        { "key": "display_name", "value": "Portman Test User", "overwrite": true },
+        { "key": "email", "value": "portman-test@lexodus.dev", "overwrite": true },
+        { "key": "password", "value": "TestPassword123", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/representations/{representation_id}/end",
+      "overwriteRequestBody": [
+        { "key": "reason", "value": "Completed Representation", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/documents/{id}/replace",
+      "overwriteRequestBody": [
+        { "key": "upload_id", "value": "00000000-0000-0000-0000-000000000000", "overwrite": true }
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/documents/{id}/seal",
+      "overwriteRequestBody": [
+        { "key": "sealing_level", "value": "SealedCourtOnly", "overwrite": true },
+        { "key": "reason_code", "value": "JuvenileRecord", "overwrite": true }
+      ]
     }
   ],
   "operationPreRequestScripts": [
@@ -926,6 +1066,24 @@
       "openApiOperation": "POST::/api/todos",
       "scripts": [
         "try { var b = JSON.parse(pm.request.body.raw); var uid = pm.collectionVariables.get('test_user_id') || '1'; b.user_id = parseInt(uid, 10); pm.request.body.raw = JSON.stringify(b); } catch(e) {}"
+      ]
+    },
+    {
+      "openApiOperation": "PUT::/api/admin/court-memberships",
+      "scripts": [
+        "try { var b = JSON.parse(pm.request.body.raw); var uid = pm.collectionVariables.get('test_user_id') || '1'; b.user_id = parseInt(uid, 10); pm.request.body.raw = JSON.stringify(b); } catch(e) {}"
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/docket/entries/{entry_id}/link-document",
+      "scripts": [
+        "try { var b = JSON.parse(pm.request.body.raw); b.document_id = pm.collectionVariables.get('created_document_id') || '00000000-0000-0000-0000-000000000000'; pm.request.body.raw = JSON.stringify(b); } catch(e) {}"
+      ]
+    },
+    {
+      "openApiOperation": "POST::/api/documents/{id}/seal",
+      "scripts": [
+        "try { var b = JSON.parse(pm.request.body.raw); if (b.motion_id && !/^[0-9a-f]{8}-/.test(b.motion_id)) { b.motion_id = null; } pm.request.body.raw = JSON.stringify(b); } catch(e) {}"
       ]
     }
   ]
