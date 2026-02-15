@@ -31,9 +31,9 @@ fn initials_from_name(name: &str) -> String {
     name.chars().take(2).collect::<String>().to_uppercase()
 }
 
-/// Dashboard page displaying stats, progress bars, and recent user activity.
+/// Clerk/Admin dashboard displaying stats, progress bars, and recent user activity.
 #[component]
-pub fn Dashboard() -> Element {
+pub fn ClerkDashboard() -> Element {
     let mut stats_resource = use_server_future(get_dashboard_stats)?;
 
     let stats_result = stats_resource();

@@ -2,6 +2,7 @@ pub mod activate;
 pub mod attorneys;
 pub mod calendar;
 pub mod cases;
+pub mod command_palette;
 pub mod compliance;
 pub mod dashboard;
 pub mod deadlines;
@@ -35,7 +36,7 @@ use crate::ProfileState;
 use dioxus::prelude::*;
 use dioxus_free_icons::icons::ld_icons::{
     LdBell, LdBookOpen, LdBriefcase, LdCalendar, LdClock, LdFileText, LdFolder,
-    LdLayoutDashboard, LdPackage, LdScale, LdSearch, LdSettings, LdShield, LdUserCheck, LdUsers,
+    LdLayoutDashboard, LdScale, LdSearch, LdSettings, LdShield, LdUserCheck, LdUsers,
 };
 use dioxus_free_icons::Icon;
 use shared_types::{FeatureFlags, UserTier};
@@ -245,6 +246,7 @@ fn AppLayout() -> Element {
     let mut auth = use_auth();
 
     let vis = use_sidebar_visibility();
+    let mut show_palette = use_signal(|| false);
 
     let mut theme_state = use_context_provider(|| shared_ui::theme::ThemeState {
         family: Signal::new("cyberpunk".to_string()),
@@ -288,6 +290,7 @@ fn AppLayout() -> Element {
         document::Link { rel: "stylesheet", href: asset!("./layout.css") }
 
         SidebarProvider { default_open: false,
+            command_palette::CommandPalette { show: show_palette }
             if flags.stripe {
                 crate::billing_listener::BillingListener {}
             }
@@ -577,6 +580,24 @@ fn AppLayout() -> Element {
 
                         // Spacer
                         div { class: "navbar-spacer" }
+
+                        // Search / command palette
+                        button {
+                            class: "navbar-notification-bell",
+                            title: "Search (Cmd+K)",
+                            onclick: move |_| show_palette.toggle(),
+                            Icon::<LdSearch> { icon: LdSearch, width: 20, height: 20 }
+                        }
+
+                        // Notification bell
+                        button {
+                            class: "navbar-notification-bell",
+                            title: "Notifications",
+                            onclick: move |_| {
+                                // TODO: Toggle notification panel
+                            },
+                            Icon::<LdBell> { icon: LdBell, width: 20, height: 20 }
+                        }
 
                         // User dropdown
                         DropdownMenu {

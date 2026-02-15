@@ -53,6 +53,110 @@
     cursor: pointer;
 }
 
+/* ---- Notification bell ---- */
+.navbar-notification-bell {
+    background: none;
+    border: none;
+    color: var(--color-on-surface-muted);
+    cursor: pointer;
+    padding: var(--space-xs);
+    border-radius: var(--radius);
+    position: relative;
+    display: flex;
+    align-items: center;
+    transition: color var(--transition-fast);
+    margin-right: var(--space-sm);
+}
+
+.navbar-notification-bell:hover {
+    color: var(--color-on-surface);
+    background: var(--color-surface-raised);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: var(--color-error);
+    color: white;
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-full);
+    min-width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+/* ---- Command Palette ---- */
+.cmd-palette-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+.cmd-palette {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(600px, 90vw);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    overflow: hidden;
+    animation: fade-in 0.15s ease-out;
+}
+
+.cmd-palette-input-wrap {
+    padding: var(--space-md);
+}
+
+.cmd-palette-results {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: var(--space-xs);
+}
+
+.cmd-palette-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: none;
+    border: none;
+    color: var(--color-on-surface);
+    cursor: pointer;
+    border-radius: var(--radius);
+    text-align: left;
+    transition: background var(--transition-fast);
+}
+
+.cmd-palette-item:hover {
+    background: var(--color-surface-raised);
+}
+
+.cmd-palette-item-name {
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.cmd-palette-item-desc {
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-sm);
+}
+
+.cmd-palette-empty {
+    padding: var(--space-lg);
+    text-align: center;
+    color: var(--color-on-surface-muted);
+}
+
 /* ---- Mobile responsive ---- */
 @media (max-width: 768px) {
     .navbar-bar {
