@@ -13,6 +13,11 @@ use shared_ui::components::{
     TooltipTrigger,
 };
 
+use super::tabs::{
+    calendar_tab::CalendarTab, deadlines::DeadlinesTab, evidence::EvidenceTab, orders::OrdersTab,
+    overview::OverviewTab, parties::PartiesTab, sentencing::SentencingTab,
+    speedy_trial::SpeedyTrialTab,
+};
 use crate::auth::use_user_role;
 use crate::routes::Route;
 use crate::CourtContext;
@@ -136,12 +141,32 @@ fn CaseDetailView(case_item: CaseResponse, id: String) -> Element {
             }
         }
 
-        Tabs { default_value: "info", horizontal: true,
+        Tabs { default_value: "overview", horizontal: true,
             TabList {
-                TabTrigger { value: "info", index: 0usize, "Case Info" }
-                TabTrigger { value: "docket", index: 1usize, "Docket" }
+                TabTrigger { value: "overview", index: 0usize, "Overview" }
+                TabTrigger { value: "info", index: 1usize, "Case Info" }
+                TabTrigger { value: "docket", index: 2usize, "Docket" }
+                TabTrigger { value: "parties", index: 3usize, "Parties" }
+                TabTrigger { value: "deadlines", index: 4usize, "Deadlines" }
+                TabTrigger { value: "orders", index: 5usize, "Orders" }
+                TabTrigger { value: "sentencing", index: 6usize, "Sentencing" }
+                TabTrigger { value: "evidence", index: 7usize, "Evidence" }
+                TabTrigger { value: "calendar", index: 8usize, "Calendar" }
+                TabTrigger { value: "speedy-trial", index: 9usize, "Speedy Trial" }
             }
-            TabContent { value: "info", index: 0usize,
+            TabContent { value: "overview", index: 0usize,
+                OverviewTab {
+                    case_id: id.clone(),
+                    title: current.title.clone(),
+                    case_number: current.case_number.clone(),
+                    status: current.status.clone(),
+                    crime_type: current.crime_type.clone(),
+                    district: current.district_code.clone(),
+                    priority: current.priority.clone(),
+                    description: current.description.clone(),
+                }
+            }
+            TabContent { value: "info", index: 1usize,
                 CaseInfoTab {
                     case_item: current.clone(),
                     editing: editing,
@@ -152,8 +177,29 @@ fn CaseDetailView(case_item: CaseResponse, id: String) -> Element {
                     on_cancel: move |_| editing.set(false),
                 }
             }
-            TabContent { value: "docket", index: 1usize,
+            TabContent { value: "docket", index: 2usize,
                 DocketTab { case_id: id.clone() }
+            }
+            TabContent { value: "parties", index: 3usize,
+                PartiesTab { case_id: id.clone() }
+            }
+            TabContent { value: "deadlines", index: 4usize,
+                DeadlinesTab { case_id: id.clone() }
+            }
+            TabContent { value: "orders", index: 5usize,
+                OrdersTab { case_id: id.clone() }
+            }
+            TabContent { value: "sentencing", index: 6usize,
+                SentencingTab { case_id: id.clone() }
+            }
+            TabContent { value: "evidence", index: 7usize,
+                EvidenceTab { case_id: id.clone() }
+            }
+            TabContent { value: "calendar", index: 8usize,
+                CalendarTab { case_id: id.clone() }
+            }
+            TabContent { value: "speedy-trial", index: 9usize,
+                SpeedyTrialTab { case_id: id.clone() }
             }
         }
     }
