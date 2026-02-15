@@ -602,5 +602,13 @@
         { "key": "service_method", "value": "electronic", "overwrite": true }
       ]
     }
+  ],
+  "operationPreRequestScripts": [
+    {
+      "openApiOperation": "*::/*",
+      "scripts": [
+        "pm.request.headers.add({ key: 'X-Court-District', value: pm.environment.get('district') || 'district9' });"
+      ]
+    }
   ]
 }
