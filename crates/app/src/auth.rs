@@ -76,3 +76,60 @@ pub fn use_user_role() -> UserRole {
     })
     .unwrap_or(UserRole::Public)
 }
+
+/// Determine which sidebar groups are visible for the current user's role.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SidebarVisibility {
+    pub core: bool,
+    pub case_management: bool,
+    pub court_operations: bool,
+    pub legal_documents: bool,
+    pub people_orgs: bool,
+    pub administration: bool,
+}
+
+pub fn use_sidebar_visibility() -> SidebarVisibility {
+    let role = use_user_role();
+    match role {
+        UserRole::Admin => SidebarVisibility {
+            core: true,
+            case_management: true,
+            court_operations: true,
+            legal_documents: true,
+            people_orgs: true,
+            administration: true,
+        },
+        UserRole::Clerk => SidebarVisibility {
+            core: true,
+            case_management: true,
+            court_operations: true,
+            legal_documents: true,
+            people_orgs: true,
+            administration: true,
+        },
+        UserRole::Judge => SidebarVisibility {
+            core: true,
+            case_management: true,
+            court_operations: true,
+            legal_documents: true,
+            people_orgs: false,
+            administration: false,
+        },
+        UserRole::Attorney => SidebarVisibility {
+            core: true,
+            case_management: true,
+            court_operations: false,
+            legal_documents: true,
+            people_orgs: false,
+            administration: false,
+        },
+        UserRole::Public => SidebarVisibility {
+            core: true,
+            case_management: false,
+            court_operations: false,
+            legal_documents: false,
+            people_orgs: false,
+            administration: false,
+        },
+    }
+}

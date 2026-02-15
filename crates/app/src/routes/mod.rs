@@ -2,24 +2,41 @@ pub mod activate;
 pub mod attorneys;
 pub mod calendar;
 pub mod cases;
+pub mod compliance;
 pub mod dashboard;
 pub mod deadlines;
+pub mod defendants;
 pub mod device_auth;
+pub mod docket;
+pub mod documents;
+pub mod evidence;
+pub mod filings;
 pub mod forgot_password;
+pub mod judges;
 pub mod login;
 pub mod not_found;
+pub mod opinions;
+pub mod orders;
+pub mod parties;
 pub mod privacy;
 pub mod products;
 pub mod register;
 pub mod reset_password;
+pub mod rules;
+pub mod sentencing;
+pub mod service_records;
 pub mod settings;
 pub mod terms;
 pub mod users;
+pub mod victims;
 
-use crate::auth::use_auth;
+use crate::auth::{use_auth, use_sidebar_visibility};
 use crate::ProfileState;
 use dioxus::prelude::*;
-use dioxus_free_icons::icons::ld_icons::{LdLayoutDashboard, LdPackage, LdSettings, LdUsers};
+use dioxus_free_icons::icons::ld_icons::{
+    LdBell, LdBookOpen, LdBriefcase, LdCalendar, LdClock, LdFileText, LdFolder,
+    LdLayoutDashboard, LdPackage, LdScale, LdSearch, LdSettings, LdShield, LdUserCheck, LdUsers,
+};
 use dioxus_free_icons::Icon;
 use shared_types::{FeatureFlags, UserTier};
 use shared_ui::{
@@ -101,6 +118,74 @@ pub enum Route {
     DeadlineCreate {},
     #[route("/deadlines/:id")]
     DeadlineDetail { id: String },
+    // ── Defendants ──
+    #[route("/defendants")]
+    DefendantList {},
+    #[route("/defendants/:id")]
+    DefendantDetail { id: String },
+    // ── Parties ──
+    #[route("/parties")]
+    PartyList {},
+    #[route("/parties/:id")]
+    PartyDetail { id: String },
+    // ── Victims ──
+    #[route("/victims")]
+    VictimList {},
+    #[route("/victims/:id")]
+    VictimDetail { id: String },
+    // ── Docket ──
+    #[route("/docket")]
+    DocketList {},
+    #[route("/docket/:id")]
+    DocketDetail { id: String },
+    // ── Filings ──
+    #[route("/filings")]
+    FilingList {},
+    #[route("/filings/:id")]
+    FilingDetail { id: String },
+    // ── Service Records ──
+    #[route("/service-records")]
+    ServiceRecordList {},
+    #[route("/service-records/:id")]
+    ServiceRecordDetail { id: String },
+    // ── Orders ──
+    #[route("/orders")]
+    OrderList {},
+    #[route("/orders/:id")]
+    OrderDetail { id: String },
+    // ── Opinions ──
+    #[route("/opinions")]
+    OpinionList {},
+    #[route("/opinions/:id")]
+    OpinionDetail { id: String },
+    // ── Evidence ──
+    #[route("/evidence")]
+    EvidenceList {},
+    #[route("/evidence/:id")]
+    EvidenceDetail { id: String },
+    // ── Documents ──
+    #[route("/documents")]
+    DocumentList {},
+    #[route("/documents/:id")]
+    DocumentDetail { id: String },
+    // ── Sentencing ──
+    #[route("/sentencing")]
+    SentencingList {},
+    #[route("/sentencing/:id")]
+    SentencingDetail { id: String },
+    // ── Judges ──
+    #[route("/judges")]
+    JudgeList {},
+    #[route("/judges/:id")]
+    JudgeDetail { id: String },
+    // ── Compliance ──
+    #[route("/compliance")]
+    ComplianceDashboard {},
+    // ── Rules ──
+    #[route("/rules")]
+    RuleList {},
+    #[route("/rules/:id")]
+    RuleDetail { id: String },
     #[end_layout]
     #[end_layout]
     #[route("/:..route")]
@@ -159,6 +244,8 @@ fn AppLayout() -> Element {
     let flags: FeatureFlags = use_context();
     let mut auth = use_auth();
 
+    let vis = use_sidebar_visibility();
+
     let mut theme_state = use_context_provider(|| shared_ui::theme::ThemeState {
         family: Signal::new("cyberpunk".to_string()),
         is_dark: Signal::new(true),
@@ -173,6 +260,20 @@ fn AppLayout() -> Element {
         Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. } => "Calendar",
         Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. } => "Cases",
         Route::DeadlineList {} | Route::DeadlineCreate {} | Route::DeadlineDetail { .. } => "Deadlines",
+        Route::DefendantList {} | Route::DefendantDetail { .. } => "Defendants",
+        Route::PartyList {} | Route::PartyDetail { .. } => "Parties",
+        Route::VictimList {} | Route::VictimDetail { .. } => "Victims",
+        Route::DocketList {} | Route::DocketDetail { .. } => "Docket",
+        Route::FilingList {} | Route::FilingDetail { .. } => "Filings",
+        Route::ServiceRecordList {} | Route::ServiceRecordDetail { .. } => "Service Records",
+        Route::OrderList {} | Route::OrderDetail { .. } => "Orders",
+        Route::OpinionList {} | Route::OpinionDetail { .. } => "Opinions",
+        Route::EvidenceList {} | Route::EvidenceDetail { .. } => "Evidence",
+        Route::DocumentList {} | Route::DocumentDetail { .. } => "Documents",
+        Route::SentencingList {} | Route::SentencingDetail { .. } => "Sentencing",
+        Route::JudgeList {} | Route::JudgeDetail { .. } => "Judges",
+        Route::ComplianceDashboard {} => "Compliance",
+        Route::RuleList {} | Route::RuleDetail { .. } => "Rules",
         Route::Login { .. }
         | Route::Register {}
         | Route::ForgotPassword {}
@@ -204,8 +305,9 @@ fn AppLayout() -> Element {
                 SidebarSeparator {}
 
                 SidebarContent {
+                    // ── 1. Core (all roles) ──
                     SidebarGroup {
-                        SidebarGroupLabel { "Navigation" }
+                        SidebarGroupLabel { "Core" }
                         SidebarGroupContent {
                             SidebarMenu {
                                 SidebarMenuItem {
@@ -213,22 +315,6 @@ fn AppLayout() -> Element {
                                         SidebarMenuButton { active: matches!(route, Route::Dashboard {}),
                                             Icon::<LdLayoutDashboard> { icon: LdLayoutDashboard, width: 18, height: 18 }
                                             "Dashboard"
-                                        }
-                                    }
-                                }
-                                SidebarMenuItem {
-                                    Link { to: Route::Users {},
-                                        SidebarMenuButton { active: matches!(route, Route::Users {}),
-                                            Icon::<LdUsers> { icon: LdUsers, width: 18, height: 18 }
-                                            "Users"
-                                        }
-                                    }
-                                }
-                                SidebarMenuItem {
-                                    Link { to: Route::Products {},
-                                        SidebarMenuButton { active: matches!(route, Route::Products {}),
-                                            Icon::<LdPackage> { icon: LdPackage, width: 18, height: 18 }
-                                            "Products"
                                         }
                                     }
                                 }
@@ -246,35 +332,202 @@ fn AppLayout() -> Element {
 
                     SidebarSeparator {}
 
-                    SidebarGroup {
-                        SidebarGroupLabel { "Court Management" }
-                        SidebarGroupContent {
-                            SidebarMenu {
-                                SidebarMenuItem {
-                                    Link { to: Route::AttorneyList {},
-                                        SidebarMenuButton { active: matches!(route, Route::AttorneyList {} | Route::AttorneyCreate {} | Route::AttorneyDetail { .. }),
-                                            "Attorneys"
+                    // ── 2. Case Management ──
+                    if vis.case_management {
+                        SidebarGroup {
+                            SidebarGroupLabel { "Case Management" }
+                            SidebarGroupContent {
+                                SidebarMenu {
+                                    SidebarMenuItem {
+                                        Link { to: Route::CaseList {},
+                                            SidebarMenuButton { active: matches!(route, Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. }),
+                                                Icon::<LdBriefcase> { icon: LdBriefcase, width: 18, height: 18 }
+                                                "Cases"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::DefendantList {},
+                                            SidebarMenuButton { active: matches!(route, Route::DefendantList {} | Route::DefendantDetail { .. }),
+                                                "Defendants"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::PartyList {},
+                                            SidebarMenuButton { active: matches!(route, Route::PartyList {} | Route::PartyDetail { .. }),
+                                                "Parties"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::VictimList {},
+                                            SidebarMenuButton { active: matches!(route, Route::VictimList {} | Route::VictimDetail { .. }),
+                                                "Victims"
+                                            }
                                         }
                                     }
                                 }
-                                SidebarMenuItem {
-                                    Link { to: Route::CaseList {},
-                                        SidebarMenuButton { active: matches!(route, Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. }),
-                                            "Cases"
+                            }
+                        }
+                        SidebarSeparator {}
+                    }
+
+                    // ── 3. Court Operations ──
+                    if vis.court_operations {
+                        SidebarGroup {
+                            SidebarGroupLabel { "Court Operations" }
+                            SidebarGroupContent {
+                                SidebarMenu {
+                                    SidebarMenuItem {
+                                        Link { to: Route::CalendarList {},
+                                            SidebarMenuButton { active: matches!(route, Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. }),
+                                                Icon::<LdCalendar> { icon: LdCalendar, width: 18, height: 18 }
+                                                "Calendar"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::DeadlineList {},
+                                            SidebarMenuButton { active: matches!(route, Route::DeadlineList {} | Route::DeadlineCreate {} | Route::DeadlineDetail { .. }),
+                                                Icon::<LdClock> { icon: LdClock, width: 18, height: 18 }
+                                                "Deadlines"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::DocketList {},
+                                            SidebarMenuButton { active: matches!(route, Route::DocketList {} | Route::DocketDetail { .. }),
+                                                Icon::<LdFileText> { icon: LdFileText, width: 18, height: 18 }
+                                                "Docket"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::FilingList {},
+                                            SidebarMenuButton { active: matches!(route, Route::FilingList {} | Route::FilingDetail { .. }),
+                                                "Filings"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::ServiceRecordList {},
+                                            SidebarMenuButton { active: matches!(route, Route::ServiceRecordList {} | Route::ServiceRecordDetail { .. }),
+                                                "Service Records"
+                                            }
                                         }
                                     }
                                 }
-                                SidebarMenuItem {
-                                    Link { to: Route::CalendarList {},
-                                        SidebarMenuButton { active: matches!(route, Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. }),
-                                            "Calendar"
+                            }
+                        }
+                        SidebarSeparator {}
+                    }
+
+                    // ── 4. Legal Documents ──
+                    if vis.legal_documents {
+                        SidebarGroup {
+                            SidebarGroupLabel { "Legal Documents" }
+                            SidebarGroupContent {
+                                SidebarMenu {
+                                    SidebarMenuItem {
+                                        Link { to: Route::OrderList {},
+                                            SidebarMenuButton { active: matches!(route, Route::OrderList {} | Route::OrderDetail { .. }),
+                                                Icon::<LdScale> { icon: LdScale, width: 18, height: 18 }
+                                                "Orders"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::OpinionList {},
+                                            SidebarMenuButton { active: matches!(route, Route::OpinionList {} | Route::OpinionDetail { .. }),
+                                                Icon::<LdBookOpen> { icon: LdBookOpen, width: 18, height: 18 }
+                                                "Opinions"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::EvidenceList {},
+                                            SidebarMenuButton { active: matches!(route, Route::EvidenceList {} | Route::EvidenceDetail { .. }),
+                                                "Evidence"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::DocumentList {},
+                                            SidebarMenuButton { active: matches!(route, Route::DocumentList {} | Route::DocumentDetail { .. }),
+                                                Icon::<LdFolder> { icon: LdFolder, width: 18, height: 18 }
+                                                "Documents"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::SentencingList {},
+                                            SidebarMenuButton { active: matches!(route, Route::SentencingList {} | Route::SentencingDetail { .. }),
+                                                "Sentencing"
+                                            }
                                         }
                                     }
                                 }
-                                SidebarMenuItem {
-                                    Link { to: Route::DeadlineList {},
-                                        SidebarMenuButton { active: matches!(route, Route::DeadlineList {} | Route::DeadlineCreate {} | Route::DeadlineDetail { .. }),
-                                            "Deadlines"
+                            }
+                        }
+                        SidebarSeparator {}
+                    }
+
+                    // ── 5. People & Organizations ──
+                    if vis.people_orgs {
+                        SidebarGroup {
+                            SidebarGroupLabel { "People & Organizations" }
+                            SidebarGroupContent {
+                                SidebarMenu {
+                                    SidebarMenuItem {
+                                        Link { to: Route::AttorneyList {},
+                                            SidebarMenuButton { active: matches!(route, Route::AttorneyList {} | Route::AttorneyCreate {} | Route::AttorneyDetail { .. }),
+                                                Icon::<LdUserCheck> { icon: LdUserCheck, width: 18, height: 18 }
+                                                "Attorneys"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::JudgeList {},
+                                            SidebarMenuButton { active: matches!(route, Route::JudgeList {} | Route::JudgeDetail { .. }),
+                                                Icon::<LdScale> { icon: LdScale, width: 18, height: 18 }
+                                                "Judges"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::Users {},
+                                            SidebarMenuButton { active: matches!(route, Route::Users {}),
+                                                Icon::<LdUsers> { icon: LdUsers, width: 18, height: 18 }
+                                                "Users"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        SidebarSeparator {}
+                    }
+
+                    // ── 6. Administration ──
+                    if vis.administration {
+                        SidebarGroup {
+                            SidebarGroupLabel { "Administration" }
+                            SidebarGroupContent {
+                                SidebarMenu {
+                                    SidebarMenuItem {
+                                        Link { to: Route::ComplianceDashboard {},
+                                            SidebarMenuButton { active: matches!(route, Route::ComplianceDashboard {}),
+                                                Icon::<LdShield> { icon: LdShield, width: 18, height: 18 }
+                                                "Compliance"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::RuleList {},
+                                            SidebarMenuButton { active: matches!(route, Route::RuleList {} | Route::RuleDetail { .. }),
+                                                "Rules"
+                                            }
                                         }
                                     }
                                 }
@@ -450,6 +703,143 @@ fn DeadlineCreate() -> Element {
 #[component]
 fn DeadlineDetail(id: String) -> Element {
     rsx! { deadlines::detail::DeadlineDetailPage { id: id } }
+}
+
+// ── New domain route components ──
+
+#[component]
+fn DefendantList() -> Element {
+    defendants::list::DefendantListPage()
+}
+
+#[component]
+fn DefendantDetail(id: String) -> Element {
+    rsx! { defendants::detail::DefendantDetailPage { id: id } }
+}
+
+#[component]
+fn PartyList() -> Element {
+    parties::list::PartyListPage()
+}
+
+#[component]
+fn PartyDetail(id: String) -> Element {
+    rsx! { parties::detail::PartyDetailPage { id: id } }
+}
+
+#[component]
+fn VictimList() -> Element {
+    victims::list::VictimListPage()
+}
+
+#[component]
+fn VictimDetail(id: String) -> Element {
+    rsx! { victims::detail::VictimDetailPage { id: id } }
+}
+
+#[component]
+fn DocketList() -> Element {
+    docket::list::DocketListPage()
+}
+
+#[component]
+fn DocketDetail(id: String) -> Element {
+    rsx! { docket::detail::DocketDetailPage { id: id } }
+}
+
+#[component]
+fn FilingList() -> Element {
+    filings::list::FilingListPage()
+}
+
+#[component]
+fn FilingDetail(id: String) -> Element {
+    rsx! { filings::detail::FilingDetailPage { id: id } }
+}
+
+#[component]
+fn ServiceRecordList() -> Element {
+    service_records::list::ServiceRecordListPage()
+}
+
+#[component]
+fn ServiceRecordDetail(id: String) -> Element {
+    rsx! { service_records::detail::ServiceRecordDetailPage { id: id } }
+}
+
+#[component]
+fn OrderList() -> Element {
+    orders::list::OrderListPage()
+}
+
+#[component]
+fn OrderDetail(id: String) -> Element {
+    rsx! { orders::detail::OrderDetailPage { id: id } }
+}
+
+#[component]
+fn OpinionList() -> Element {
+    opinions::list::OpinionListPage()
+}
+
+#[component]
+fn OpinionDetail(id: String) -> Element {
+    rsx! { opinions::detail::OpinionDetailPage { id: id } }
+}
+
+#[component]
+fn EvidenceList() -> Element {
+    evidence::list::EvidenceListPage()
+}
+
+#[component]
+fn EvidenceDetail(id: String) -> Element {
+    rsx! { evidence::detail::EvidenceDetailPage { id: id } }
+}
+
+#[component]
+fn DocumentList() -> Element {
+    documents::list::DocumentListPage()
+}
+
+#[component]
+fn DocumentDetail(id: String) -> Element {
+    rsx! { documents::detail::DocumentDetailPage { id: id } }
+}
+
+#[component]
+fn SentencingList() -> Element {
+    sentencing::list::SentencingListPage()
+}
+
+#[component]
+fn SentencingDetail(id: String) -> Element {
+    rsx! { sentencing::detail::SentencingDetailPage { id: id } }
+}
+
+#[component]
+fn JudgeList() -> Element {
+    judges::list::JudgeListPage()
+}
+
+#[component]
+fn JudgeDetail(id: String) -> Element {
+    rsx! { judges::detail::JudgeDetailPage { id: id } }
+}
+
+#[component]
+fn ComplianceDashboard() -> Element {
+    compliance::ComplianceDashboardPage()
+}
+
+#[component]
+fn RuleList() -> Element {
+    rules::list::RuleListPage()
+}
+
+#[component]
+fn RuleDetail(id: String) -> Element {
+    rsx! { rules::detail::RuleDetailPage { id: id } }
 }
 
 /// Displays the current user's tier as a badge in the sidebar footer.
