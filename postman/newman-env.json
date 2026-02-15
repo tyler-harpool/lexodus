@@ -6,6 +6,7 @@
     { "key": "test_email", "value": "newman-smoke@test.com", "enabled": true },
     { "key": "test_password", "value": "TestPassword123!", "enabled": true },
     { "key": "test_username", "value": "newman_smoke_user", "enabled": true },
+    { "key": "test_display_name", "value": "Newman Smoke Tester", "enabled": true },
 
     { "key": "case_id", "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "enabled": true },
     { "key": "user_id", "value": "b2c3d4e5-f6a7-8901-bcde-f12345678901", "enabled": true },
