@@ -1,0 +1,1838 @@
+{
+  "roles": {
+    "admin": {
+      "username": "lexodus_admin",
+      "email": "admin@lexodus.app",
+      "password": "AdminPass12345!",
+      "display_name": "Lexodus Admin"
+    },
+    "clerk": {
+      "username": "lexodus_clerk",
+      "email": "clerk@lexodus.app",
+      "password": "ClerkPass12345!",
+      "display_name": "Court Clerk"
+    },
+    "judge": {
+      "username": "lexodus_judge",
+      "email": "judge@lexodus.app",
+      "password": "JudgePass12345!",
+      "display_name": "Judge User"
+    },
+    "attorney": {
+      "username": "lexodus_attorney",
+      "email": "attorney@lexodus.app",
+      "password": "AttorneyPass12345!",
+      "display_name": "Attorney User"
+    }
+  },
+  "entityOrder": [
+    "POST::/api/cases",
+    "POST::/api/attorneys",
+    "POST::/api/judges",
+    "POST::/api/defendants",
+    "POST::/api/parties",
+    "POST::/api/docket/entries",
+    "POST::/api/filings",
+    "POST::/api/motions",
+    "POST::/api/charges",
+    "POST::/api/evidence",
+    "POST::/api/orders",
+    "POST::/api/opinions",
+    "POST::/api/deadlines",
+    "POST::/api/calendar/events",
+    "POST::/api/sentencing",
+    "POST::/api/rules",
+    "POST::/api/conflict-checks",
+    "POST::/api/templates/orders",
+    "POST::/api/case-notes",
+    "POST::/api/todos",
+    "POST::/api/service-records",
+    "POST::/api/judges/assignments",
+    "POST::/api/custody-transfers",
+    "POST::/api/representations",
+    "POST::/api/signatures",
+    "POST::/api/cases/{id}/victims",
+    "POST::/api/judges/{judge_id}/conflicts",
+    "POST::/api/judges/{judge_id}/recusals",
+    "POST::/api/opinions/{opinion_id}/drafts",
+    "POST::/api/opinions/{opinion_id}/drafts/{draft_id}/comments",
+    "POST::/api/cases/{id}/speedy-trial/start",
+    "POST::/api/filings/upload/init",
+    "POST::/api/features/override",
+    "POST::/api/events"
+  ],
+  "deleteOrder": [
+    "/api/opinions/",
+    "/api/sentencing/",
+    "/api/orders/",
+    "/api/conflict-checks/",
+    "/api/representations/",
+    "/api/service-records/",
+    "/api/custody-transfers/",
+    "/api/assignments/",
+    "/api/judges/conflicts/",
+    "/api/speedy-trial/",
+    "/api/docket/",
+    "/api/deadlines/",
+    "/api/calendar/",
+    "/api/case-notes/",
+    "/api/evidence/",
+    "/api/motions/",
+    "/api/charges/",
+    "/api/defendants/",
+    "/api/parties/",
+    "/api/templates/",
+    "/api/rules/",
+    "/api/todos/",
+    "/api/features/",
+    "/api/config/",
+    "/api/cases/",
+    "/api/attorneys/",
+    "/api/judges/",
+    "/api/"
+  ],
+  "variableCaptures": {
+    "POST::/api/cases": [
+      {
+        "field": "id",
+        "variable": "created_case_id"
+      },
+      {
+        "field": "case_number",
+        "variable": "created_case_number"
+      }
+    ],
+    "POST::/api/attorneys": [
+      {
+        "field": "id",
+        "variable": "created_attorney_id"
+      },
+      {
+        "field": "bar_number",
+        "variable": "created_bar_number"
+      }
+    ],
+    "POST::/api/judges": [
+      {
+        "field": "id",
+        "variable": "created_judge_id"
+      }
+    ],
+    "POST::/api/defendants": [
+      {
+        "field": "id",
+        "variable": "created_defendant_id"
+      }
+    ],
+    "POST::/api/parties": [
+      {
+        "field": "id",
+        "variable": "created_party_id"
+      }
+    ],
+    "POST::/api/docket/entries": [
+      {
+        "field": "id",
+        "variable": "created_docket_entry_id"
+      }
+    ],
+    "POST::/api/filings": [
+      {
+        "field": "filing_id",
+        "variable": "created_filing_id"
+      },
+      {
+        "field": "document_id",
+        "variable": "created_document_id"
+      }
+    ],
+    "POST::/api/motions": [
+      {
+        "field": "id",
+        "variable": "created_motion_id"
+      }
+    ],
+    "POST::/api/orders": [
+      {
+        "field": "id",
+        "variable": "created_order_id"
+      }
+    ],
+    "POST::/api/opinions": [
+      {
+        "field": "id",
+        "variable": "created_opinion_id"
+      }
+    ],
+    "POST::/api/evidence": [
+      {
+        "field": "id",
+        "variable": "created_evidence_id"
+      }
+    ],
+    "POST::/api/charges": [
+      {
+        "field": "id",
+        "variable": "created_charge_id"
+      }
+    ],
+    "POST::/api/calendar/events": [
+      {
+        "field": "id",
+        "variable": "created_event_id"
+      }
+    ],
+    "POST::/api/deadlines": [
+      {
+        "field": "id",
+        "variable": "created_deadline_id"
+      }
+    ],
+    "POST::/api/sentencing": [
+      {
+        "field": "id",
+        "variable": "created_sentencing_id"
+      }
+    ],
+    "POST::/api/rules": [
+      {
+        "field": "id",
+        "variable": "created_rule_id"
+      }
+    ],
+    "POST::/api/conflict-checks": [
+      {
+        "field": "id",
+        "variable": "created_conflict_id"
+      }
+    ],
+    "POST::/api/templates/orders": [
+      {
+        "field": "id",
+        "variable": "created_template_id"
+      }
+    ],
+    "POST::/api/todos": [
+      {
+        "field": "id",
+        "variable": "created_todo_id"
+      }
+    ],
+    "POST::/api/case-notes": [
+      {
+        "field": "id",
+        "variable": "created_case_note_id"
+      }
+    ],
+    "POST::/api/service-records": [
+      {
+        "field": "id",
+        "variable": "created_service_record_id"
+      }
+    ],
+    "POST::/api/representations": [
+      {
+        "field": "id",
+        "variable": "created_representation_id"
+      }
+    ],
+    "POST::/api/judges/assignments": [
+      {
+        "field": "id",
+        "variable": "created_assignment_id"
+      }
+    ],
+    "POST::/api/custody-transfers": [
+      {
+        "field": "id",
+        "variable": "created_custody_transfer_id"
+      }
+    ],
+    "POST::/api/cases/{id}/victims": [
+      {
+        "field": "id",
+        "variable": "created_victim_id"
+      }
+    ],
+    "POST::/api/judges/{judge_id}/conflicts": [
+      {
+        "field": "id",
+        "variable": "created_conflict_id"
+      }
+    ],
+    "POST::/api/judges/{judge_id}/recusals": [
+      {
+        "field": "id",
+        "variable": "created_recusal_id"
+      }
+    ],
+    "POST::/api/opinions/{opinion_id}/drafts": [
+      {
+        "field": "id",
+        "variable": "created_draft_id"
+      }
+    ],
+    "POST::/api/opinions/{opinion_id}/drafts/{draft_id}/comments": [
+      {
+        "field": "id",
+        "variable": "created_comment_id"
+      }
+    ],
+    "POST::/api/filings/upload/init": [
+      {
+        "field": "upload_id",
+        "variable": "created_upload_id"
+      }
+    ],
+    "POST::/api/deadlines/{deadline_id}/extensions": [
+      {
+        "field": "id",
+        "variable": "created_extension_id"
+      }
+    ],
+    "POST::/api/features/override": [
+      {
+        "field": "feature_path",
+        "variable": "created_feature_path"
+      }
+    ],
+    "POST::/api/signatures": [
+      {
+        "field": "id",
+        "variable": "created_signature_id"
+      }
+    ]
+  },
+  "pathVariables": {
+    "named": {
+      "case_id": "{{created_case_id}}",
+      "attorney_id": "{{created_attorney_id}}",
+      "judge_id": "{{created_judge_id}}",
+      "defendant_id": "{{created_defendant_id}}",
+      "party_id": "{{created_party_id}}",
+      "entry_id": "{{created_docket_entry_id}}",
+      "event_id": "{{created_event_id}}",
+      "deadline_id": "{{created_deadline_id}}",
+      "evidence_id": "{{created_evidence_id}}",
+      "charge_id": "{{created_charge_id}}",
+      "motion_id": "{{created_motion_id}}",
+      "order_id": "{{created_order_id}}",
+      "opinion_id": "{{created_opinion_id}}",
+      "sentencing_id": "{{created_sentencing_id}}",
+      "rule_id": "{{created_rule_id}}",
+      "template_id": "{{created_template_id}}",
+      "todo_id": "{{created_todo_id}}",
+      "filing_id": "{{created_filing_id}}",
+      "conflict_id": "{{created_conflict_id}}",
+      "docket_entry_id": "{{created_docket_entry_id}}",
+      "document_id": "{{created_document_id}}",
+      "case_number": "{{created_case_number}}",
+      "bar_number": "{{created_bar_number}}",
+      "user_id": "{{test_user_id}}",
+      "product_id": "{{product_id}}",
+      "recusal_id": "{{created_recusal_id}}",
+      "extension_id": "{{created_extension_id}}",
+      "attachment_id": "{{attachment_id}}",
+      "reminder_id": "{{reminder_id}}",
+      "draft_id": "{{created_draft_id}}",
+      "comment_id": "{{created_comment_id}}",
+      "victim_id": "{{created_victim_id}}",
+      "representation_id": "{{created_representation_id}}"
+    },
+    "static": {
+      "state": "NY",
+      "court": "district9",
+      "cja_district": "district12",
+      "area": "criminal",
+      "status": "Active",
+      "district": "district9",
+      "courtroom": "3B",
+      "entry_type": "motion",
+      "deadline_type": "open",
+      "text": "motion",
+      "firm_name": "Martinez-and-Associates-PLLC",
+      "party_name": "United-States-v-Rodriguez",
+      "category": "motion-to-suppress",
+      "jurisdiction": "federal",
+      "trigger": "nef-received",
+      "feature_path": "case-management",
+      "format": "json",
+      "court_id": "district9",
+      "offense_type": "felony",
+      "recipient": "clerk@district9.uscourts.gov"
+    },
+    "idByPrefix": [
+      [
+        "/api/attorneys",
+        "{{created_attorney_id}}"
+      ],
+      [
+        "/api/cases",
+        "{{created_case_id}}"
+      ],
+      [
+        "/api/judges",
+        "{{created_judge_id}}"
+      ],
+      [
+        "/api/defendants",
+        "{{created_defendant_id}}"
+      ],
+      [
+        "/api/parties",
+        "{{created_party_id}}"
+      ],
+      [
+        "/api/docket",
+        "{{created_docket_entry_id}}"
+      ],
+      [
+        "/api/calendar",
+        "{{created_event_id}}"
+      ],
+      [
+        "/api/deadlines",
+        "{{created_deadline_id}}"
+      ],
+      [
+        "/api/evidence",
+        "{{created_evidence_id}}"
+      ],
+      [
+        "/api/charges",
+        "{{created_charge_id}}"
+      ],
+      [
+        "/api/motions",
+        "{{created_motion_id}}"
+      ],
+      [
+        "/api/orders",
+        "{{created_order_id}}"
+      ],
+      [
+        "/api/opinions",
+        "{{created_opinion_id}}"
+      ],
+      [
+        "/api/sentencing",
+        "{{created_sentencing_id}}"
+      ],
+      [
+        "/api/rules",
+        "{{created_rule_id}}"
+      ],
+      [
+        "/api/templates",
+        "{{created_template_id}}"
+      ],
+      [
+        "/api/todos",
+        "{{created_todo_id}}"
+      ],
+      [
+        "/api/case-notes",
+        "{{created_case_note_id}}"
+      ],
+      [
+        "/api/service-records",
+        "{{created_service_record_id}}"
+      ],
+      [
+        "/api/filings/upload",
+        "{{created_upload_id}}"
+      ],
+      [
+        "/api/filings",
+        "{{created_filing_id}}"
+      ],
+      [
+        "/api/conflict-checks",
+        "{{created_conflict_id}}"
+      ],
+      [
+        "/api/documents",
+        "{{created_document_id}}"
+      ],
+      [
+        "/api/representations",
+        "{{created_representation_id}}"
+      ],
+      [
+        "/api/assignments",
+        "{{created_assignment_id}}"
+      ],
+      [
+        "/api/custody-transfers",
+        "{{created_custody_transfer_id}}"
+      ],
+      [
+        "/api/nef",
+        "{{id}}"
+      ],
+      [
+        "/api/speedy-trial",
+        "{{id}}"
+      ],
+      [
+        "/api/extensions",
+        "{{created_extension_id}}"
+      ],
+      [
+        "/api/admin/court-role-requests",
+        "{{id}}"
+      ],
+      [
+        "/api/recusals",
+        "{{created_recusal_id}}"
+      ]
+    ],
+    "statusByPrefix": [
+      [
+        "/api/cases/count-by-status",
+        "filed"
+      ],
+      [
+        "/api/attorneys/status",
+        "Active"
+      ],
+      [
+        "/api/judges/status",
+        "Active"
+      ]
+    ]
+  },
+  "roleRequirements": {
+    "clerkOrJudge": [
+      "POST::/api/docket/entries",
+      "POST::/api/documents/{id}/seal",
+      "POST::/api/documents/{id}/unseal",
+      "POST::/api/documents/{id}/replace",
+      "POST::/api/documents/{id}/strike",
+      "GET::/api/documents/{id}/events"
+    ],
+    "adminOrClerk": [
+      "PUT::/api/admin/court-memberships",
+      "DELETE::/api/admin/court-memberships/{user_id}/{court_id}",
+      "GET::/api/admin/court-memberships/user/{user_id}",
+      "GET::/api/admin/court-role-requests",
+      "POST::/api/admin/court-role-requests/{id}/approve",
+      "POST::/api/admin/court-role-requests/{id}/deny"
+    ],
+    "anyAuth": [
+      "POST::/api/events",
+      "POST::/api/signatures",
+      "PUT::/api/v1/users/{user_id}/tier",
+      "POST::/api/v1/auth/device/approve",
+      "POST::/api/v1/auth/device/poll",
+      "POST::/api/v1/auth/reset-password",
+      "POST::/api/v1/account/send-verification",
+      "POST::/api/v1/account/verify-phone",
+      "POST::/api/v1/users/me/avatar",
+      "POST::/api/v1/billing/checkout",
+      "POST::/api/v1/billing/cancel",
+      "POST::/api/v1/billing/portal",
+      "GET::/api/v1/billing/status"
+    ]
+  },
+  "statusExpectations": {
+    "POST::/api/v1/auth/register": [
+      201,
+      409
+    ],
+    "POST::/api/v1/auth/login": [
+      200,
+      401
+    ],
+    "POST::/api/v1/auth/device/approve": 401,
+    "POST::/api/v1/auth/device/poll": 404,
+    "POST::/api/v1/auth/reset-password": 422,
+    "POST::/api/v1/account/send-verification": 401,
+    "POST::/api/v1/account/verify-phone": 401,
+    "POST::/api/v1/users": [
+      201,
+      422
+    ],
+    "POST::/api/v1/users/me/avatar": 401,
+    "PUT::/api/v1/products/*": 400,
+    "DELETE::/api/v1/products/*": 400,
+    "POST::/api/v1/products": [
+      201,
+      422
+    ],
+    "POST::/api/v1/billing/cancel": 401,
+    "POST::/api/v1/billing/checkout": 401,
+    "POST::/api/v1/billing/portal": 401,
+    "DELETE::/api/config/overrides/district": 400,
+    "DELETE::/api/config/overrides/judge": 400,
+    "GET::/api/cases/by-number/*": [
+      200,
+      404
+    ],
+    "GET::/api/cases/*/speedy-trial": [
+      200,
+      404
+    ],
+    "PUT::/api/cases/*/speedy-trial": [
+      200,
+      404
+    ],
+    "GET::/api/cases/*/speedy-trial/deadline-check": [
+      200,
+      404
+    ],
+    "DELETE::/api/speedy-trial/delays/*": [
+      200,
+      204,
+      404
+    ],
+    "POST::/api/documents/*/replace": [
+      200,
+      400,
+      404,
+      422
+    ],
+    "POST::/api/documents/*/seal": [
+      200,
+      400,
+      404
+    ],
+    "POST::/api/documents/*/strike": [
+      200,
+      400,
+      404
+    ],
+    "POST::/api/documents/*/unseal": [
+      200,
+      404
+    ],
+    "GET::/api/documents/*/events": [
+      200,
+      404
+    ],
+    "POST::/api/documents/from-attachment": [
+      201,
+      400,
+      404
+    ],
+    "GET::/api/nef/*": [
+      200,
+      404
+    ],
+    "GET::/api/nef/docket-entry/*": [
+      200,
+      404
+    ],
+    "GET::/api/docket/attachments/*/download": [
+      200,
+      404
+    ],
+    "GET::/api/docket/attachments/*/file": [
+      200,
+      404
+    ],
+    "POST::/api/docket/attachments/*/finalize": [
+      200,
+      404
+    ],
+    "GET::/api/judges/*/conflicts/*": [
+      200,
+      404
+    ],
+    "DELETE::/api/judges/*/conflicts/*": [
+      200,
+      204,
+      404
+    ],
+    "POST::/api/recusals/*/process": [
+      200,
+      404,
+      500
+    ],
+    "PATCH::/api/recusals/*/ruling": [
+      200,
+      404,
+      500
+    ],
+    "POST::/api/orders/from-template": [
+      201,
+      404
+    ],
+    "PATCH::/api/opinions/*/drafts/*/comments/*/resolve": [
+      200,
+      404
+    ],
+    "PATCH::/api/deadlines/reminders/*/acknowledge": [
+      200,
+      404
+    ],
+    "POST::/api/admin/court-role-requests/*/approve": [
+      200,
+      404
+    ],
+    "POST::/api/admin/court-role-requests/*/deny": [
+      200,
+      404
+    ],
+    "POST::/api/cases/*/victims/*/notifications": [
+      201,
+      404
+    ],
+    "DELETE::/api/attorneys/*/cases/*": [
+      200,
+      204,
+      404
+    ],
+    "DELETE::/api/attorneys/*/bar-admissions/*": [
+      200,
+      204,
+      404
+    ],
+    "DELETE::/api/attorneys/*/cja-panel/*": [
+      200,
+      204,
+      404
+    ],
+    "DELETE::/api/attorneys/*/ecf-access": [
+      200,
+      204,
+      404
+    ],
+    "DELETE::/api/attorneys/*/federal-admissions/*": [
+      200,
+      204,
+      404
+    ],
+    "DELETE::/api/attorneys/*/practice-areas/*": [
+      200,
+      204,
+      404
+    ],
+    "DELETE::/api/assignments/*": [
+      200,
+      204,
+      404
+    ],
+    "DELETE::/api/custody-transfers/*": [
+      200,
+      204,
+      404
+    ],
+    "GET::/api/parties/*/lead-counsel": [
+      200,
+      404
+    ],
+    "GET::/api/representations/*": [
+      200,
+      404
+    ],
+    "POST::/api/representations/*/end": [
+      200,
+      400,
+      404
+    ],
+    "POST::/api/representations/migrate": [
+      200,
+      404
+    ],
+    "POST::/api/representations/substitute": [
+      200,
+      404
+    ],
+    "GET::/api/service-records/document/*": [
+      200,
+      404
+    ],
+    "POST::/api/service-records/bulk/*": [
+      200,
+      201,
+      400,
+      404
+    ],
+    "POST::/api/attorneys/*/cases": [
+      200,
+      201,
+      400
+    ],
+    "PATCH::/api/extensions/*/ruling": [
+      200,
+      400,
+      404
+    ],
+    "GET::/api/extensions/*": [
+      200,
+      400,
+      404
+    ],
+    "PATCH::/api/features": [
+      200,
+      404
+    ],
+    "PATCH::/api/features/implementation": 422,
+    "POST::/api/features/manager": 422,
+    "GET::/api/features/*/enabled": [
+      200,
+      404
+    ],
+    "GET::/api/admin/court-memberships/user/*": [
+      200,
+      403
+    ],
+    "PUT::/api/v1/users/*/tier": [
+      200,
+      403,
+      422
+    ],
+    "PUT::/api/admin/court-memberships": 401,
+    "DELETE::/api/admin/court-memberships/*/*": [
+      200,
+      204,
+      400,
+      403
+    ],
+    "GET::/api/attorneys/bar-number/*": [
+      200,
+      404
+    ],
+    "POST::/api/conflict-checks/*/clear": [
+      200,
+      404
+    ],
+    "POST::/api/events": 401,
+    "POST::/api/docket/entries": 401,
+    "POST::/api/filings": [
+      201,
+      400,
+      500
+    ],
+    "POST::/api/service-records": [
+      201,
+      400,
+      404
+    ],
+    "POST::/api/docket/entries/*/link-document": [
+      200,
+      400,
+      404
+    ],
+    "POST::/api/filings/upload/*/finalize": [
+      200,
+      400,
+      404
+    ],
+    "GET::/api/filings/*/nef": [
+      200,
+      400,
+      404
+    ],
+    "POST::/api/service-records/*/complete": [
+      200,
+      400
+    ],
+    "POST::/api/cases": [
+      201,
+      409
+    ],
+    "POST::/api/defendants": 500,
+    "POST::/api/parties": 500,
+    "POST::/api/motions": 500,
+    "POST::/api/charges": 500,
+    "POST::/api/evidence": 500,
+    "POST::/api/orders": 500,
+    "POST::/api/opinions": 500,
+    "POST::/api/deadlines": 500,
+    "POST::/api/sentencing": 500,
+    "POST::/api/conflict-checks": 422,
+    "POST::/api/templates/orders": 422,
+    "POST::/api/case-notes": 422,
+    "POST::/api/todos": 422,
+    "POST::/api/judges/assignments": 500,
+    "POST::/api/custody-transfers": 422,
+    "POST::/api/representations": 404,
+    "POST::/api/signatures": 500,
+    "POST::/api/cases/{id}/victims": 422,
+    "POST::/api/judges/{judge_id}/conflicts": 422,
+    "POST::/api/judges/{judge_id}/recusals": 500,
+    "POST::/api/opinions/{opinion_id}/drafts": 422,
+    "POST::/api/opinions/{opinion_id}/drafts/{draft_id}/comments": 400,
+    "POST::/api/cases/{id}/speedy-trial/start": 500,
+    "GET::/api/admin/court-memberships/user/{user_id}": 401,
+    "DELETE::/api/admin/court-memberships/{user_id}/{court_id}": 401,
+    "GET::/api/admin/court-role-requests": 401,
+    "POST::/api/admin/court-role-requests/{id}/approve": 401,
+    "POST::/api/admin/court-role-requests/{id}/deny": 401,
+    "POST::/api/attorneys/bulk/update-status": 204,
+    "POST::/api/attorneys/{attorney_id}/cases": 400,
+    "DELETE::/api/attorneys/{id}": 500,
+    "POST::/api/attorneys/{id}/disciplinary-actions": 422,
+    "DELETE::/api/attorneys/{id}/ecf-access": 404,
+    "DELETE::/api/attorneys/{id}/federal-admissions/{court}": 404,
+    "DELETE::/api/attorneys/{id}/practice-areas/{area}": 404,
+    "PUT::/api/case-notes/{id}": 405,
+    "DELETE::/api/case-notes/{id}": [
+      200,
+      204,
+      404,
+      405
+    ],
+    "POST::/api/cases/{id}/events": 404,
+    "POST::/api/cases/{id}/plea": 422,
+    "PATCH::/api/cases/{id}/priority": 404,
+    "POST::/api/cases/{id}/seal": 404,
+    "POST::/api/cases/{id}/speedy-trial/exclude": 422,
+    "PATCH::/api/cases/{id}/status": 404,
+    "POST::/api/cases/{id}/unseal": 404,
+    "POST::/api/cases/{id}/victims/{victim_id}/notifications": 422,
+    "GET::/api/charges/{id}": 404,
+    "PUT::/api/charges/{id}": 404,
+    "DELETE::/api/charges/{id}": 404,
+    "GET::/api/config/overrides/district": 400,
+    "PUT::/api/config/overrides/district": 400,
+    "GET::/api/config/overrides/judge": 400,
+    "PUT::/api/config/overrides/judge": 400,
+    "POST::/api/conflict-checks/{id}/clear": 400,
+    "DELETE::/api/custody-transfers/{id}": [
+      200,
+      204,
+      404,
+      405
+    ],
+    "POST::/api/deadlines/calculate": 422,
+    "PATCH::/api/deadlines/reminders/{reminder_id}/acknowledge": 400,
+    "PATCH::/api/deadlines/{id}/complete": 404,
+    "PATCH::/api/deadlines/{id}/status": 404,
+    "GET::/api/defendants/{id}": 404,
+    "PUT::/api/defendants/{id}": 404,
+    "DELETE::/api/defendants/{id}": 404,
+    "GET::/api/docket/attachments/{attachment_id}/download": 400,
+    "GET::/api/docket/attachments/{attachment_id}/file": 400,
+    "POST::/api/docket/attachments/{attachment_id}/finalize": 400,
+    "GET::/api/docket/entries/{entry_id}/attachments": 404,
+    "POST::/api/docket/entries/{entry_id}/attachments": 404,
+    "POST::/api/docket/entries/{entry_id}/link-document": 400,
+    "GET::/api/docket/entries/{id}": 404,
+    "DELETE::/api/docket/entries/{id}": 404,
+    "GET::/api/documents/{id}/events": 401,
+    "POST::/api/documents/{id}/replace": 401,
+    "POST::/api/documents/{id}/seal": 401,
+    "POST::/api/documents/{id}/strike": 401,
+    "POST::/api/documents/{id}/unseal": 401,
+    "GET::/api/evidence/{id}": 404,
+    "PUT::/api/evidence/{id}": 404,
+    "DELETE::/api/evidence/{id}": 404,
+    "PATCH::/api/extensions/{extension_id}/ruling": 422,
+    "POST::/api/filings/upload/{id}/finalize": 400,
+    "GET::/api/filings/{filing_id}/nef": 404,
+    "PATCH::/api/judges/{id}/status": 404,
+    "GET::/api/judges/{id}/workload": 404,
+    "DELETE::/api/judges/{judge_id}/conflicts/{conflict_id}": [
+      200,
+      204,
+      404,
+      405
+    ],
+    "GET::/api/motions/{id}": 404,
+    "PUT::/api/motions/{id}": 404,
+    "DELETE::/api/motions/{id}": 404,
+    "GET::/api/nef/docket-entry/{docket_entry_id}": 404,
+    "GET::/api/nef/{id}": 400,
+    "GET::/api/opinions/{opinion_id}": 404,
+    "PATCH::/api/opinions/{opinion_id}": 404,
+    "DELETE::/api/opinions/{opinion_id}": 404,
+    "POST::/api/opinions/{opinion_id}/citations": 500,
+    "GET::/api/opinions/{opinion_id}/drafts/current": 404,
+    "PATCH::/api/opinions/{opinion_id}/drafts/{draft_id}/comments/{comment_id}/resolve": 400,
+    "POST::/api/opinions/{opinion_id}/file": 404,
+    "POST::/api/opinions/{opinion_id}/headnotes": 500,
+    "GET::/api/opinions/{opinion_id}/is-binding": 404,
+    "GET::/api/opinions/{opinion_id}/is-majority": 404,
+    "POST::/api/opinions/{opinion_id}/publish": 404,
+    "POST::/api/opinions/{opinion_id}/votes": 500,
+    "GET::/api/orders/{order_id}": 404,
+    "PATCH::/api/orders/{order_id}": 404,
+    "DELETE::/api/orders/{order_id}": 404,
+    "POST::/api/orders/{order_id}/issue": 404,
+    "POST::/api/orders/{order_id}/service": 404,
+    "POST::/api/orders/{order_id}/sign": 404,
+    "GET::/api/parties/{id}": 404,
+    "PUT::/api/parties/{id}": 404,
+    "DELETE::/api/parties/{id}": 404,
+    "GET::/api/parties/{id}/lead-counsel": 404,
+    "PATCH::/api/parties/{id}/status": 404,
+    "POST::/api/recusals/{recusal_id}/process": 404,
+    "PATCH::/api/recusals/{recusal_id}/ruling": 404,
+    "GET::/api/representations/{id}": 404,
+    "POST::/api/representations/{id}/end": 404,
+    "GET::/api/sentencing/{id}": 404,
+    "PUT::/api/sentencing/{id}": 404,
+    "DELETE::/api/sentencing/{id}": 404,
+    "POST::/api/sentencing/{id}/bop-designation": 422,
+    "POST::/api/sentencing/{id}/departure": 404,
+    "POST::/api/sentencing/{id}/prior-sentences": 500,
+    "GET::/api/sentencing/{id}/safety-valve-eligible": 404,
+    "POST::/api/sentencing/{id}/special-conditions": 500,
+    "PUT::/api/sentencing/{id}/supervised-release": 404,
+    "POST::/api/sentencing/{id}/variance": 404,
+    "POST::/api/service-records/bulk/{document_id}": 404,
+    "GET::/api/service-records/document/{document_id}": 404,
+    "POST::/api/service-records/{id}/complete": 404,
+    "GET::/api/signatures/{judge_id}": 404,
+    "DELETE::/api/speedy-trial/delays/{id}": 400,
+    "PUT::/api/templates/orders/{template_id}": 405,
+    "DELETE::/api/templates/orders/{template_id}": [
+      200,
+      204,
+      404,
+      405
+    ],
+    "POST::/api/templates/orders/{template_id}/generate": 400,
+    "GET::/api/todos": 400,
+    "DELETE::/api/todos/{id}": [
+      200,
+      204,
+      404,
+      405
+    ],
+    "POST::/api/todos/{id}/toggle": 400,
+    "POST::/api/v1/auth/logout": 401,
+    "GET::/api/v1/auth/verify-email": 400,
+    "GET::/api/v1/billing/subscription": 401,
+    "PUT::/api/v1/products/{product_id}": 400,
+    "DELETE::/api/v1/products/{product_id}": 400,
+    "PUT::/api/v1/users/{user_id}/tier": 401
+  },
+  "requestBodies": {
+    "POST::/api/cases": {
+      "title": "United States v. Rodriguez",
+      "crime_type": "fraud",
+      "district_code": "district9",
+      "description": "Federal narcotics conspiracy charge under 21 USC 846",
+      "priority": "high"
+    },
+    "POST::/api/attorneys": {
+      "bar_number": "NY-{{$timestamp}}",
+      "first_name": "Maria",
+      "last_name": "Martinez",
+      "email": "mmartinez@martinez-pllc.com",
+      "phone": "212-555-0142",
+      "firm_name": "Martinez & Associates PLLC",
+      "address": {
+        "street1": "500 Pearl Street",
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10007",
+        "country": "USA"
+      }
+    },
+    "POST::/api/judges": {
+      "name": "Hon. Catherine R. Thornton",
+      "title": "Judge",
+      "district": "district9",
+      "courtroom": "3B",
+      "status": "Active"
+    },
+    "POST::/api/defendants": {
+      "case_id": "{{created_case_id}}",
+      "name": "Carlos Eduardo Rodriguez",
+      "citizenship_status": "Citizen",
+      "custody_status": "In Custody",
+      "bail_type": "Cash",
+      "bail_amount": 250000
+    },
+    "POST::/api/parties": {
+      "case_id": "{{created_case_id}}",
+      "party_type": "Defendant",
+      "name": "Carlos Eduardo Rodriguez",
+      "first_name": "Carlos",
+      "last_name": "Rodriguez",
+      "entity_type": "Individual",
+      "party_role": "Lead",
+      "pro_se": false,
+      "service_method": "Electronic",
+      "date_of_birth": "1985-07-22",
+      "email": "c.rodriguez@example.com",
+      "phone": "212-555-0199",
+      "ein": null,
+      "fax": null
+    },
+    "POST::/api/docket/entries": {
+      "case_id": "{{created_case_id}}",
+      "entry_type": "motion",
+      "description": "Motion to Suppress Evidence obtained during warrantless search",
+      "filed_by": "Maria Martinez",
+      "document_id": null
+    },
+    "POST::/api/filings": {
+      "case_id": "{{created_case_id}}",
+      "document_type": "Motion",
+      "title": "Motion to Suppress Evidence",
+      "filed_by": "Maria Martinez, Esq.",
+      "sealing_level": null,
+      "upload_id": null
+    },
+    "POST::/api/motions": {
+      "case_id": "{{created_case_id}}",
+      "motion_type": "Suppress",
+      "filed_by": "Defense",
+      "description": "Motion to suppress evidence obtained during warrantless vehicle search on I-95",
+      "status": "Pending"
+    },
+    "POST::/api/charges": {
+      "defendant_id": "{{created_defendant_id}}",
+      "count_number": 1,
+      "statute": "21 USC 846",
+      "offense_description": "Conspiracy to distribute controlled substances",
+      "plea": "Not Yet Entered",
+      "verdict": null
+    },
+    "POST::/api/evidence": {
+      "case_id": "{{created_case_id}}",
+      "description": "Seized narcotics from vehicle trunk - 2.3kg cocaine",
+      "evidence_type": "Physical",
+      "location": "DEA Evidence Vault, SDNY",
+      "seized_by": "DEA Special Agent Torres"
+    },
+    "POST::/api/orders": {
+      "case_id": "{{created_case_id}}",
+      "judge_id": "{{created_judge_id}}",
+      "order_type": "Detention",
+      "title": "Order of Pretrial Detention",
+      "content": "Defendant is ordered detained pending trial per 18 USC 3142(e).",
+      "status": "Draft"
+    },
+    "POST::/api/opinions": {
+      "case_id": "{{created_case_id}}",
+      "author_judge_id": "{{created_judge_id}}",
+      "author_judge_name": "Hon. Catherine R. Thornton",
+      "opinion_type": "Memorandum",
+      "case_name": "United States v. Rodriguez",
+      "docket_number": "{{created_case_number}}",
+      "title": "Memorandum Opinion on Motion to Suppress",
+      "content": "The Court denies defendant motion to suppress.",
+      "disposition": "Dismissed",
+      "status": "Draft"
+    },
+    "POST::/api/deadlines": {
+      "case_id": "{{created_case_id}}",
+      "title": "Pretrial motions filing deadline",
+      "due_at": "2026-04-15T17:00:00Z",
+      "notes": "Per scheduling order, all pretrial motions must be filed by this date"
+    },
+    "POST::/api/calendar/events": {
+      "case_id": "{{created_case_id}}",
+      "judge_id": "{{created_judge_id}}",
+      "event_type": "status_conference",
+      "scheduled_date": "2026-03-20T10:00:00Z",
+      "duration_minutes": 30,
+      "courtroom": "3B",
+      "description": "Initial status conference - case scheduling and discovery deadlines",
+      "participants": [
+        "Defense counsel",
+        "AUSA",
+        "Defendant"
+      ],
+      "is_public": true
+    },
+    "POST::/api/sentencing": {
+      "case_id": "{{created_case_id}}",
+      "defendant_id": "{{created_defendant_id}}",
+      "judge_id": "{{created_judge_id}}",
+      "criminal_history_category": "I",
+      "offense_level": 12,
+      "departure_type": "None",
+      "variance_type": "None"
+    },
+    "POST::/api/rules": {
+      "name": "Discovery and Inspection",
+      "description": "Federal Rule of Criminal Procedure 16 - Government and defendant disclosure obligations",
+      "source": "Federal Rules of Criminal Procedure",
+      "category": "Discovery",
+      "priority": 1,
+      "citation": "Fed. R. Crim. P. 16",
+      "effective_date": "2025-12-01T00:00:00Z",
+      "status": "Active"
+    },
+    "POST::/api/conflict-checks": {
+      "case_id": "{{created_case_id}}",
+      "attorney_id": "{{created_attorney_id}}",
+      "check_type": "initial"
+    },
+    "POST::/api/templates/orders": {
+      "name": "Standard Detention Order",
+      "content": "ORDERED that defendant is detained pending trial pursuant to 18 USC 3142(e).",
+      "template_type": "detention"
+    },
+    "POST::/api/case-notes": {
+      "case_id": "{{created_case_id}}",
+      "content": "Defense counsel requests 30-day continuance for additional discovery review. Government does not oppose."
+    },
+    "POST::/api/todos": {
+      "title": "Review Brady material production from AUSA",
+      "user_id": "{{test_user_id}}",
+      "description": "Government disclosed 450 pages of discovery per Rule 16. Review for exculpatory material."
+    },
+    "POST::/api/service-records": {
+      "case_id": "{{created_case_id}}",
+      "document_id": "{{created_document_id}}",
+      "party_id": "{{created_party_id}}",
+      "served_by": "Maria Martinez, Esq.",
+      "served_to": "AUSA Jennifer Walsh",
+      "service_method": "Electronic",
+      "service_date": null
+    },
+    "POST::/api/judges/assignments": {
+      "judge_id": "{{created_judge_id}}",
+      "case_id": "{{created_case_id}}",
+      "assignment_type": "Initial",
+      "previous_judge_id": null
+    },
+    "POST::/api/custody-transfers": {
+      "evidence_id": "{{created_evidence_id}}",
+      "from_custodian": "DEA Special Agent Torres",
+      "to_custodian": "USMS Evidence Control",
+      "reason": "Transfer to court custody for trial exhibit"
+    },
+    "POST::/api/representations": {
+      "attorney_id": "{{created_attorney_id}}",
+      "case_id": "{{created_case_id}}",
+      "party_id": "{{created_party_id}}",
+      "representation_type": "Private",
+      "cja_appointment_id": null
+    },
+    "POST::/api/signatures": {
+      "judge_id": "{{created_judge_id}}",
+      "signature_data": "base64-encoded-signature-image-data"
+    },
+    "POST::/api/events": {
+      "case_id": "{{created_case_id}}",
+      "event_kind": "text_entry",
+      "entry_type": "notice",
+      "description": "Case status updated to arraigned",
+      "filed_by": "Clerk of Court"
+    },
+    "POST::/api/cases/{id}/victims": {
+      "name": "Jane Doe",
+      "victim_type": "Individual",
+      "contact_email": "victim-advocate@district9.uscourts.gov"
+    },
+    "POST::/api/attorneys/{id}/bar-admissions": {
+      "state": "NY",
+      "bar_number": "NY-2019-04521",
+      "status": "Active",
+      "admission_date": "2019-06-15T00:00:00Z"
+    },
+    "POST::/api/attorneys/{id}/disciplinary-actions": {
+      "action_type": "Reprimand",
+      "description": "Failure to timely file brief",
+      "date": "2025-01-15"
+    },
+    "POST::/api/attorneys/{id}/federal-admissions": {
+      "court_name": "Southern District of New York",
+      "admission_date": "2019-09-01T00:00:00Z",
+      "status": "Active"
+    },
+    "POST::/api/attorneys/{id}/practice-areas": {
+      "area": "criminal defense"
+    },
+    "POST::/api/attorneys/{id}/pro-hac-vice": {
+      "case_id": "{{created_case_id}}",
+      "sponsoring_attorney_id": "{{created_attorney_id}}"
+    },
+    "POST::/api/attorneys/{id}/cja-appointments": {
+      "case_id": "{{created_case_id}}"
+    },
+    "PUT::/api/attorneys/{id}/ecf-registration": {
+      "status": "Active"
+    },
+    "POST::/api/attorneys/bulk/update-status": {
+      "status": "Active",
+      "attorney_ids": [
+        "{{created_attorney_id}}"
+      ]
+    },
+    "POST::/api/judges/{judge_id}/conflicts": {
+      "conflict_type": "Financial",
+      "party_name": "Rodriguez Industries LLC",
+      "description": "Judge spouse holds stock in defendant company"
+    },
+    "POST::/api/judges/{judge_id}/recusals": {
+      "case_id": "{{created_case_id}}",
+      "filed_by": "Defense Counsel",
+      "reason": "Financial conflict of interest"
+    },
+    "PUT::/api/judges/{id}": {
+      "status": "Active",
+      "title": "Judge"
+    },
+    "PATCH::/api/cases/{id}": {
+      "crime_type": "fraud",
+      "priority": "high",
+      "status": "arraigned",
+      "title": "Updated Case Title"
+    },
+    "POST::/api/attorneys/{attorney_id}/cases": {
+      "case_id": "{{created_case_id}}",
+      "representation_type": "Private",
+      "role": "Lead"
+    },
+    "PUT::/api/case-notes/{id}": {
+      "note_type": "General",
+      "content": "Updated case note content"
+    },
+    "PATCH::/api/cases/{id}/status": {
+      "status": "arraigned"
+    },
+    "POST::/api/cases/{id}/plea": {
+      "plea": "Not Guilty",
+      "defendant_id": "{{created_defendant_id}}"
+    },
+    "POST::/api/features/override": {
+      "scope": "district",
+      "feature_path": "case-management",
+      "enabled": true
+    },
+    "POST::/api/deadlines/reminders/send": {
+      "deadline_id": "{{created_deadline_id}}",
+      "reminder_type": "Email",
+      "recipient": "clerk@district9.uscourts.gov"
+    },
+    "POST::/api/deadlines/calculate": {
+      "rule_code": "STA-70",
+      "start_date": "2026-02-15"
+    },
+    "POST::/api/filings/upload/init": {
+      "filename": "motion-to-suppress.pdf",
+      "content_type": "application/pdf",
+      "file_size": 1024000
+    },
+    "POST::/api/representations/substitute": {
+      "case_id": "{{created_case_id}}",
+      "old_attorney_id": "{{created_attorney_id}}",
+      "new_attorney_id": "{{created_attorney_id}}"
+    },
+    "POST::/api/representations/migrate": {
+      "case_id": "{{created_case_id}}",
+      "old_attorney_id": "{{created_attorney_id}}",
+      "new_attorney_id": "{{created_attorney_id}}"
+    },
+    "PATCH::/api/extensions/{extension_id}/ruling": {
+      "status": "Granted"
+    },
+    "PATCH::/api/recusals/{recusal_id}/ruling": {
+      "status": "Denied",
+      "ruling_reason": "Insufficient grounds for recusal",
+      "replacement_judge_id": null
+    },
+    "POST::/api/recusals/{recusal_id}/process": {
+      "status": "Denied",
+      "ruling_reason": "Insufficient grounds for recusal",
+      "replacement_judge_id": null
+    },
+    "POST::/api/documents/from-attachment": {
+      "docket_attachment_id": "{{created_docket_entry_id}}"
+    },
+    "POST::/api/service-records/bulk/{document_id}": {
+      "party_ids": [
+        "{{created_party_id}}"
+      ],
+      "served_by": "Maria Martinez, Esq.",
+      "service_method": "Electronic",
+      "service_date": null,
+      "parties": [
+        {
+          "party_id": "{{created_party_id}}",
+          "service_method": "Electronic"
+        }
+      ]
+    },
+    "PATCH::/api/calendar/events/{event_id}/status": {
+      "status": "confirmed"
+    },
+    "PATCH::/api/deadlines/{id}/status": {
+      "status": "met"
+    },
+    "PATCH::/api/orders/{order_id}": {
+      "status": "Draft",
+      "order_type": "Detention"
+    },
+    "PATCH::/api/parties/{id}/status": {
+      "status": "Active"
+    },
+    "PUT::/api/charges/{id}": {
+      "plea": "Not Guilty",
+      "verdict": "Not Guilty"
+    },
+    "PUT::/api/defendants/{id}": {
+      "citizenship_status": "Citizen",
+      "custody_status": "In Custody",
+      "bail_type": "Cash"
+    },
+    "PUT::/api/templates/orders/{template_id}": {
+      "template_type": "detention",
+      "order_type": "Detention"
+    },
+    "PATCH::/api/attorneys/{id}/pro-hac-vice/{case_id}/status": {
+      "status": "Active"
+    },
+    "POST::/api/cases/{id}/victims/{victim_id}/notifications": {
+      "notification_type": "Hearing Scheduled",
+      "method": "Email",
+      "message": "A hearing has been scheduled in your case"
+    },
+    "PATCH::/api/features": {
+      "feature_path": "case-management",
+      "enabled": true
+    },
+    "PATCH::/api/features/implementation": {
+      "feature_path": "case-management"
+    },
+    "POST::/api/features/manager": {
+      "feature_path": "case-management"
+    },
+    "PUT::/api/sentencing/{id}": {
+      "criminal_history_category": "I",
+      "departure_type": "None",
+      "variance_type": "None"
+    },
+    "PUT::/api/rules/{id}": {
+      "category": "Discovery",
+      "source": "Federal Rules of Criminal Procedure",
+      "status": "Active",
+      "effective_date": "2025-12-01T00:00:00Z"
+    },
+    "POST::/api/opinions/{opinion_id}/votes": {
+      "judge_id": "{{created_judge_id}}",
+      "vote_type": "Join"
+    },
+    "PUT::/api/motions/{id}": {
+      "motion_type": "Suppress",
+      "status": "Pending"
+    },
+    "PUT::/api/evidence/{id}": {
+      "evidence_type": "Physical"
+    },
+    "PATCH::/api/opinions/{opinion_id}": {
+      "status": "Draft",
+      "disposition": "Dismissed",
+      "opinion_type": "Memorandum"
+    },
+    "POST::/api/sentencing/{id}/bop-designation": {
+      "security_level": "Medium",
+      "facility_name": "FCI Otisville"
+    },
+    "PUT::/api/parties/{id}": {
+      "party_type": "Defendant",
+      "entity_type": "Individual",
+      "service_method": "Electronic",
+      "status": "Active",
+      "date_of_birth": "1985-07-22",
+      "party_role": "Lead"
+    },
+    "POST::/api/opinions/{opinion_id}/drafts": {
+      "status": "Draft"
+    },
+    "POST::/api/cases/{id}/speedy-trial/start": {
+      "case_id": "{{created_case_id}}"
+    },
+    "POST::/api/cases/{id}/speedy-trial/exclude": {
+      "case_id": "{{created_case_id}}",
+      "days_excluded": 30
+    },
+    "PUT::/api/admin/court-memberships": {
+      "user_id": "{{test_user_id}}",
+      "court_id": "district9",
+      "role": "clerk"
+    },
+    "PUT::/api/v1/users/{user_id}/tier": {
+      "tier": "pro"
+    },
+    "POST::/api/v1/users": {
+      "username": "portman_test_user",
+      "display_name": "Portman Test User",
+      "email": "portman-test@lexodus.app",
+      "password": "TestPassword123"
+    },
+    "POST::/api/representations/{representation_id}/end": {
+      "reason": "Completed Representation"
+    },
+    "POST::/api/documents/{id}/replace": {
+      "upload_id": "00000000-0000-0000-0000-000000000000"
+    },
+    "POST::/api/documents/{id}/seal": {
+      "sealing_level": "SealedCourtOnly",
+      "reason_code": "JuvenileRecord"
+    }
+  },
+  "enums": {
+    "crime_type": [
+      "fraud",
+      "drug_offense",
+      "racketeering",
+      "cybercrime",
+      "tax_offense",
+      "money_laundering",
+      "immigration",
+      "firearms",
+      "other"
+    ],
+    "priority": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "citizenship_status": [
+      "Citizen",
+      "Permanent Resident",
+      "Visa Holder",
+      "Undocumented",
+      "Unknown"
+    ],
+    "custody_status": [
+      "In Custody",
+      "Released",
+      "Bail",
+      "Bond",
+      "Fugitive",
+      "Supervised Release",
+      "Unknown"
+    ],
+    "bail_type": [
+      "Cash",
+      "Surety",
+      "Property",
+      "Personal Recognizance",
+      "Unsecured",
+      "Denied",
+      "None"
+    ],
+    "plea": [
+      "Not Guilty",
+      "Guilty",
+      "No Contest",
+      "Alford",
+      "Not Yet Entered"
+    ],
+    "verdict": [
+      "",
+      "Guilty",
+      "Not Guilty",
+      "Dismissed",
+      "Mistrial",
+      "Acquitted",
+      "Hung Jury"
+    ],
+    "motion_type": [
+      "Dismiss",
+      "Suppress",
+      "Compel",
+      "Summary Judgment",
+      "Continuance",
+      "Change of Venue",
+      "Reconsideration",
+      "Limine",
+      "Severance",
+      "Joinder",
+      "Discovery",
+      "New Trial",
+      "Other"
+    ],
+    "evidence_type": [
+      "Physical",
+      "Documentary",
+      "Digital",
+      "Testimonial",
+      "Demonstrative",
+      "Forensic",
+      "Other"
+    ],
+    "entry_type": [
+      "complaint",
+      "indictment",
+      "information",
+      "criminal_complaint",
+      "answer",
+      "motion",
+      "response",
+      "reply",
+      "notice",
+      "order",
+      "minute_order",
+      "scheduling_order",
+      "protective_order",
+      "sealing_order",
+      "discovery_request",
+      "discovery_response",
+      "deposition",
+      "interrogatories",
+      "exhibit",
+      "witness_list",
+      "expert_report",
+      "hearing_notice",
+      "hearing_minutes",
+      "transcript",
+      "judgment",
+      "verdict",
+      "sentence",
+      "summons",
+      "subpoena",
+      "service_return",
+      "appearance",
+      "withdrawal",
+      "substitution",
+      "notice_of_appeal",
+      "appeal_brief",
+      "appellate_order",
+      "letter",
+      "status",
+      "other"
+    ],
+    "note_type": [
+      "General",
+      "Legal Research",
+      "Procedural",
+      "Confidential",
+      "Bench Note",
+      "Clerk Note",
+      "Other"
+    ],
+    "order_type": [
+      "Scheduling",
+      "Protective",
+      "Restraining",
+      "Dismissal",
+      "Sentencing",
+      "Detention",
+      "Release",
+      "Discovery",
+      "Sealing",
+      "Contempt",
+      "Procedural",
+      "Standing",
+      "Other"
+    ],
+    "opinion_type": [
+      "Majority",
+      "Concurrence",
+      "Dissent",
+      "Per Curiam",
+      "Memorandum",
+      "En Banc",
+      "Summary",
+      "Other"
+    ],
+    "party_type": [
+      "Plaintiff",
+      "Defendant",
+      "Appellant",
+      "Appellee",
+      "Petitioner",
+      "Respondent",
+      "Intervenor",
+      "Amicus Curiae",
+      "Third Party",
+      "Government",
+      "Witness",
+      "Counter-Claimant",
+      "Cross-Claimant",
+      "Other",
+      "Unknown"
+    ],
+    "party_role": [
+      "Lead",
+      "Co-Defendant",
+      "Co-Plaintiff",
+      "Cross-Claimant",
+      "Counter-Claimant",
+      "Garnishee",
+      "Real Party in Interest",
+      "Principal",
+      "Co-Party",
+      "Representative",
+      "Guardian",
+      "Trustee",
+      "Executor",
+      "Administrator",
+      "Next Friend",
+      "Other"
+    ],
+    "entity_type": [
+      "Individual",
+      "Corporation",
+      "Partnership",
+      "LLC",
+      "Government",
+      "Non-Profit",
+      "Trust",
+      "Estate",
+      "Other"
+    ],
+    "document_type": [
+      "Motion",
+      "Order",
+      "Brief",
+      "Memorandum",
+      "Declaration",
+      "Affidavit",
+      "Exhibit",
+      "Transcript",
+      "Notice",
+      "Subpoena",
+      "Warrant",
+      "Indictment",
+      "Plea Agreement",
+      "Judgment",
+      "Verdict",
+      "Other",
+      "Conditions of Release",
+      "Court Order",
+      "Criminal Judgment",
+      "Minute Entry",
+      "Rule 16(b) Scheduling Order",
+      "Waiver of Indictment"
+    ],
+    "vote_type": [
+      "Join",
+      "Concur",
+      "Concur in Part",
+      "Dissent",
+      "Dissent in Part",
+      "Recused",
+      "Not Participating"
+    ],
+    "citation_type": [
+      "Followed",
+      "Distinguished",
+      "Overruled",
+      "Cited",
+      "Discussed",
+      "Criticized",
+      "Questioned",
+      "Harmonized",
+      "Parallel",
+      "Other"
+    ],
+    "representation_type": [
+      "Private",
+      "Court Appointed",
+      "Pro Bono",
+      "Public Defender",
+      "CJA Panel",
+      "Government",
+      "General",
+      "Limited",
+      "Pro Hac Vice",
+      "Standby",
+      "Other"
+    ],
+    "service_method": [
+      "Electronic",
+      "Mail",
+      "Personal Service",
+      "Waiver",
+      "Publication",
+      "Certified Mail",
+      "Express Mail",
+      "ECF",
+      "Other"
+    ],
+    "departure_type": [
+      "Upward",
+      "Downward",
+      "None"
+    ],
+    "variance_type": [
+      "Upward",
+      "Downward",
+      "None"
+    ],
+    "criminal_history_category": [
+      "I",
+      "II",
+      "III",
+      "IV",
+      "V",
+      "VI"
+    ],
+    "victim_type": [
+      "Individual",
+      "Organization",
+      "Government",
+      "Minor",
+      "Deceased",
+      "Anonymous"
+    ],
+    "event_kind": [
+      "text_entry",
+      "filing",
+      "promote_attachment"
+    ],
+    "disposition": [
+      "Affirmed",
+      "Reversed",
+      "Remanded",
+      "Vacated",
+      "Dismissed",
+      "Modified",
+      "Certified"
+    ],
+    "conflict_type": [
+      "Financial",
+      "Familial",
+      "Professional",
+      "Prior Representation",
+      "Organizational",
+      "Other"
+    ],
+    "action_type": [
+      "Reprimand",
+      "Censure",
+      "Suspension",
+      "Disbarment",
+      "Reinstatement",
+      "Probation",
+      "Other"
+    ],
+    "reminder_type": [
+      "Email",
+      "SMS",
+      "In-App",
+      "Push",
+      "Fax"
+    ],
+    "assignment_type": [
+      "Initial",
+      "Reassignment",
+      "Temporary",
+      "Related Case",
+      "Emergency"
+    ],
+    "checkout_type": [
+      "subscription",
+      "onetime"
+    ],
+    "judge_title": [
+      "Chief Judge",
+      "Judge",
+      "Senior Judge",
+      "Magistrate Judge",
+      "Visiting Judge"
+    ],
+    "judge_status": [
+      "Active",
+      "Senior",
+      "Inactive",
+      "Retired",
+      "Deceased"
+    ],
+    "motion_status": [
+      "Pending",
+      "Granted",
+      "Denied",
+      "Withdrawn",
+      "Moot",
+      "Deferred",
+      "Partially Granted"
+    ]
+  }
+}

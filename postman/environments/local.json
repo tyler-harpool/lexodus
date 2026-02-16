@@ -1,5 +1,6 @@
 {
-  "name": "Local",
+  "id": "lexodus-local",
+  "name": "Lexodus Local",
   "values": [
     {
       "key": "base_url",
@@ -8,22 +9,17 @@
       "enabled": true
     },
     {
-      "key": "access_token",
-      "value": "",
+      "key": "district",
+      "value": "district9",
       "type": "default",
       "enabled": true
     },
     {
-      "key": "user_id",
-      "value": "",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "product_id",
-      "value": "",
+      "key": "admin_email",
+      "value": "admin@lexodus.app",
       "type": "default",
       "enabled": true
     }
-  ]
+  ],
+  "_postman_variable_scope": "environment"
 }
