@@ -105,12 +105,12 @@ pub async fn list_pending_requests(
     let requests = court_role_request::list_pending(&pool).await?;
 
     let responses: Vec<CourtRoleRequestResponse> = if is_admin {
-        requests.iter().map(court_role_request::to_response).collect()
+        requests.iter().map(court_role_request::to_response_with_user).collect()
     } else {
         requests
             .iter()
             .filter(|r| clerk_courts.contains(&r.court_id))
-            .map(court_role_request::to_response)
+            .map(court_role_request::to_response_with_user)
             .collect()
     };
 

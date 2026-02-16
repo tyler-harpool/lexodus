@@ -4,7 +4,8 @@ use dioxus::prelude::*;
 use dioxus_free_icons::icons::ld_icons::LdEllipsis;
 use dioxus_free_icons::Icon;
 use server::api::{
-    create_user, delete_user, list_users_with_memberships, remove_user_court_role,
+    approve_court_request, create_user, delete_user, deny_court_request,
+    list_pending_court_requests, list_users_with_memberships, remove_user_court_role,
     set_user_court_role, update_user,
 };
 use shared_types::UserWithMembership;
@@ -57,8 +58,14 @@ pub fn Users() -> Element {
         async move { list_users_with_memberships(court).await }
     });
 
-    // Toggle between "Court Members" and "All Users"
-    let mut view_mode = use_signal(|| "members".to_string()); // "members" | "all"
+    // Toggle between "Court Members", "All Users", and "Pending Requests"
+    let mut view_mode = use_signal(|| "members".to_string()); // "members" | "all" | "requests"
+
+    // Pending requests resource (only fetched when view_mode is "requests")
+    let mut pending_requests = use_resource(move || {
+        let court = ctx.court_id.read().clone();
+        async move { list_pending_court_requests(court).await }
+    });
 
     let mut show_create_dialog = use_signal(|| false);
     let mut editing_user: Signal<Option<UserWithMembership>> = use_signal(|| None);
@@ -73,6 +80,11 @@ pub fn Users() -> Element {
     let mut assign_user_name = use_signal(String::new);
     let mut assign_court = use_signal(String::new);
     let mut assign_role = use_signal(|| "attorney".to_string());
+
+    // Deny request dialog state
+    let mut show_deny_dialog = use_signal(|| false);
+    let mut deny_request_id = use_signal(String::new);
+    let mut deny_reason = use_signal(String::new);
 
     let has_selection = !selected_ids.read().is_empty();
 
@@ -194,11 +206,126 @@ pub fn Users() -> Element {
                     onclick: move |_| view_mode.set("all".to_string()),
                     "All Users"
                 }
+                if can_manage {
+                    button {
+                        class: if *view_mode.read() == "requests" { "toggle-tab active" } else { "toggle-tab" },
+                        onclick: move |_| {
+                            view_mode.set("requests".to_string());
+                            pending_requests.restart();
+                        },
+                        "Pending Requests"
+                    }
+                }
+            }
+
+            // Pending Requests View
+            if mode == "requests" && can_manage {
+                div { class: "users-list",
+                    {
+                        let requests_data = pending_requests.read();
+                        let requests_result = requests_data.as_ref();
+
+                        match requests_result {
+                            Some(Ok(requests)) if requests.is_empty() => {
+                                rsx! {
+                                    div { class: "users-empty",
+                                        "No pending access requests for this court."
+                                    }
+                                }
+                            }
+                            Some(Ok(requests)) => {
+                                rsx! {
+                                    for req in requests.iter() {
+                                        {
+                                            let req_id = req.id.clone();
+                                            let req_id_for_deny = req.id.clone();
+                                            let display_name = req.user_display_name.clone().unwrap_or_else(|| format!("User #{}", req.user_id));
+                                            let email = req.user_email.clone().unwrap_or_default();
+                                            let role = req.requested_role.clone();
+                                            let notes = req.notes.clone();
+                                            let requested_at = req.requested_at.clone();
+
+                                            rsx! {
+                                                div { class: "request-card",
+                                                    div { class: "request-info",
+                                                        span { class: "request-name", "{display_name}" }
+                                                        if !email.is_empty() {
+                                                            span { class: "request-email", "{email}" }
+                                                        }
+                                                    }
+                                                    div { class: "request-meta",
+                                                        Badge {
+                                                            variant: court_role_badge_variant(&role),
+                                                            "{court_role_display(&role)}"
+                                                        }
+                                                        span { class: "request-date", "{requested_at}" }
+                                                    }
+                                                    if let Some(reason) = notes {
+                                                        div { class: "request-reason",
+                                                            span { class: "request-reason-label", "Reason:" }
+                                                            " {reason}"
+                                                        }
+                                                    }
+                                                    div { class: "request-actions",
+                                                        Button {
+                                                            variant: ButtonVariant::Primary,
+                                                            onclick: move |_| {
+                                                                let rid = req_id.clone();
+                                                                spawn(async move {
+                                                                    match approve_court_request(rid).await {
+                                                                        Ok(()) => {
+                                                                            toast.success("Request approved".to_string(), ToastOptions::new());
+                                                                            pending_requests.restart();
+                                                                            users.restart();
+                                                                        }
+                                                                        Err(err) => {
+                                                                            toast.error(
+                                                                                shared_types::AppError::friendly_message(&err.to_string()),
+                                                                                ToastOptions::new(),
+                                                                            );
+                                                                        }
+                                                                    }
+                                                                });
+                                                            },
+                                                            "Approve"
+                                                        }
+                                                        Button {
+                                                            variant: ButtonVariant::Destructive,
+                                                            onclick: move |_| {
+                                                                deny_request_id.set(req_id_for_deny.clone());
+                                                                deny_reason.set(String::new());
+                                                                show_deny_dialog.set(true);
+                                                            },
+                                                            "Deny"
+                                                        }
+                                                    }
+                                                }
+                                                Separator {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Some(Err(err)) => {
+                                let msg = shared_types::AppError::friendly_message(&err.to_string());
+                                rsx! {
+                                    div { class: "users-empty", "Error loading requests: {msg}" }
+                                }
+                            }
+                            None => {
+                                rsx! {
+                                    div { class: "users-empty", "Loading requests..." }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // User List
-            div {
-                class: "users-list",
+            if mode != "requests" {
+                div {
+                    class: "users-list",
 
                     if let Some(user_vec) = filtered_users.as_ref() {
                         if user_vec.is_empty() {
@@ -537,6 +664,58 @@ pub fn Users() -> Element {
                         }
                     }
                 }
+            }
+
+            // Deny Request Dialog
+            AlertDialogRoot {
+                open: show_deny_dialog(),
+                on_open_change: move |open: bool| show_deny_dialog.set(open),
+                AlertDialogContent {
+                    AlertDialogTitle { "Deny Access Request" }
+                    AlertDialogDescription {
+                        "Optionally provide a reason for denying this request."
+                    }
+                    div { class: "dialog-field",
+                        label { class: "form-label", "Reason (optional)" }
+                        textarea {
+                            class: "input",
+                            rows: 3,
+                            placeholder: "Reason for denial...",
+                            value: deny_reason(),
+                            oninput: move |evt: FormEvent| deny_reason.set(evt.value()),
+                        }
+                    }
+                    AlertDialogActions {
+                        AlertDialogCancel { "Cancel" }
+                        AlertDialogAction {
+                            on_click: move |_: MouseEvent| {
+                                let rid = deny_request_id.read().clone();
+                                let reason_text = deny_reason.read().clone();
+                                let notes = if reason_text.trim().is_empty() {
+                                    None
+                                } else {
+                                    Some(reason_text)
+                                };
+                                spawn(async move {
+                                    match deny_court_request(rid, notes).await {
+                                        Ok(()) => {
+                                            toast.success("Request denied".to_string(), ToastOptions::new());
+                                            pending_requests.restart();
+                                        }
+                                        Err(err) => {
+                                            toast.error(
+                                                shared_types::AppError::friendly_message(&err.to_string()),
+                                                ToastOptions::new(),
+                                            );
+                                        }
+                                    }
+                                });
+                            },
+                            "Deny Request"
+                        }
+                    }
+                }
+            }
 
             // Create / Edit Dialog
             DialogRoot {

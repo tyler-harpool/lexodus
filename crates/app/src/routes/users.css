@@ -301,6 +301,61 @@
     color: var(--color-primary-foreground, #fff);
 }
 
+/* ---- Pending Request Cards ---- */
+.request-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+}
+
+.request-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.request-name {
+    font-weight: 600;
+    color: var(--color-on-surface);
+}
+
+.request-email {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+}
+
+.request-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
+}
+
+.request-date {
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-xs);
+}
+
+.request-reason {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+    padding: var(--space-xs) var(--space-sm);
+    background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+    border-radius: var(--radius-sm);
+}
+
+.request-reason-label {
+    font-weight: 600;
+    color: var(--color-on-surface);
+}
+
+.request-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+}
+
 /* ---- Mobile responsive ---- */
 @media (max-width: 768px) {
     .user-row {

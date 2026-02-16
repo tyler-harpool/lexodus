@@ -615,6 +615,7 @@ pub async fn register(
         has_password: true,
         court_roles,
         court_tiers: Default::default(),
+        preferred_court_id: None,
     })
 }
 
@@ -737,6 +738,7 @@ pub async fn login(email: String, password: String) -> Result<AuthUser, ServerFn
         has_password: true,
         court_roles,
         court_tiers: Default::default(),
+        preferred_court_id: None,
     })
 }
 
@@ -820,7 +822,7 @@ async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, ServerFnError
         r#"SELECT id, username, display_name, email, password_hash, role, tier, avatar_url,
                   email_verified, phone_number, phone_verified,
                   email_notifications_enabled, push_notifications_enabled, weekly_digest_enabled,
-                  court_roles
+                  court_roles, preferred_court_id
            FROM users WHERE id = $1"#,
         user_id
     )
@@ -866,6 +868,7 @@ async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, ServerFnError
                 has_password: u.password_hash.is_some(),
                 court_roles,
                 court_tiers,
+                preferred_court_id: u.preferred_court_id,
             }))
         }
         None => {
@@ -925,7 +928,7 @@ fn parse_uscourts_court(email: &str) -> Option<String> {
 /// If the user's email matches *@{court_id}.uscourts.gov, auto-approve immediately.
 #[cfg_attr(feature = "server", tracing::instrument)]
 #[server]
-pub async fn request_court_admission(court_id: String, role: String) -> Result<String, ServerFnError> {
+pub async fn request_court_admission(court_id: String, role: String, notes: Option<String>) -> Result<String, ServerFnError> {
     use shared_types::AppError;
 
     let claims = require_auth()?;
@@ -989,11 +992,12 @@ pub async fn request_court_admission(court_id: String, role: String) -> Result<S
     } else {
         // Create pending request
         sqlx::query!(
-            r#"INSERT INTO court_role_requests (user_id, court_id, requested_role, status)
-               VALUES ($1, $2, $3, 'pending')"#,
+            r#"INSERT INTO court_role_requests (user_id, court_id, requested_role, status, notes)
+               VALUES ($1, $2, $3, 'pending', $4)"#,
             claims.sub,
             court_id,
             role,
+            notes.as_deref(),
         )
         .execute(db)
         .await
@@ -1001,6 +1005,90 @@ pub async fn request_court_admission(court_id: String, role: String) -> Result<S
 
         Ok("pending".to_string())
     }
+}
+
+/// List pending court role requests for a specific court.
+/// Requires admin or clerk role in the target court.
+#[cfg_attr(feature = "server", tracing::instrument)]
+#[server]
+pub async fn list_pending_court_requests(
+    court_id: String,
+) -> Result<Vec<shared_types::CourtRoleRequestResponse>, ServerFnError> {
+    let claims = require_auth()?;
+    let db = get_db().await;
+    let header_court = extract_court_header_sfn();
+
+    require_membership_access_sfn(&claims, header_court.as_deref(), &court_id)?;
+
+    let rows = crate::repo::court_role_request::list_pending_for_court(db, &court_id)
+        .await
+        .map_err(|e| e.into_server_fn_error())?;
+
+    Ok(rows
+        .iter()
+        .map(crate::repo::court_role_request::to_response_with_user)
+        .collect())
+}
+
+/// Approve a pending court role request.
+/// Requires admin or clerk role.
+#[cfg_attr(feature = "server", tracing::instrument)]
+#[server]
+pub async fn approve_court_request(request_id: String) -> Result<(), ServerFnError> {
+    use shared_types::AppError;
+
+    let claims = require_auth()?;
+    let db = get_db().await;
+    let header_court = extract_court_header_sfn();
+
+    let req_uuid = uuid::Uuid::parse_str(&request_id)
+        .map_err(|_| AppError::bad_request("Invalid request ID").into_server_fn_error())?;
+
+    // Fetch the request to determine its court_id for access control
+    let request = crate::repo::court_role_request::get_by_id(db, req_uuid)
+        .await
+        .map_err(|e| e.into_server_fn_error())?
+        .ok_or_else(|| AppError::not_found("Request not found").into_server_fn_error())?;
+
+    require_membership_access_sfn(&claims, header_court.as_deref(), &request.court_id)?;
+
+    crate::repo::court_role_request::approve(db, req_uuid, claims.sub)
+        .await
+        .map_err(|e| e.into_server_fn_error())?;
+
+    Ok(())
+}
+
+/// Deny a pending court role request with optional notes.
+/// Requires admin or clerk role.
+#[cfg_attr(feature = "server", tracing::instrument)]
+#[server]
+pub async fn deny_court_request(
+    request_id: String,
+    notes: Option<String>,
+) -> Result<(), ServerFnError> {
+    use shared_types::AppError;
+
+    let claims = require_auth()?;
+    let db = get_db().await;
+    let header_court = extract_court_header_sfn();
+
+    let req_uuid = uuid::Uuid::parse_str(&request_id)
+        .map_err(|_| AppError::bad_request("Invalid request ID").into_server_fn_error())?;
+
+    // Fetch the request to determine its court_id for access control
+    let request = crate::repo::court_role_request::get_by_id(db, req_uuid)
+        .await
+        .map_err(|e| e.into_server_fn_error())?
+        .ok_or_else(|| AppError::not_found("Request not found").into_server_fn_error())?;
+
+    require_membership_access_sfn(&claims, header_court.as_deref(), &request.court_id)?;
+
+    crate::repo::court_role_request::deny(db, req_uuid, claims.sub, notes.as_deref())
+        .await
+        .map_err(|e| e.into_server_fn_error())?;
+
+    Ok(())
 }
 
 /// Update the current user's profile (display name and email). Requires authentication.
@@ -1053,6 +1141,7 @@ pub async fn update_profile(
         has_password: user.password_hash.is_some(),
         court_roles: claims.court_roles.clone(),
         court_tiers: Default::default(),
+        preferred_court_id: None,
     })
 }
 
@@ -1130,6 +1219,7 @@ pub async fn upload_user_avatar(
         has_password: user.password_hash.is_some(),
         court_roles: claims.court_roles.clone(),
         court_tiers: Default::default(),
+        preferred_court_id: None,
     })
 }
 
@@ -1932,6 +2022,7 @@ pub async fn poll_device_auth(
                 has_password: user.password_hash.is_some(),
                 court_roles,
                 court_tiers: Default::default(),
+                preferred_court_id: None,
             };
 
             Ok(DeviceFlowPollResponse {
@@ -5870,4 +5961,479 @@ pub async fn list_conflicts_by_attorney(
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
     Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+// ── Bar Admissions ──────────────────────────────────────────
+
+#[server]
+pub async fn list_bar_admissions(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::bar_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = bar_admission::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_bar_admission(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::bar_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateBarAdmissionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = bar_admission::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_bar_admission(
+    court_id: String,
+    attorney_id: String,
+    state: String,
+) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::bar_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    bar_admission::delete_by_state(pool, &court_id, att_uuid, &state)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Federal Admissions ──────────────────────────────────────
+
+#[server]
+pub async fn list_federal_admissions(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::federal_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = federal_admission::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_federal_admission(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::federal_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateFederalAdmissionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = federal_admission::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_federal_admission(
+    court_id: String,
+    attorney_id: String,
+    court_name: String,
+) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::federal_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    federal_admission::delete_by_court_name(pool, &court_id, att_uuid, &court_name)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── CJA Appointments ────────────────────────────────────────
+
+#[server]
+pub async fn list_cja_appointments(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::cja_appointment;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = cja_appointment::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_cja_appointment(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::cja_appointment;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateCjaAppointmentRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = cja_appointment::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_pending_cja_vouchers(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::cja_appointment;
+
+    let pool = get_db().await;
+    let rows = cja_appointment::list_pending_vouchers(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+// ── Pro Hac Vice ────────────────────────────────────────────
+
+#[server]
+pub async fn list_pro_hac_vice(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::pro_hac_vice;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = pro_hac_vice::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_pro_hac_vice(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::pro_hac_vice;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateProHacViceRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = pro_hac_vice::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_pro_hac_vice_status(
+    court_id: String,
+    attorney_id: String,
+    case_id: String,
+    new_status: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::pro_hac_vice;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let case_uuid = Uuid::parse_str(&case_id)
+        .map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let row = pro_hac_vice::update_status(pool, &court_id, att_uuid, case_uuid, &new_status)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("PHV record not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Discipline Records ──────────────────────────────────────
+
+#[server]
+pub async fn list_discipline_records(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::discipline;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = discipline::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_discipline_record(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::discipline;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateDisciplineRecordRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = discipline::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Practice Areas ──────────────────────────────────────────
+
+#[server]
+pub async fn list_practice_areas(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::practice_area;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = practice_area::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn add_practice_area(
+    court_id: String,
+    attorney_id: String,
+    area: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::practice_area;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let row = practice_area::add(pool, &court_id, att_uuid, &area)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn remove_practice_area(
+    court_id: String,
+    attorney_id: String,
+    area: String,
+) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::practice_area;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    practice_area::remove(pool, &court_id, att_uuid, &area)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── ECF Registration ────────────────────────────────────────
+
+#[server]
+pub async fn get_ecf_registration(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::ecf_registration;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let row = ecf_registration::find_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn upsert_ecf_registration(
+    court_id: String,
+    attorney_id: String,
+    status: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::ecf_registration;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let row = ecf_registration::upsert(pool, &court_id, att_uuid, &status)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn revoke_ecf_registration(
+    court_id: String,
+    attorney_id: String,
+) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::ecf_registration;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    ecf_registration::revoke(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Judge Sub-Domain ────────────────────────────────────────
+
+#[server]
+pub async fn list_assignments_by_judge(
+    court_id: String,
+    judge_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_assignment;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let j_uuid = Uuid::parse_str(&judge_id)
+        .map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let rows = case_assignment::list_by_judge(pool, &court_id, j_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_recusals_by_judge(
+    court_id: String,
+    judge_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::recusal_motion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let j_uuid = Uuid::parse_str(&judge_id)
+        .map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let rows = recusal_motion::list_by_judge(pool, &court_id, j_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+// ── Court Server Functions ────────────────────────────────
+
+#[server]
+pub async fn list_courts() -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+
+    let pool = get_db().await;
+    let rows = sqlx::query_as!(
+        shared_types::Court,
+        r#"SELECT id, name, court_type, tier, created_at FROM courts ORDER BY name"#,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+/// Persist the user's preferred court selection to the database.
+#[server]
+pub async fn set_preferred_court(court_id: String) -> Result<(), ServerFnError> {
+    use crate::auth::{cookies, jwt};
+    use crate::db::get_db;
+
+    let ctx = dioxus::fullstack::FullstackContext::current()
+        .ok_or_else(|| ServerFnError::new("No fullstack context"))?;
+    let headers = ctx.parts_mut().headers.clone();
+    let token = cookies::extract_access_token(&headers)
+        .ok_or_else(|| ServerFnError::new("Not authenticated"))?;
+    let claims = jwt::validate_access_token(&token)
+        .map_err(|_| ServerFnError::new("Invalid token"))?;
+
+    let db = get_db().await;
+    sqlx::query!(
+        "UPDATE users SET preferred_court_id = $1 WHERE id = $2",
+        court_id,
+        claims.sub
+    )
+    .execute(db)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    Ok(())
 }

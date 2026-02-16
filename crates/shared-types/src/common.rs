@@ -123,6 +123,10 @@ pub struct CourtRoleRequestResponse {
     pub reviewed_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_email: Option<String>,
 }
 
 /// Request body for submitting a court role request.
