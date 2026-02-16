@@ -1,11 +1,11 @@
-use crate::auth::{use_can_manage_memberships, use_is_admin};
+use crate::auth::use_can_manage_memberships;
 use crate::{CourtContext, COURT_OPTIONS};
 use dioxus::prelude::*;
 use dioxus_free_icons::icons::ld_icons::LdEllipsis;
 use dioxus_free_icons::Icon;
 use server::api::{
     create_user, delete_user, list_users_with_memberships, remove_user_court_role,
-    set_user_court_role, update_user, update_user_tier,
+    set_user_court_role, update_user,
 };
 use shared_types::UserWithMembership;
 use shared_ui::{
@@ -22,24 +22,6 @@ use shared_ui::components::FormSelect;
 /// Extract the first two characters of a name as uppercase initials.
 fn initials(name: &str) -> String {
     name.chars().take(2).collect::<String>().to_uppercase()
-}
-
-/// Map a tier string to its badge variant.
-fn tier_badge_variant(tier: &str) -> BadgeVariant {
-    match tier.to_lowercase().as_str() {
-        "pro" => BadgeVariant::Primary,
-        "enterprise" => BadgeVariant::Destructive,
-        _ => BadgeVariant::Secondary,
-    }
-}
-
-/// Format a tier string for display (capitalized).
-fn tier_display(tier: &str) -> &str {
-    match tier.to_lowercase().as_str() {
-        "pro" => "Pro",
-        "enterprise" => "Enterprise",
-        _ => "Free",
-    }
 }
 
 /// Map a court role string to its badge variant.
@@ -67,7 +49,6 @@ fn court_role_display(role: &str) -> &str {
 pub fn Users() -> Element {
     let ctx = use_context::<CourtContext>();
     let toast = use_toast();
-    let is_admin = use_is_admin();
     let can_manage = use_can_manage_memberships();
 
     // Fetch users with their membership for the current court (re-fetches on court change)
@@ -280,80 +261,6 @@ pub fn Users() -> Element {
                                                         span {
                                                             class: "user-username",
                                                             "@{user_clone.username}"
-                                                        }
-                                                    }
-
-                                                    // Tier column
-                                                    {
-                                                        let tier_str = user_clone.tier.clone();
-                                                        let row_user_id = user_id;
-                                                        rsx! {
-                                                            div {
-                                                                class: "user-tier",
-                                                                if is_admin {
-                                                                    {
-                                                                        let current_tier = tier_str.to_lowercase();
-                                                                        rsx! {
-                                                                            SelectRoot::<String> {
-                                                                                default_value: current_tier.clone(),
-                                                                                placeholder: "Tier",
-                                                                                on_value_change: move |val: Option<String>| {
-                                                                                    if let Some(new_tier) = val {
-                                                                                        spawn(async move {
-                                                                                            match update_user_tier(row_user_id, new_tier.clone()).await {
-                                                                                                Ok(_) => {
-                                                                                                    let label = tier_display(&new_tier);
-                                                                                                    toast.success(
-                                                                                                        format!("Tier updated to {label}"),
-                                                                                                        ToastOptions::new(),
-                                                                                                    );
-                                                                                                    users.restart();
-                                                                                                }
-                                                                                                Err(err) => {
-                                                                                                    toast.error(
-                                                                                                        format!("Failed to update tier: {}", shared_types::AppError::friendly_message(&err.to_string())),
-                                                                                                        ToastOptions::new(),
-                                                                                                    );
-                                                                                                }
-                                                                                            }
-                                                                                        });
-                                                                                    }
-                                                                                },
-                                                                                SelectTrigger {
-                                                                                    aria_label: "Change tier",
-                                                                                    SelectValue {}
-                                                                                }
-                                                                                SelectContent {
-                                                                                    aria_label: "Tier options",
-                                                                                    SelectItem::<String> {
-                                                                                        value: "free",
-                                                                                        index: 0usize,
-                                                                                        "Free"
-                                                                                        SelectItemIndicator { "\u{2713}" }
-                                                                                    }
-                                                                                    SelectItem::<String> {
-                                                                                        value: "pro",
-                                                                                        index: 1usize,
-                                                                                        "Pro"
-                                                                                        SelectItemIndicator { "\u{2713}" }
-                                                                                    }
-                                                                                    SelectItem::<String> {
-                                                                                        value: "enterprise",
-                                                                                        index: 2usize,
-                                                                                        "Enterprise"
-                                                                                        SelectItemIndicator { "\u{2713}" }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                } else {
-                                                                    Badge {
-                                                                        variant: tier_badge_variant(&tier_str),
-                                                                        "{tier_display(&tier_str)}"
-                                                                    }
-                                                                }
-                                                            }
                                                         }
                                                     }
 
@@ -587,7 +494,7 @@ pub fn Users() -> Element {
 
                                                     div { class: "user-info-card-field",
                                                         span { class: "user-info-card-label", "Platform Role" }
-                                                        Badge { variant: tier_badge_variant(&user_for_info.role), "{user_for_info.role}" }
+                                                        Badge { variant: court_role_badge_variant(&user_for_info.role), "{user_for_info.role}" }
                                                     }
 
                                                     if !user_for_info.all_court_roles.is_empty() {

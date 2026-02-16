@@ -54,12 +54,14 @@ pub async fn ensure_stripe_customer(
 }
 
 /// Create a Stripe Checkout session for a subscription.
+/// `court_id` identifies the court whose tier will be updated on completion.
 #[tracing::instrument(skip(pool))]
 pub async fn create_subscription_checkout(
     pool: &Pool<Postgres>,
     user_id: i64,
     email: &str,
     tier: &str,
+    court_id: &str,
 ) -> Result<String, String> {
     let customer_id = ensure_stripe_customer(pool, user_id, email).await?;
     let price_id = stripe_price_for_tier(tier)?;
@@ -68,6 +70,17 @@ pub async fn create_subscription_checkout(
 
     let success_url = format!("{}/settings?billing=success", base_url);
     let cancel_url = format!("{}/settings?billing=cancelled", base_url);
+
+    let mut metadata: std::collections::HashMap<String, String> = [
+        ("user_id".to_string(), user_id.to_string()),
+        ("tier".to_string(), tier.to_string()),
+    ]
+    .into_iter()
+    .collect();
+
+    if !court_id.is_empty() {
+        metadata.insert("court_id".to_string(), court_id.to_string());
+    }
 
     let mut params = CreateCheckoutSession::new();
     params.customer = Some(customer_id);
@@ -79,14 +92,7 @@ pub async fn create_subscription_checkout(
         quantity: Some(1),
         ..Default::default()
     }]);
-    params.metadata = Some(
-        [
-            ("user_id".to_string(), user_id.to_string()),
-            ("tier".to_string(), tier.to_string()),
-        ]
-        .into_iter()
-        .collect(),
-    );
+    params.metadata = Some(metadata);
 
     let session = CheckoutSession::create(&client, params)
         .await
@@ -191,6 +197,16 @@ pub async fn cancel_subscription(pool: &Pool<Postgres>, user_id: i64) -> Result<
         .await
         .map_err(|e| format!("Failed to downgrade user tier: {}", e))?;
 
+    // Also downgrade any courts linked via subscriptions
+    sqlx::query!(
+        r#"UPDATE courts SET tier = 'free'
+           WHERE id IN (SELECT DISTINCT court_id FROM subscriptions WHERE user_id = $1 AND court_id IS NOT NULL)"#,
+        user_id
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| format!("Failed to downgrade court tiers: {}", e))?;
+
     // Revoke tokens so next request picks up the new tier
     sqlx::query!(
         "UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1 AND revoked = FALSE",
@@ -205,6 +221,7 @@ pub async fn cancel_subscription(pool: &Pool<Postgres>, user_id: i64) -> Result<
         BillingEvent::SubscriptionUpdated {
             tier: "free".to_string(),
             status: "canceled".to_string(),
+            court_id: None,
         },
     ));
 

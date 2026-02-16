@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO courts (id, name, court_type)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name\n        RETURNING id, name, court_type, created_at\n        ",
+  "query": "\n        INSERT INTO courts (id, name, court_type)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name\n        RETURNING id, name, court_type, tier, created_at\n        ",
   "describe": {
     "columns": [
       {
@@ -20,6 +20,11 @@
       },
       {
         "ordinal": 3,
+        "name": "tier",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -35,8 +40,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "1af346be2143a366825916b287119a2973738c73b11b628d5e9753a665bb70eb"
+  "hash": "91bf85325a08c058fd487c321590a32d2627ea6c241b29fe8b5c35424f997c5e"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, display_name, role, tier, court_roles FROM users",
+  "query": "SELECT id, username, display_name, role, tier, email, phone_number, court_roles FROM users",
   "describe": {
     "columns": [
       {
@@ -30,6 +30,16 @@
       },
       {
         "ordinal": 5,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "phone_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
         "name": "court_roles",
         "type_info": "Jsonb"
       }
@@ -43,8 +53,10 @@
       false,
       false,
       false,
+      true,
+      true,
       false
     ]
   },
-  "hash": "45dfbc7eabe43dbe3480fed3a83e566ed5eb11c35b4e56a625d162f0b6ef54e5"
+  "hash": "08034403a257bea45ad182928f3da111f0331637f5f95e50c3646cad707943bd"
 }

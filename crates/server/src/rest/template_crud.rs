@@ -464,6 +464,7 @@ pub async fn register(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: true,
         court_roles,
+        court_tiers: Default::default(),
     };
 
     Ok((
@@ -590,6 +591,7 @@ pub async fn login(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: true,
         court_roles,
+        court_tiers: Default::default(),
     };
 
     Ok(Json(AuthResponse {
@@ -776,6 +778,7 @@ pub async fn upload_avatar(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: user.password_hash.is_some(),
         court_roles: std::collections::HashMap::new(),
+        court_tiers: Default::default(),
     }))
 }
 
@@ -806,11 +809,13 @@ pub async fn create_checkout(
             let tier = payload.tier.as_deref().ok_or_else(|| {
                 AppError::validation("Tier is required for subscriptions", Default::default())
             })?;
+            let cid = payload.court_id.as_deref().unwrap_or("");
             crate::stripe::checkout::create_subscription_checkout(
                 &pool,
                 auth.0.sub,
                 &user_email,
                 tier,
+                cid,
             )
             .await
             .map_err(|e| AppError::internal(e))?
@@ -1228,6 +1233,7 @@ pub async fn verify_phone(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: user.password_hash.is_some(),
         court_roles: std::collections::HashMap::new(),
+        court_tiers: Default::default(),
     }))
 }
 
@@ -1426,6 +1432,7 @@ pub async fn poll_device(
                 weekly_digest_enabled: user.weekly_digest_enabled,
                 has_password: user.password_hash.is_some(),
                 court_roles,
+                court_tiers: Default::default(),
             };
 
             Ok(Json(DeviceFlowPollResponse {

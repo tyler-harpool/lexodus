@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::FeatureFlags;
+use shared_types::{FeatureFlags, UserTier};
 
 mod auth;
 pub mod billing_listener;
@@ -22,6 +22,8 @@ pub struct ProfileState {
 #[derive(Clone, Copy)]
 pub struct CourtContext {
     pub court_id: Signal<String>,
+    /// The subscription tier for the currently selected court.
+    pub court_tier: Signal<UserTier>,
 }
 
 
@@ -152,10 +154,25 @@ fn App() -> Element {
     // Provide court context for court domain pages
     use_context_provider(|| CourtContext {
         court_id: Signal::new("district9".to_string()),
+        court_tier: Signal::new(UserTier::Free),
     });
 
     // Auth state used by the profile memos below
     let auth = use_auth();
+    let mut ctx = use_context::<CourtContext>();
+
+    // Sync court_tier from auth.current_user.court_tiers whenever user or court changes
+    use_effect(move || {
+        let court = ctx.court_id.read().clone();
+        let tier = auth
+            .current_user
+            .read()
+            .as_ref()
+            .and_then(|u| u.court_tiers.get(&court).cloned())
+            .map(|t| UserTier::from_str_or_default(&t))
+            .unwrap_or(UserTier::Free);
+        ctx.court_tier.set(tier);
+    });
 
     // Derive profile state from auth — updates when user logs in/out
     let display_name = use_memo(move || {

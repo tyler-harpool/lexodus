@@ -33,23 +33,38 @@ pub async fn handle_checkout_completed(pool: &Pool<Postgres>, event: &Event) -> 
                 .map(|s| s.as_str())
                 .unwrap_or("pro");
 
+            let court_id = metadata
+                .as_ref()
+                .and_then(|m| m.get("court_id"))
+                .cloned();
+
             sqlx::query!(
-                r#"INSERT INTO subscriptions (user_id, stripe_subscription_id, stripe_price_id, status)
-                   VALUES ($1, $2, $3, 'active')
+                r#"INSERT INTO subscriptions (user_id, stripe_subscription_id, stripe_price_id, status, court_id)
+                   VALUES ($1, $2, $3, 'active', $4)
                    ON CONFLICT (stripe_subscription_id) DO UPDATE
-                   SET status = 'active', updated_at = NOW()"#,
+                   SET status = 'active', court_id = COALESCE($4, subscriptions.court_id), updated_at = NOW()"#,
                 user_id,
                 subscription_id,
                 tier,
+                court_id.as_deref(),
             )
             .execute(pool)
             .await
             .map_err(|e| format!("Failed to upsert subscription: {}", e))?;
 
+            // Update users.tier (vestigial, kept for backward compat)
             sqlx::query!("UPDATE users SET tier = $2 WHERE id = $1", user_id, tier)
                 .execute(pool)
                 .await
                 .map_err(|e| format!("Failed to update user tier: {}", e))?;
+
+            // Update court tier (source of truth)
+            if let Some(ref cid) = court_id {
+                sqlx::query!("UPDATE courts SET tier = $2 WHERE id = $1", cid, tier)
+                    .execute(pool)
+                    .await
+                    .map_err(|e| format!("Failed to update court tier: {}", e))?;
+            }
 
             // Revoke refresh tokens to force re-login with new tier claims
             sqlx::query!(
@@ -66,14 +81,16 @@ pub async fn handle_checkout_completed(pool: &Pool<Postgres>, event: &Event) -> 
             if let Ok(sid) = subscription_id.parse::<SubscriptionId>() {
                 let client = stripe_client()?;
                 let mut update_params = UpdateSubscription::new();
-                update_params.metadata = Some(
-                    [
-                        ("user_id".to_string(), user_id.to_string()),
-                        ("tier".to_string(), tier.to_string()),
-                    ]
-                    .into_iter()
-                    .collect(),
-                );
+                let mut sub_metadata: std::collections::HashMap<String, String> = [
+                    ("user_id".to_string(), user_id.to_string()),
+                    ("tier".to_string(), tier.to_string()),
+                ]
+                .into_iter()
+                .collect();
+                if let Some(ref cid) = court_id {
+                    sub_metadata.insert("court_id".to_string(), cid.clone());
+                }
+                update_params.metadata = Some(sub_metadata);
                 if let Err(e) = Subscription::update(&client, &sid, update_params).await {
                     tracing::error!(%e, "Failed to set tier metadata on Stripe subscription");
                 }
@@ -143,10 +160,11 @@ pub async fn handle_checkout_completed(pool: &Pool<Postgres>, event: &Event) -> 
                 BillingEvent::SubscriptionUpdated {
                     tier: tier.to_string(),
                     status: "active".to_string(),
+                    court_id: court_id.clone(),
                 },
             ));
 
-            tracing::info!(user_id, tier, "Subscription created via checkout");
+            tracing::info!(user_id, tier, ?court_id, "Subscription created via checkout");
         }
         stripe::CheckoutSessionMode::Payment => {
             let payment_intent_id = session
@@ -202,7 +220,7 @@ pub async fn handle_subscription_updated(
     let status = format!("{:?}", subscription.status).to_lowercase();
 
     let db_sub = sqlx::query!(
-        "SELECT user_id, stripe_price_id FROM subscriptions WHERE stripe_subscription_id = $1",
+        "SELECT user_id, stripe_price_id, court_id FROM subscriptions WHERE stripe_subscription_id = $1",
         sub_id
     )
     .fetch_optional(pool)
@@ -217,6 +235,7 @@ pub async fn handle_subscription_updated(
         }
     };
     let user_id = db_sub.user_id;
+    let court_id = db_sub.court_id;
 
     let cancel_at_period_end = subscription.cancel_at_period_end;
     let current_period_start =
@@ -255,6 +274,7 @@ pub async fn handle_subscription_updated(
 
     let effective_tier = if status == "active" { tier } else { "free" };
 
+    // Update users.tier (vestigial, kept for backward compat)
     sqlx::query!(
         "UPDATE users SET tier = $2 WHERE id = $1",
         user_id,
@@ -263,6 +283,14 @@ pub async fn handle_subscription_updated(
     .execute(pool)
     .await
     .map_err(|e| format!("Failed to update user tier: {}", e))?;
+
+    // Update court tier (source of truth)
+    if let Some(ref cid) = court_id {
+        sqlx::query!("UPDATE courts SET tier = $2 WHERE id = $1", cid, effective_tier)
+            .execute(pool)
+            .await
+            .map_err(|e| format!("Failed to update court tier: {}", e))?;
+    }
 
     sqlx::query!(
         "UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1 AND revoked = FALSE",
@@ -277,10 +305,11 @@ pub async fn handle_subscription_updated(
         BillingEvent::SubscriptionUpdated {
             tier: effective_tier.to_string(),
             status: status.clone(),
+            court_id: court_id.clone(),
         },
     ));
 
-    tracing::info!(user_id, %status, tier = effective_tier, "Subscription updated");
+    tracing::info!(user_id, %status, tier = effective_tier, ?court_id, "Subscription updated");
     Ok(())
 }
 
@@ -297,21 +326,23 @@ pub async fn handle_subscription_deleted(
 
     let sub_id = subscription.id.as_str();
 
-    let user_id = sqlx::query_scalar!(
-        "SELECT user_id FROM subscriptions WHERE stripe_subscription_id = $1",
+    let sub_row = sqlx::query!(
+        "SELECT user_id, court_id FROM subscriptions WHERE stripe_subscription_id = $1",
         sub_id
     )
     .fetch_optional(pool)
     .await
     .map_err(|e| format!("Database error: {}", e))?;
 
-    let user_id = match user_id {
-        Some(id) => id,
+    let sub_row = match sub_row {
+        Some(row) => row,
         None => {
             tracing::warn!(sub_id, "Subscription not found for deletion");
             return Ok(());
         }
     };
+    let user_id = sub_row.user_id;
+    let court_id = sub_row.court_id;
 
     sqlx::query!(
         "UPDATE subscriptions SET status = 'canceled', updated_at = NOW() WHERE stripe_subscription_id = $1",
@@ -335,12 +366,12 @@ pub async fn handle_subscription_deleted(
     .map_err(|e| format!("Failed to check remaining subscriptions: {}", e))?;
 
     let effective_tier = if let Some(remaining) = &remaining_active {
-        // User still has another active subscription — keep that tier
         remaining.stripe_price_id.as_str()
     } else {
         "free"
     };
 
+    // Update users.tier (vestigial, kept for backward compat)
     sqlx::query!(
         "UPDATE users SET tier = $2 WHERE id = $1",
         user_id,
@@ -349,6 +380,14 @@ pub async fn handle_subscription_deleted(
     .execute(pool)
     .await
     .map_err(|e| format!("Failed to update user tier: {}", e))?;
+
+    // Update court tier (source of truth)
+    if let Some(ref cid) = court_id {
+        sqlx::query!("UPDATE courts SET tier = $2 WHERE id = $1", cid, effective_tier)
+            .execute(pool)
+            .await
+            .map_err(|e| format!("Failed to update court tier: {}", e))?;
+    }
 
     sqlx::query!(
         "UPDATE refresh_tokens SET revoked = TRUE WHERE user_id = $1 AND revoked = FALSE",
@@ -368,13 +407,15 @@ pub async fn handle_subscription_deleted(
                 "canceled"
             }
             .to_string(),
+            court_id: court_id.clone(),
         },
     ));
 
     tracing::info!(
         user_id,
         tier = effective_tier,
-        "Subscription deleted, user tier set to {}",
+        ?court_id,
+        "Subscription deleted, tier set to {}",
         effective_tier
     );
     Ok(())

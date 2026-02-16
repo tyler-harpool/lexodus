@@ -873,19 +873,13 @@ fn RuleDetail(id: String) -> Element {
     rsx! { rules::detail::RuleDetailPage { id: id } }
 }
 
-/// Displays the current user's tier as a badge in the sidebar footer.
+/// Displays the selected court's tier as a badge in the sidebar footer.
 #[component]
 fn TierBadge() -> Element {
-    let auth = use_auth();
-    let tier = use_memo(move || {
-        auth.current_user
-            .read()
-            .as_ref()
-            .map(|u| u.tier.clone())
-            .unwrap_or(UserTier::Free)
-    });
+    let ctx = use_context::<CourtContext>();
+    let tier = ctx.court_tier.read().clone();
 
-    let (variant, label) = match tier() {
+    let (variant, label) = match tier {
         UserTier::Free => (BadgeVariant::Secondary, "FREE"),
         UserTier::Pro => (BadgeVariant::Primary, "PRO"),
         UserTier::Enterprise => (BadgeVariant::Destructive, "ENTERPRISE"),
@@ -893,7 +887,7 @@ fn TierBadge() -> Element {
 
     rsx! {
         div { class: "sidebar-footer-row sidebar-tier-row",
-            span { class: "sidebar-footer-label", "Tier" }
+            span { class: "sidebar-footer-label", "Court Tier" }
             Badge { variant: variant, "{label}" }
         }
     }

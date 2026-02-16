@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO subscriptions (user_id, stripe_subscription_id, stripe_price_id, status, court_id)\n                   VALUES ($1, $2, $3, 'active', $4)\n                   ON CONFLICT (stripe_subscription_id) DO UPDATE\n                   SET status = 'active', court_id = COALESCE($4, subscriptions.court_id), updated_at = NOW()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b58dfc869b4cf4301ba82803d6894df68be5a42d50fe5db8d3c1d322b090be42"
+}

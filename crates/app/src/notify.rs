@@ -58,6 +58,7 @@ mod tests {
             weekly_digest_enabled: true,
             has_password: true,
             court_roles: std::collections::HashMap::new(),
+            court_tiers: std::collections::HashMap::new(),
         }
     }
 

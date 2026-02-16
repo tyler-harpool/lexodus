@@ -26,7 +26,7 @@ pub async fn init_tenant(
         INSERT INTO courts (id, name, court_type)
         VALUES ($1, $2, $3)
         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
-        RETURNING id, name, court_type, created_at
+        RETURNING id, name, court_type, tier, created_at
         "#,
         body.id,
         body.name,
