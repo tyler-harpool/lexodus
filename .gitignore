@@ -9,3 +9,4 @@ signoz/
 .DS_Store
 postman/node_modules/
 postman/results.json
+.worktrees/
