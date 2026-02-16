@@ -132,6 +132,9 @@ pub struct CheckoutRequest {
     pub product_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub product_description: Option<String>,
+    /// Court ID for subscription checkout (tier applies to the court, not the user).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub court_id: Option<String>,
 }
 
 /// Response containing the Stripe checkout session URL.

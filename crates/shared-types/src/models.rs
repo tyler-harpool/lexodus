@@ -263,6 +263,9 @@ pub struct AuthUser {
     /// Per-court role memberships: maps court_id -> role string.
     #[serde(default)]
     pub court_roles: HashMap<String, String>,
+    /// Per-court subscription tiers: maps court_id -> tier string.
+    #[serde(default)]
+    pub court_tiers: HashMap<String, String>,
 }
 
 fn default_true() -> bool {
@@ -298,7 +301,12 @@ pub struct RefreshRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub enum BillingEvent {
-    SubscriptionUpdated { tier: String, status: String },
+    SubscriptionUpdated {
+        tier: String,
+        status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        court_id: Option<String>,
+    },
     PaymentSucceeded { amount_cents: i64 },
     PaymentFailed { message: String },
 }

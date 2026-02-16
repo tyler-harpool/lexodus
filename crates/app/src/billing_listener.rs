@@ -79,20 +79,30 @@ pub fn BillingListener() -> Element {
 #[allow(dead_code)]
 fn notification_content(event: &BillingEvent) -> (String, String) {
     match event {
-        BillingEvent::SubscriptionUpdated { status, tier } => match status.as_str() {
-            "active" => (
-                "Subscription Activated".to_string(),
-                format!("Welcome to {}!", capitalize(tier)),
-            ),
-            "canceled" => (
-                "Subscription Ended".to_string(),
-                "You're now on the free plan.".to_string(),
-            ),
-            other => (
-                "Subscription Updated".to_string(),
-                format!("Status: {}", capitalize(other)),
-            ),
-        },
+        BillingEvent::SubscriptionUpdated {
+            status,
+            tier,
+            court_id,
+        } => {
+            let court_label = court_id
+                .as_deref()
+                .map(|c| format!(" for {c}"))
+                .unwrap_or_default();
+            match status.as_str() {
+                "active" => (
+                    "Subscription Activated".to_string(),
+                    format!("Welcome to {}{court_label}!", capitalize(tier)),
+                ),
+                "canceled" => (
+                    "Subscription Ended".to_string(),
+                    format!("Now on the free plan{court_label}."),
+                ),
+                other => (
+                    "Subscription Updated".to_string(),
+                    format!("Status: {}{court_label}", capitalize(other)),
+                ),
+            }
+        }
         BillingEvent::PaymentSucceeded { amount_cents } => {
             let dollars = *amount_cents as f64 / 100.0;
             (

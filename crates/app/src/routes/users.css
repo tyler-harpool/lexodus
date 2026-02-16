@@ -54,22 +54,6 @@
     white-space: nowrap;
 }
 
-/* Tier column (badge or admin select) */
-.user-tier {
-    flex-shrink: 0;
-}
-
-.user-tier .cyber-select {
-    min-width: 7rem;
-}
-
-.user-tier .cyber-select-trigger {
-    padding: 0.25rem 0.5rem;
-    font-size: var(--font-size-sm);
-    min-height: unset;
-    height: auto;
-}
-
 /* Court role column (badge or admin/clerk select) */
 .user-court-role {
     flex-shrink: 0;
@@ -328,7 +312,6 @@
         flex: 1;
     }
 
-    .user-tier,
     .user-court-role {
         display: none;
     }

@@ -64,7 +64,7 @@ pub async fn get_feature_flags() -> Result<FeatureFlags, ServerFnError> {
     Ok(crate::config::feature_flags().clone())
 }
 
-/// Get premium analytics data. Requires Premium tier or above.
+/// Get premium analytics data. Requires Pro tier or above on any court the user belongs to.
 #[cfg_attr(feature = "server", tracing::instrument)]
 #[server]
 pub async fn get_premium_analytics() -> Result<shared_types::PremiumAnalytics, ServerFnError> {
@@ -73,15 +73,24 @@ pub async fn get_premium_analytics() -> Result<shared_types::PremiumAnalytics, S
     let claims = require_auth()?;
     let db = get_db().await;
 
-    // Read tier from DB (not JWT) — tier can change mid-session via Stripe webhook
-    let db_tier = sqlx::query_scalar!("SELECT tier FROM users WHERE id = $1", claims.sub)
-        .fetch_optional(db)
+    // Check court tier — user has access if ANY of their courts is Pro+
+    let court_ids: Vec<&str> = claims.court_roles.keys().map(|s| s.as_str()).collect();
+    let has_pro_court = if !court_ids.is_empty() {
+        let tiers: Vec<String> = sqlx::query_scalar!(
+            "SELECT tier FROM courts WHERE id = ANY($1)",
+            &court_ids as &[&str]
+        )
+        .fetch_all(db)
         .await
-        .map_err(|e| e.into_app_error().into_server_fn_error())?
-        .unwrap_or_else(|| "free".to_string());
+        .map_err(|e| e.into_app_error().into_server_fn_error())?;
+        tiers
+            .iter()
+            .any(|t| UserTier::from_str_or_default(t).has_access(&UserTier::Pro))
+    } else {
+        false
+    };
 
-    let user_tier = UserTier::from_str_or_default(&db_tier);
-    if !user_tier.has_access(&UserTier::Pro) {
+    if !has_pro_court {
         return Err(AppError::forbidden("Pro tier required for analytics").into_server_fn_error());
     }
 
@@ -238,6 +247,7 @@ pub async fn delete_user(user_id: i64) -> Result<(), ServerFnError> {
 }
 
 /// Update a user's tier. Requires admin role.
+/// NOTE: Vestigial — tier is now per-court. Prefer `update_court_tier`.
 #[cfg_attr(feature = "server", tracing::instrument)]
 #[server]
 pub async fn update_user_tier(user_id: i64, tier: String) -> Result<User, ServerFnError> {
@@ -265,6 +275,46 @@ pub async fn update_user_tier(user_id: i64, tier: String) -> Result<User, Server
     .map_err(|e| e.into_app_error().into_server_fn_error())?;
 
     Ok(user)
+}
+
+/// Update a court's subscription tier. Requires admin or clerk of that court.
+#[cfg_attr(feature = "server", tracing::instrument)]
+#[server]
+pub async fn update_court_tier(court_id: String, tier: String) -> Result<MessageResponse, ServerFnError> {
+    use shared_types::AppError;
+
+    let claims = require_auth()?;
+
+    // Check admin or clerk of the target court
+    let is_admin = claims.role == "admin";
+    let is_clerk = claims.court_roles.get(&court_id).map(|r| r.as_str()) == Some("clerk");
+    if !is_admin && !is_clerk {
+        return Err(
+            AppError::forbidden("Admin or court clerk required").into_server_fn_error(),
+        );
+    }
+
+    let valid_tiers = ["free", "pro", "enterprise"];
+    let tier_lower = tier.to_lowercase();
+    if !valid_tiers.contains(&tier_lower.as_str()) {
+        return Err(
+            AppError::validation("Invalid tier value", Default::default()).into_server_fn_error(),
+        );
+    }
+
+    let db = get_db().await;
+    sqlx::query!(
+        "UPDATE courts SET tier = $2 WHERE id = $1",
+        court_id,
+        tier_lower
+    )
+    .execute(db)
+    .await
+    .map_err(|e| e.into_app_error().into_server_fn_error())?;
+
+    Ok(MessageResponse {
+        message: format!("Court tier updated to {}", tier_lower),
+    })
 }
 
 /// List all products.
@@ -564,6 +614,7 @@ pub async fn register(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: true,
         court_roles,
+        court_tiers: Default::default(),
     })
 }
 
@@ -685,6 +736,7 @@ pub async fn login(email: String, password: String) -> Result<AuthUser, ServerFn
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: true,
         court_roles,
+        court_tiers: Default::default(),
     })
 }
 
@@ -780,6 +832,23 @@ async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, ServerFnError
         Some(u) => {
             let court_roles: std::collections::HashMap<String, String> =
                 serde_json::from_value(u.court_roles).unwrap_or_default();
+
+            // Load per-court tiers for all courts the user belongs to
+            let court_tiers: std::collections::HashMap<String, String> = if !court_roles.is_empty()
+            {
+                let court_ids: Vec<&str> = court_roles.keys().map(|s| s.as_str()).collect();
+                let rows = sqlx::query!(
+                    "SELECT id, tier FROM courts WHERE id = ANY($1)",
+                    &court_ids as &[&str]
+                )
+                .fetch_all(db)
+                .await
+                .unwrap_or_default();
+                rows.into_iter().map(|r| (r.id, r.tier)).collect()
+            } else {
+                std::collections::HashMap::new()
+            };
+
             Ok(Some(AuthUser {
                 id: u.id,
                 username: u.username,
@@ -796,6 +865,7 @@ async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, ServerFnError
                 weekly_digest_enabled: u.weekly_digest_enabled,
                 has_password: u.password_hash.is_some(),
                 court_roles,
+                court_tiers,
             }))
         }
         None => {
@@ -982,6 +1052,7 @@ pub async fn update_profile(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: user.password_hash.is_some(),
         court_roles: claims.court_roles.clone(),
+        court_tiers: Default::default(),
     })
 }
 
@@ -1058,6 +1129,7 @@ pub async fn upload_user_avatar(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: user.password_hash.is_some(),
         court_roles: claims.court_roles.clone(),
+        court_tiers: Default::default(),
     })
 }
 
@@ -1099,6 +1171,7 @@ pub async fn oauth_authorize_url(
 // ── Billing Server Functions ─────────────────────────
 
 /// Create a Stripe checkout session for a subscription or one-time payment.
+/// For subscriptions, `court_id` identifies the court whose tier will be updated.
 #[cfg_attr(feature = "server", tracing::instrument)]
 #[server]
 pub async fn create_billing_checkout(
@@ -1107,6 +1180,7 @@ pub async fn create_billing_checkout(
     price_cents: Option<i64>,
     product_name: Option<String>,
     product_description: Option<String>,
+    court_id: Option<String>,
 ) -> Result<CheckoutResponse, ServerFnError> {
     use shared_types::AppError;
 
@@ -1126,11 +1200,13 @@ pub async fn create_billing_checkout(
                 AppError::validation("Tier is required for subscriptions", Default::default())
                     .into_server_fn_error()
             })?;
+            let cid = court_id.as_deref().unwrap_or("");
             crate::stripe::checkout::create_subscription_checkout(
                 db,
                 claims.sub,
                 &claims.email,
                 &tier,
+                cid,
             )
             .await
             .map_err(|e| AppError::internal(e).into_server_fn_error())?
@@ -1855,6 +1931,7 @@ pub async fn poll_device_auth(
                 weekly_digest_enabled: user.weekly_digest_enabled,
                 has_password: user.password_hash.is_some(),
                 court_roles,
+                court_tiers: Default::default(),
             };
 
             Ok(DeviceFlowPollResponse {

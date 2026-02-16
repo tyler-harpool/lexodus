@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT entry_type, COUNT(*) as \"count!\" FROM docket_entries WHERE court_id = $1 AND case_id = $2 GROUP BY entry_type",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "entry_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "7b32bf0464669a70012aa20c0e40ab4c176ddaad0b397b13321d23ddbffbe98a"
+}

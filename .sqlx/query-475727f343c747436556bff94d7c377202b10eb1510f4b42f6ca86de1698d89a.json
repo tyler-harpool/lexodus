@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(SUM(days_excluded)::BIGINT, 0) as \"sum!: i64\" FROM excludable_delays WHERE court_id = $1 AND case_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sum!: i64",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "475727f343c747436556bff94d7c377202b10eb1510f4b42f6ca86de1698d89a"
+}
