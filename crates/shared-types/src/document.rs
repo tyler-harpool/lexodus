@@ -379,7 +379,7 @@ pub struct DocumentEvent {
 }
 
 /// API response shape for a document event.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DocumentEventResponse {
     pub id: String,

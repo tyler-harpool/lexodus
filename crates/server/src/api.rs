@@ -3878,6 +3878,74 @@ pub async fn list_document_events_action(
     Ok(serde_json::to_string(&response).unwrap_or_default())
 }
 
+/// List all documents for a court with optional title search and pagination.
+#[server]
+pub async fn list_all_documents(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::document;
+    use shared_types::DocumentResponse;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = document::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<DocumentResponse> =
+        rows.into_iter().map(DocumentResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// Get a single document by ID.
+#[server]
+pub async fn get_document_by_id(
+    court_id: String,
+    id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::document;
+    use shared_types::DocumentResponse;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let doc = document::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Document not found"))?;
+    Ok(serde_json::to_string(&DocumentResponse::from(doc)).unwrap_or_default())
+}
+
 // ── Unified Event Composer Server Functions ────────────────────
 
 /// Submit a unified docket event (text entry, filing, or promote attachment).
