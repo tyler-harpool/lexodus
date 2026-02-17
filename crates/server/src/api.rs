@@ -3418,6 +3418,72 @@ pub async fn get_nef_by_docket_entry(
     Ok(maybe_nef.map(|n| serde_json::to_string(&shared_types::NefResponse::from(n)).unwrap_or_default()))
 }
 
+// ── Filing list / detail server functions ─────────────
+
+/// List all filings for a court with optional search and pagination.
+#[server]
+pub async fn list_all_filings(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::filing;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = filing::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::FilingListItem> =
+        rows.into_iter().map(shared_types::FilingListItem::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// Get a single filing by ID.
+#[server]
+pub async fn get_filing_by_id(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::filing;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = filing::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Filing not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::FilingListItem::from(row)).unwrap_or_default())
+}
+
 // ── Court Membership Server Functions ──────────────────
 
 /// A DB row shape for the list_users_with_memberships query.
