@@ -72,7 +72,7 @@ pub struct JudicialOrder {
 // ── JudicialOrder API response ──────────────────────────────────────
 
 /// API response shape for a judicial order.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct JudicialOrderResponse {
     pub id: String,
@@ -188,7 +188,7 @@ pub struct OrderTemplate {
 // ── OrderTemplate API response ──────────────────────────────────────
 
 /// API response shape for an order template.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OrderTemplateResponse {
     pub id: String,
@@ -286,6 +286,7 @@ pub struct OrderStatistics {
 pub struct CreateFromTemplateRequest {
     pub template_id: Uuid,
     pub case_id: Uuid,
+    pub judge_id: Option<Uuid>,
     pub variables: serde_json::Value,
 }
 

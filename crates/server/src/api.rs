@@ -4622,6 +4622,129 @@ pub async fn create_custody_transfer(
 
 // ── Order Server Functions ─────────────────────────────
 
+/// List all orders for a court (across all cases) with optional search and pagination.
+#[server]
+pub async fn list_all_orders(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = order::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::JudicialOrderResponse> =
+        rows.into_iter().map(shared_types::JudicialOrderResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// Sign an order, updating its status to "Signed".
+#[server]
+pub async fn sign_order_action(
+    court_id: String,
+    id: String,
+    signed_by: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+
+    let order = sqlx::query_as!(
+        shared_types::JudicialOrder,
+        r#"
+        UPDATE judicial_orders SET
+            status = 'Signed',
+            signer_name = $3,
+            signed_at = NOW(),
+            signature_hash = md5($3 || id::text),
+            updated_at = NOW()
+        WHERE id = $1 AND court_id = $2
+        RETURNING id, court_id, case_id, judge_id, order_type, title, content,
+                  status, is_sealed, signer_name, signed_at, signature_hash,
+                  issued_at, effective_date, expiration_date, related_motions,
+                  created_at, updated_at
+        "#,
+        uuid,
+        &court_id,
+        signed_by,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?
+    .ok_or_else(|| ServerFnError::new("Order not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::JudicialOrderResponse::from(order)).unwrap_or_default())
+}
+
+/// Issue an order, updating its status to "Filed".
+#[server]
+pub async fn issue_order_action(
+    court_id: String,
+    id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+
+    let order = sqlx::query_as!(
+        shared_types::JudicialOrder,
+        r#"
+        UPDATE judicial_orders SET
+            status = 'Filed',
+            issued_at = NOW(),
+            updated_at = NOW()
+        WHERE id = $1 AND court_id = $2
+        RETURNING id, court_id, case_id, judge_id, order_type, title, content,
+                  status, is_sealed, signer_name, signed_at, signature_hash,
+                  issued_at, effective_date, expiration_date, related_motions,
+                  created_at, updated_at
+        "#,
+        uuid,
+        &court_id,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?
+    .ok_or_else(|| ServerFnError::new("Order not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::JudicialOrderResponse::from(order)).unwrap_or_default())
+}
+
 #[server]
 pub async fn list_orders_by_case(
     court_id: String,

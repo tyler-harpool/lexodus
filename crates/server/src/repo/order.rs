@@ -124,6 +124,55 @@ pub async fn list_by_judge(
     Ok(rows)
 }
 
+/// List all judicial orders for a court (across all cases), ordered by creation date.
+/// Supports optional search by title and pagination.
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<JudicialOrder>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!" FROM judicial_orders
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        JudicialOrder,
+        r#"
+        SELECT id, court_id, case_id, judge_id, order_type, title, content,
+               status, is_sealed, signer_name, signed_at, signature_hash,
+               issued_at, effective_date, expiration_date, related_motions,
+               created_at, updated_at
+        FROM judicial_orders
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2)
+        ORDER BY created_at DESC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}
+
 /// Update a judicial order with only the provided fields.
 pub async fn update(
     pool: &Pool<Postgres>,
