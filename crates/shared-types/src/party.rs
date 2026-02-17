@@ -9,7 +9,7 @@ use crate::Address;
 // ---------------------------------------------------------------------------
 
 /// A party to a case (defendant, government, intervenor, etc.).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct Party {
@@ -273,7 +273,7 @@ pub struct UpdatePartyStatusRequest {
 }
 
 /// API response for a party.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PartyResponse {
     pub id: String,
@@ -387,7 +387,7 @@ pub struct SubstituteAttorneyRequest {
 }
 
 /// API response for a representation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RepresentationResponse {
     pub id: String,

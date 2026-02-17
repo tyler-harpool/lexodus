@@ -4250,6 +4250,74 @@ pub async fn list_parties_by_attorney(
     Ok(serde_json::to_string(&rows).unwrap_or_default())
 }
 
+/// List all parties for a court (across all cases) with optional search and pagination.
+#[server]
+pub async fn list_all_parties(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = party::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::PartyResponse> =
+        rows.into_iter().map(shared_types::PartyResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// List all representations for a specific party.
+#[server]
+pub async fn list_representations_by_party(
+    court_id: String,
+    party_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::representation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let party_uuid =
+        Uuid::parse_str(&party_id).map_err(|_| ServerFnError::new("Invalid party_id UUID"))?;
+    let rows = representation::list_by_party(pool, &court_id, party_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    let responses: Vec<shared_types::RepresentationResponse> =
+        rows.into_iter().map(shared_types::RepresentationResponse::from).collect();
+    Ok(serde_json::to_string(&responses).unwrap_or_default())
+}
+
 // ── Evidence Server Functions ──────────────────────────
 
 #[server]
