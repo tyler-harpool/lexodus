@@ -50,7 +50,7 @@ pub async fn create(
     pool: &Pool<Postgres>,
     court_id: &str,
     req: CreateServiceRecordRequest,
-) -> Result<ServiceRecord, AppError> {
+) -> Result<ServiceRecordWithParty, AppError> {
     let document_id = Uuid::parse_str(&req.document_id)
         .map_err(|_| AppError::bad_request("Invalid document_id UUID"))?;
     let party_id = Uuid::parse_str(&req.party_id)
@@ -101,18 +101,25 @@ pub async fn create(
     };
 
     let row = sqlx::query_as!(
-        ServiceRecord,
+        ServiceRecordWithParty,
         r#"
-        INSERT INTO service_records (
-            court_id, document_id, party_id, service_date,
-            service_method, served_by, proof_of_service_filed, successful, attempts, notes,
-            certificate_of_service
+        WITH inserted AS (
+            INSERT INTO service_records (
+                court_id, document_id, party_id, service_date,
+                service_method, served_by, proof_of_service_filed, successful, attempts, notes,
+                certificate_of_service
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, false, true, 1, $7, $8)
+            RETURNING *
         )
-        VALUES ($1, $2, $3, $4, $5, $6, false, true, 1, $7, $8)
-        RETURNING
-            id, court_id, document_id, party_id, service_date,
-            service_method, served_by, proof_of_service_filed, successful, attempts, notes,
-            certificate_of_service
+        SELECT
+            i.id, i.court_id, i.document_id, i.party_id,
+            COALESCE(p.name, 'Unknown') AS "party_name!",
+            COALESCE(p.party_type, 'Unknown') AS "party_type!",
+            i.service_date, i.service_method, i.served_by,
+            i.proof_of_service_filed, i.successful, i.attempts, i.notes
+        FROM inserted i
+        LEFT JOIN parties p ON p.id = i.party_id AND p.court_id = i.court_id
         "#,
         court_id,
         document_id,
@@ -239,22 +246,119 @@ pub async fn find_by_id(
     Ok(row)
 }
 
+/// Find a single service record by ID with joined party info.
+pub async fn find_by_id_with_party(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    id: Uuid,
+) -> Result<Option<ServiceRecordWithParty>, AppError> {
+    let row = sqlx::query_as!(
+        ServiceRecordWithParty,
+        r#"
+        SELECT
+            sr.id, sr.court_id, sr.document_id, sr.party_id,
+            COALESCE(p.name, 'Unknown') AS "party_name!",
+            COALESCE(p.party_type, 'Unknown') AS "party_type!",
+            sr.service_date, sr.service_method, sr.served_by,
+            sr.proof_of_service_filed, sr.successful, sr.attempts, sr.notes
+        FROM service_records sr
+        LEFT JOIN parties p ON p.id = sr.party_id AND p.court_id = sr.court_id
+        WHERE sr.id = $1 AND sr.court_id = $2
+        "#,
+        id,
+        court_id,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok(row)
+}
+
+/// List all service records for a court with optional search and pagination.
+/// Searches across party name, served_by, and service_method.
+/// Returns (records_with_party, total_count).
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<ServiceRecordWithParty>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!"
+        FROM service_records sr
+        LEFT JOIN parties p ON p.id = sr.party_id AND p.court_id = sr.court_id
+        WHERE sr.court_id = $1
+          AND ($2::TEXT IS NULL
+               OR LOWER(COALESCE(p.name, '')) LIKE $2
+               OR LOWER(sr.served_by) LIKE $2
+               OR LOWER(sr.service_method) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        ServiceRecordWithParty,
+        r#"
+        SELECT
+            sr.id, sr.court_id, sr.document_id, sr.party_id,
+            COALESCE(p.name, 'Unknown') AS "party_name!",
+            COALESCE(p.party_type, 'Unknown') AS "party_type!",
+            sr.service_date, sr.service_method, sr.served_by,
+            sr.proof_of_service_filed, sr.successful, sr.attempts, sr.notes
+        FROM service_records sr
+        LEFT JOIN parties p ON p.id = sr.party_id AND p.court_id = sr.court_id
+        WHERE sr.court_id = $1
+          AND ($2::TEXT IS NULL
+               OR LOWER(COALESCE(p.name, '')) LIKE $2
+               OR LOWER(sr.served_by) LIKE $2
+               OR LOWER(sr.service_method) LIKE $2)
+        ORDER BY sr.service_date DESC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}
+
 /// Mark a service record as complete (successful + proof filed). Idempotent.
 pub async fn complete(
     pool: &Pool<Postgres>,
     court_id: &str,
     id: Uuid,
-) -> Result<ServiceRecord, AppError> {
+) -> Result<ServiceRecordWithParty, AppError> {
     let row = sqlx::query_as!(
-        ServiceRecord,
+        ServiceRecordWithParty,
         r#"
-        UPDATE service_records
-        SET successful = true, proof_of_service_filed = true
-        WHERE id = $1 AND court_id = $2
-        RETURNING
-            id, court_id, document_id, party_id, service_date,
-            service_method, served_by, proof_of_service_filed, successful, attempts, notes,
-            certificate_of_service
+        WITH updated AS (
+            UPDATE service_records
+            SET successful = true, proof_of_service_filed = true
+            WHERE id = $1 AND court_id = $2
+            RETURNING *
+        )
+        SELECT
+            u.id, u.court_id, u.document_id, u.party_id,
+            COALESCE(p.name, 'Unknown') AS "party_name!",
+            COALESCE(p.party_type, 'Unknown') AS "party_type!",
+            u.service_date, u.service_method, u.served_by,
+            u.proof_of_service_filed, u.successful, u.attempts, u.notes
+        FROM updated u
+        LEFT JOIN parties p ON p.id = u.party_id AND p.court_id = u.court_id
         "#,
         id,
         court_id,
@@ -320,7 +424,7 @@ pub async fn bulk_create(
     court_id: &str,
     document_id: Uuid,
     req: &BulkCreateServiceRecordRequest,
-) -> Result<Vec<ServiceRecord>, AppError> {
+) -> Result<Vec<ServiceRecordWithParty>, AppError> {
     let method = ServiceMethod::try_from(req.service_method.as_str())
         .map_err(AppError::bad_request)?;
 
@@ -341,7 +445,7 @@ pub async fn bulk_create(
         chrono::Utc::now()
     };
 
-    let mut records = Vec::new();
+    let mut records: Vec<ServiceRecordWithParty> = Vec::new();
 
     for pid_str in &req.party_ids {
         let party_id = Uuid::parse_str(pid_str)
@@ -365,18 +469,25 @@ pub async fn bulk_create(
         }
 
         let row = sqlx::query_as!(
-            ServiceRecord,
+            ServiceRecordWithParty,
             r#"
-            INSERT INTO service_records (
-                court_id, document_id, party_id, service_date,
-                service_method, served_by, proof_of_service_filed, successful, attempts,
-                certificate_of_service
+            WITH inserted AS (
+                INSERT INTO service_records (
+                    court_id, document_id, party_id, service_date,
+                    service_method, served_by, proof_of_service_filed, successful, attempts,
+                    certificate_of_service
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, false, true, 1, $7)
+                RETURNING *
             )
-            VALUES ($1, $2, $3, $4, $5, $6, false, true, 1, $7)
-            RETURNING
-                id, court_id, document_id, party_id, service_date,
-                service_method, served_by, proof_of_service_filed, successful, attempts, notes,
-                certificate_of_service
+            SELECT
+                i.id, i.court_id, i.document_id, i.party_id,
+                COALESCE(p.name, 'Unknown') AS "party_name!",
+                COALESCE(p.party_type, 'Unknown') AS "party_type!",
+                i.service_date, i.service_method, i.served_by,
+                i.proof_of_service_filed, i.successful, i.attempts, i.notes
+            FROM inserted i
+            LEFT JOIN parties p ON p.id = i.party_id AND p.court_id = i.court_id
             "#,
             court_id,
             document_id,
