@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{Party, RepresentationResponse};
+use shared_types::{Party, PartyResponse, RepresentationResponse};
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Badge, BadgeVariant, Button,
@@ -9,6 +9,8 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use super::form_sheet::{FormMode, PartyFormSheet};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -19,10 +21,12 @@ pub fn PartyDetailPage(id: String) -> Element {
     let party_id = id.clone();
     let toast = use_toast();
 
+    let role = use_user_role();
+    let mut show_edit = use_signal(|| false);
     let mut show_delete_confirm = use_signal(|| false);
     let mut deleting = use_signal(|| false);
 
-    let data = use_resource(move || {
+    let mut data = use_resource(move || {
         let court = court_id.clone();
         let pid = party_id.clone();
         async move {
@@ -67,10 +71,19 @@ pub fn PartyDetailPage(id: String) -> Element {
                             Link { to: Route::PartyList {},
                                 Button { variant: ButtonVariant::Secondary, "Back to List" }
                             }
-                            Button {
-                                variant: ButtonVariant::Destructive,
-                                onclick: move |_| show_delete_confirm.set(true),
-                                "Delete"
+                            if can(&role, Action::Edit) {
+                                Button {
+                                    variant: ButtonVariant::Primary,
+                                    onclick: move |_| show_edit.set(true),
+                                    "Edit"
+                                }
+                            }
+                            if can(&role, Action::Delete) {
+                                Button {
+                                    variant: ButtonVariant::Destructive,
+                                    onclick: move |_| show_delete_confirm.set(true),
+                                    "Delete"
+                                }
                             }
                         }
                     }
@@ -107,6 +120,19 @@ pub fn PartyDetailPage(id: String) -> Element {
                         }
                         TabContent { value: "service", index: 2usize,
                             ServiceTab { party: party.clone() }
+                        }
+                    }
+
+                    {
+                        let party_response: PartyResponse = party.clone().into();
+                        rsx! {
+                            PartyFormSheet {
+                                mode: FormMode::Edit,
+                                initial: Some(party_response),
+                                open: show_edit(),
+                                on_close: move |_| show_edit.set(false),
+                                on_saved: move |_| data.restart(),
+                            }
                         }
                     }
                 },

@@ -266,6 +266,9 @@ pub struct AuthUser {
     /// Per-court subscription tiers: maps court_id -> tier string.
     #[serde(default)]
     pub court_tiers: HashMap<String, String>,
+    /// Last-selected court district (cross-platform persistence).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_court_id: Option<String>,
 }
 
 fn default_true() -> bool {

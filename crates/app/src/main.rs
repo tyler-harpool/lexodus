@@ -161,6 +161,34 @@ fn App() -> Element {
     let auth = use_auth();
     let mut ctx = use_context::<CourtContext>();
 
+    // Restore last selected court from user preferences on login
+    {
+        let auth_for_restore = auth.clone();
+        use_effect(move || {
+            if let Some(user) = auth_for_restore.current_user.read().as_ref() {
+                if let Some(pref) = &user.preferred_court_id {
+                    if !pref.is_empty() {
+                        ctx.court_id.set(pref.clone());
+                    }
+                }
+            }
+        });
+    }
+
+    // Persist court selection to server whenever it changes (if logged in)
+    {
+        let auth_for_save = auth.clone();
+        use_effect(move || {
+            let court = ctx.court_id.read().clone();
+            let has_user = auth_for_save.current_user.read().is_some();
+            if has_user {
+                spawn(async move {
+                    let _ = server::api::set_preferred_court(court).await;
+                });
+            }
+        });
+    }
+
     // Sync court_tier from auth.current_user.court_tiers whenever user or court changes
     use_effect(move || {
         let court = ctx.court_id.read().clone();

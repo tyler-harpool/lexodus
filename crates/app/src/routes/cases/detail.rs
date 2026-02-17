@@ -13,12 +13,13 @@ use shared_ui::components::{
     TooltipTrigger,
 };
 
+use super::form_sheet::{CaseFormSheet, FormMode};
 use super::tabs::{
     calendar_tab::CalendarTab, deadlines::DeadlinesTab, evidence::EvidenceTab, orders::OrdersTab,
     overview::OverviewTab, parties::PartiesTab, sentencing::SentencingTab,
     speedy_trial::SpeedyTrialTab,
 };
-use crate::auth::use_user_role;
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -28,7 +29,7 @@ pub fn CaseDetailPage(id: String) -> Element {
     let court_id = ctx.court_id.read().clone();
     let case_id = id.clone();
 
-    let data = use_resource(move || {
+    let mut data = use_resource(move || {
         let court = court_id.clone();
         let cid = case_id.clone();
         async move {
@@ -39,11 +40,20 @@ pub fn CaseDetailPage(id: String) -> Element {
         }
     });
 
+    let mut show_edit = use_signal(|| false);
+
     rsx! {
         div { class: "container",
             match &*data.read() {
                 Some(Some(c)) => rsx! {
-                    CaseDetailView { case_item: c.clone(), id: id.clone() }
+                    CaseDetailView { case_item: c.clone(), id: id.clone(), show_edit: show_edit }
+                    CaseFormSheet {
+                        mode: FormMode::Edit,
+                        initial: Some(c.clone()),
+                        open: show_edit(),
+                        on_close: move |_| show_edit.set(false),
+                        on_saved: move |_| data.restart(),
+                    }
                 },
                 Some(None) => rsx! {
                     PageHeader {
@@ -72,13 +82,12 @@ pub fn CaseDetailPage(id: String) -> Element {
 }
 
 #[component]
-fn CaseDetailView(case_item: CaseResponse, id: String) -> Element {
+fn CaseDetailView(case_item: CaseResponse, id: String, show_edit: Signal<bool>) -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
 
     let mut show_delete_confirm = use_signal(|| false);
     let mut deleting = use_signal(|| false);
-    let mut editing = use_signal(|| false);
-    let mut case_data = use_signal(|| case_item.clone());
 
     let detail_id = id.clone();
     let handle_delete = move |_: MouseEvent| {
@@ -98,19 +107,17 @@ fn CaseDetailView(case_item: CaseResponse, id: String) -> Element {
         });
     };
 
-    let current = case_data.read().clone();
-
     rsx! {
         PageHeader {
-            PageTitle { "{current.title}" }
+            PageTitle { "{case_item.title}" }
             PageActions {
                 Link { to: Route::CaseList {},
                     Button { variant: ButtonVariant::Secondary, "Back to List" }
                 }
-                if !*editing.read() {
+                if can(&role, Action::Edit) {
                     Button {
                         variant: ButtonVariant::Primary,
-                        onclick: move |_| editing.set(true),
+                        onclick: move |_| show_edit.set(true),
                         "Edit"
                     }
                 }
@@ -157,25 +164,17 @@ fn CaseDetailView(case_item: CaseResponse, id: String) -> Element {
             TabContent { value: "overview", index: 0usize,
                 OverviewTab {
                     case_id: id.clone(),
-                    title: current.title.clone(),
-                    case_number: current.case_number.clone(),
-                    status: current.status.clone(),
-                    crime_type: current.crime_type.clone(),
-                    district: current.district_code.clone(),
-                    priority: current.priority.clone(),
-                    description: current.description.clone(),
+                    title: case_item.title.clone(),
+                    case_number: case_item.case_number.clone(),
+                    status: case_item.status.clone(),
+                    crime_type: case_item.crime_type.clone(),
+                    district: case_item.district_code.clone(),
+                    priority: case_item.priority.clone(),
+                    description: case_item.description.clone(),
                 }
             }
             TabContent { value: "info", index: 1usize,
-                CaseInfoTab {
-                    case_item: current.clone(),
-                    editing: editing,
-                    on_saved: move |updated: CaseResponse| {
-                        case_data.set(updated);
-                        editing.set(false);
-                    },
-                    on_cancel: move |_| editing.set(false),
-                }
+                CaseInfoDisplay { case_item: case_item.clone() }
             }
             TabContent { value: "docket", index: 2usize,
                 DocketTab { case_id: id.clone() }
@@ -205,29 +204,7 @@ fn CaseDetailView(case_item: CaseResponse, id: String) -> Element {
     }
 }
 
-#[component]
-fn CaseInfoTab(
-    case_item: CaseResponse,
-    editing: Signal<bool>,
-    on_saved: EventHandler<CaseResponse>,
-    on_cancel: EventHandler<()>,
-) -> Element {
-    let is_editing = *editing.read();
-
-    if is_editing {
-        rsx! {
-            CaseEditForm {
-                case_item: case_item,
-                on_saved: on_saved,
-                on_cancel: on_cancel,
-            }
-        }
-    } else {
-        rsx! { CaseInfoDisplay { case_item: case_item } }
-    }
-}
-
-/// Read-only display of case info (shown when not editing).
+/// Read-only display of case info.
 #[component]
 fn CaseInfoDisplay(case_item: CaseResponse) -> Element {
     let status_variant = status_badge_variant(&case_item.status);
@@ -296,202 +273,6 @@ fn CaseInfoDisplay(case_item: CaseResponse) -> Element {
 
         DetailFooter {
             span { "ID: {case_item.id}" }
-        }
-    }
-}
-
-/// Inline edit form for case fields.
-#[component]
-fn CaseEditForm(
-    case_item: CaseResponse,
-    on_saved: EventHandler<CaseResponse>,
-    on_cancel: EventHandler<()>,
-) -> Element {
-    let ctx = use_context::<CourtContext>();
-    let court_id = ctx.court_id.read().clone();
-    let case_id = case_item.id.clone();
-
-    let mut title = use_signal(|| case_item.title.clone());
-    let mut description = use_signal(|| case_item.description.clone());
-    let mut crime_type = use_signal(|| case_item.crime_type.clone());
-    let mut status = use_signal(|| case_item.status.clone());
-    let mut priority = use_signal(|| case_item.priority.clone());
-    let mut location = use_signal(|| case_item.location.clone());
-    let mut district_code = use_signal(|| case_item.district_code.clone());
-    let mut error_msg = use_signal(|| None::<String>);
-    let mut saving = use_signal(|| false);
-
-    let handle_submit = move |evt: Event<FormData>| {
-        evt.prevent_default();
-        let court = court_id.clone();
-        let cid = case_id.clone();
-        let t = title.read().clone();
-        let d = description.read().clone();
-        let ct = crime_type.read().clone();
-        let s = status.read().clone();
-        let p = priority.read().clone();
-        let loc = location.read().clone();
-        let dc = district_code.read().clone();
-
-        spawn(async move {
-            saving.set(true);
-            error_msg.set(None);
-
-            if t.trim().is_empty() {
-                error_msg.set(Some("Title is required.".to_string()));
-                saving.set(false);
-                return;
-            }
-
-            let body = serde_json::json!({
-                "title": t.trim(),
-                "description": d.trim(),
-                "crime_type": ct,
-                "status": s,
-                "priority": p,
-                "location": loc.trim(),
-                "district_code": dc.trim(),
-            });
-
-            match server::api::update_case(court, cid, body.to_string()).await {
-                Ok(json) => {
-                    if let Ok(updated) = serde_json::from_str::<CaseResponse>(&json) {
-                        on_saved.call(updated);
-                    } else {
-                        error_msg.set(Some("Failed to parse response.".to_string()));
-                    }
-                }
-                Err(e) => {
-                    error_msg.set(Some(format!("Failed to save: {}", e)));
-                }
-            }
-            saving.set(false);
-        });
-    };
-
-    rsx! {
-        form { onsubmit: handle_submit,
-            if let Some(err) = &*error_msg.read() {
-                div { class: "error-message", "{err}" }
-            }
-
-            DetailGrid {
-                Card {
-                    CardHeader { CardTitle { "Case Details" } }
-                    CardContent {
-                        div { class: "form-group",
-                            Input {
-                                label: "Title *",
-                                value: title.read().clone(),
-                                on_input: move |evt: FormEvent| title.set(evt.value().to_string()),
-                                placeholder: "e.g., United States v. Smith",
-                            }
-                        }
-
-                        div { class: "form-row",
-                            div { class: "form-group",
-                                FormSelect {
-                                    label: "Crime Type",
-                                    value: "{crime_type}",
-                                    onchange: move |evt: Event<FormData>| crime_type.set(evt.value().to_string()),
-                                    option { value: "fraud", "Fraud" }
-                                    option { value: "drug_offense", "Drug Offense" }
-                                    option { value: "racketeering", "Racketeering" }
-                                    option { value: "cybercrime", "Cybercrime" }
-                                    option { value: "tax_offense", "Tax Offense" }
-                                    option { value: "money_laundering", "Money Laundering" }
-                                    option { value: "immigration", "Immigration" }
-                                    option { value: "firearms", "Firearms" }
-                                    option { value: "other", "Other" }
-                                }
-                            }
-
-                            div { class: "form-group",
-                                FormSelect {
-                                    label: "Status",
-                                    value: "{status}",
-                                    onchange: move |evt: Event<FormData>| status.set(evt.value().to_string()),
-                                    option { value: "filed", "Filed" }
-                                    option { value: "arraigned", "Arraigned" }
-                                    option { value: "discovery", "Discovery" }
-                                    option { value: "pretrial_motions", "Pretrial Motions" }
-                                    option { value: "plea_negotiations", "Plea Negotiations" }
-                                    option { value: "trial_ready", "Trial Ready" }
-                                    option { value: "in_trial", "In Trial" }
-                                    option { value: "awaiting_sentencing", "Awaiting Sentencing" }
-                                    option { value: "sentenced", "Sentenced" }
-                                    option { value: "dismissed", "Dismissed" }
-                                    option { value: "on_appeal", "On Appeal" }
-                                }
-                            }
-                        }
-
-                        div { class: "form-row",
-                            div { class: "form-group",
-                                FormSelect {
-                                    label: "Priority",
-                                    value: "{priority}",
-                                    onchange: move |evt: Event<FormData>| priority.set(evt.value().to_string()),
-                                    option { value: "low", "Low" }
-                                    option { value: "medium", "Medium" }
-                                    option { value: "high", "High" }
-                                    option { value: "critical", "Critical" }
-                                }
-                            }
-
-                            div { class: "form-group",
-                                Input {
-                                    label: "District Code",
-                                    value: district_code.read().clone(),
-                                    on_input: move |evt: FormEvent| district_code.set(evt.value().to_string()),
-                                    placeholder: "e.g., district9",
-                                }
-                            }
-                        }
-
-                        div { class: "form-group",
-                            Input {
-                                label: "Location",
-                                value: location.read().clone(),
-                                on_input: move |evt: FormEvent| location.set(evt.value().to_string()),
-                                placeholder: "e.g., Federal Courthouse Room 301",
-                            }
-                        }
-                    }
-                }
-
-                Card {
-                    CardHeader { CardTitle { "Description" } }
-                    CardContent {
-                        div { class: "form-group",
-                            Textarea {
-                                label: "Description",
-                                value: description.read().clone(),
-                                on_input: move |evt: FormEvent| description.set(evt.value().to_string()),
-                                placeholder: "Case description...",
-                            }
-                        }
-                    }
-                }
-            }
-
-            div { class: "form-actions",
-                Button {
-                    variant: ButtonVariant::Secondary,
-                    onclick: move |evt: MouseEvent| {
-                        evt.prevent_default();
-                        on_cancel.call(());
-                    },
-                    "Cancel"
-                }
-                button {
-                    class: "button",
-                    "data-style": "primary",
-                    r#type: "submit",
-                    disabled: *saving.read(),
-                    if *saving.read() { "Saving..." } else { "Save Changes" }
-                }
-            }
         }
     }
 }

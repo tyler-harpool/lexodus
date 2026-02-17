@@ -11,6 +11,8 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use super::form_sheet::{FormMode, OpinionFormSheet};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -21,10 +23,12 @@ pub fn OpinionDetailPage(id: String) -> Element {
     let opinion_id = id.clone();
     let toast = use_toast();
 
+    let role = use_user_role();
+    let mut show_edit = use_signal(|| false);
     let mut show_delete_confirm = use_signal(|| false);
     let mut deleting = use_signal(|| false);
 
-    let data = use_resource(move || {
+    let mut data = use_resource(move || {
         let court = court_id.clone();
         let oid = opinion_id.clone();
         async move {
@@ -69,10 +73,19 @@ pub fn OpinionDetailPage(id: String) -> Element {
                             Link { to: Route::OpinionList {},
                                 Button { variant: ButtonVariant::Secondary, "Back to List" }
                             }
-                            Button {
-                                variant: ButtonVariant::Destructive,
-                                onclick: move |_| show_delete_confirm.set(true),
-                                "Delete"
+                            if can(&role, Action::Edit) {
+                                Button {
+                                    variant: ButtonVariant::Primary,
+                                    onclick: move |_| show_edit.set(true),
+                                    "Edit"
+                                }
+                            }
+                            if can(&role, Action::Delete) {
+                                Button {
+                                    variant: ButtonVariant::Destructive,
+                                    onclick: move |_| show_delete_confirm.set(true),
+                                    "Delete"
+                                }
                             }
                         }
                     }
@@ -114,6 +127,14 @@ pub fn OpinionDetailPage(id: String) -> Element {
                         TabContent { value: "drafts", index: 3usize,
                             DraftsTab { opinion_id: id.clone() }
                         }
+                    }
+
+                    OpinionFormSheet {
+                        mode: FormMode::Edit,
+                        initial: Some(opinion.clone()),
+                        open: show_edit(),
+                        on_close: move |_| show_edit.set(false),
+                        on_saved: move |_| data.restart(),
                     }
                 },
                 Some(None) => rsx! {

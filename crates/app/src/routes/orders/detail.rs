@@ -8,6 +8,8 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use super::form_sheet::{OrderFormSheet, FormMode};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -17,11 +19,15 @@ pub fn OrderDetailPage(id: String) -> Element {
     let court_id = ctx.court_id.read().clone();
     let order_id = id.clone();
     let toast = use_toast();
+    let role = use_user_role();
+    let mut show_edit = use_signal(|| false);
 
     let mut show_delete_confirm = use_signal(|| false);
     let mut deleting = use_signal(|| false);
+    let mut generating_pdf = use_signal(|| false);
+    let mut pdf_html = use_signal::<Option<String>>(|| None);
 
-    let data = use_resource(move || {
+    let mut data = use_resource(move || {
         let court = court_id.clone();
         let oid = order_id.clone();
         async move {
@@ -59,17 +65,53 @@ pub fn OrderDetailPage(id: String) -> Element {
     rsx! {
         div { class: "container",
             match &*data.read() {
-                Some(Some(order)) => rsx! {
+                Some(Some(order)) => {
+                    let pdf_order_id = id.clone();
+                    let is_signed = order.status == "Signed" || order.status == "Filed";
+                    let handle_generate_pdf = move |_: MouseEvent| {
+                        let court = ctx.court_id.read().clone();
+                        let oid = pdf_order_id.clone();
+                        spawn(async move {
+                            generating_pdf.set(true);
+                            match server::api::generate_order_html(court, oid, is_signed).await {
+                                Ok(html) => {
+                                    pdf_html.set(Some(html));
+                                }
+                                Err(e) => {
+                                    toast.error(format!("PDF generation failed: {}", e), ToastOptions::new());
+                                }
+                            }
+                            generating_pdf.set(false);
+                        });
+                    };
+
+                    rsx! {
                     PageHeader {
                         PageTitle { "{order.title}" }
                         PageActions {
                             Link { to: Route::OrderList {},
                                 Button { variant: ButtonVariant::Secondary, "Back to List" }
                             }
-                            Button {
-                                variant: ButtonVariant::Destructive,
-                                onclick: move |_| show_delete_confirm.set(true),
-                                "Delete"
+                            if can(&role, Action::GeneratePdf) {
+                                Button {
+                                    variant: ButtonVariant::Secondary,
+                                    onclick: handle_generate_pdf,
+                                    if *generating_pdf.read() { "Generating..." } else { "Generate PDF" }
+                                }
+                            }
+                            if can(&role, Action::Edit) {
+                                Button {
+                                    variant: ButtonVariant::Primary,
+                                    onclick: move |_| show_edit.set(true),
+                                    "Edit"
+                                }
+                            }
+                            if can(&role, Action::Delete) {
+                                Button {
+                                    variant: ButtonVariant::Destructive,
+                                    onclick: move |_| show_delete_confirm.set(true),
+                                    "Delete"
+                                }
                             }
                         }
                     }
@@ -108,7 +150,45 @@ pub fn OrderDetailPage(id: String) -> Element {
                             TemplatesTab {}
                         }
                     }
-                },
+
+                    OrderFormSheet {
+                        mode: FormMode::Edit,
+                        initial: Some(order.clone()),
+                        open: show_edit(),
+                        on_close: move |_| show_edit.set(false),
+                        on_saved: move |_| data.restart(),
+                    }
+
+                    if let Some(html) = pdf_html.read().as_ref() {
+                        Card {
+                            CardHeader {
+                                div {
+                                    style: "display: flex; justify-content: space-between; align-items: center;",
+                                    CardTitle { "PDF Preview" }
+                                    div {
+                                        style: "display: flex; gap: var(--space-sm);",
+                                        Button {
+                                            variant: ButtonVariant::Secondary,
+                                            onclick: move |_| pdf_html.set(None),
+                                            "Close Preview"
+                                        }
+                                    }
+                                }
+                            }
+                            CardContent {
+                                p { class: "text-muted",
+                                    style: "margin-bottom: var(--space-md);",
+                                    "Use your browser's Print function (Ctrl+P / Cmd+P) to save as PDF."
+                                }
+                                div {
+                                    class: "pdf-preview",
+                                    style: "border: 1px solid var(--border); padding: var(--space-lg); background: white; max-height: 600px; overflow-y: auto;",
+                                    dangerous_inner_html: "{html}",
+                                }
+                            }
+                        }
+                    }
+                }},
                 Some(None) => rsx! {
                     Card {
                         CardContent {

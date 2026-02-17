@@ -68,3 +68,26 @@ pub async fn tenant_stats(
         attorney_count: count,
     }))
 }
+
+/// GET /api/courts — list all court districts (no auth required)
+#[utoipa::path(
+    get,
+    path = "/api/courts",
+    responses(
+        (status = 200, description = "All court districts", body = Vec<Court>)
+    ),
+    tag = "admin"
+)]
+pub async fn list_courts(
+    State(pool): State<Pool<Postgres>>,
+) -> Result<Json<Vec<Court>>, AppError> {
+    let courts = sqlx::query_as!(
+        Court,
+        r#"SELECT id, name, court_type, tier, created_at FROM courts ORDER BY name"#,
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok(Json(courts))
+}

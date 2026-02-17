@@ -60,6 +60,31 @@ pub async fn list_by_case(
     Ok(rows)
 }
 
+/// List all assignments for a judge.
+pub async fn list_by_judge(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    judge_id: Uuid,
+) -> Result<Vec<CaseAssignment>, AppError> {
+    let rows = sqlx::query_as!(
+        CaseAssignment,
+        r#"
+        SELECT id, court_id, case_id, judge_id, assignment_type,
+               assigned_date, reason, previous_judge_id, reassignment_reason
+        FROM case_assignments
+        WHERE judge_id = $1 AND court_id = $2
+        ORDER BY assigned_date DESC
+        "#,
+        judge_id,
+        court_id,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok(rows)
+}
+
 /// Delete an assignment. Returns true if a row was deleted.
 pub async fn delete(
     pool: &Pool<Postgres>,

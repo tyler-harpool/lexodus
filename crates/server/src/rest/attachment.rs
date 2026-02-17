@@ -270,7 +270,14 @@ pub async fn serve_attachment_file(
     let bytes = store
         .get(&attachment.storage_key)
         .await
-        .map_err(|e| AppError::internal(format!("Failed to download file: {}", e)))?;
+        .map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("NoSuchKey") || msg.contains("not found") || msg.contains("NotFound") {
+                AppError::not_found(format!("File not found in storage for attachment {}", attachment_id))
+            } else {
+                AppError::internal(format!("Failed to download file: {}", e))
+            }
+        })?;
 
     let content_disposition = format!(
         "attachment; filename=\"{}\"",

@@ -2,20 +2,18 @@ use dioxus::prelude::*;
 use shared_types::{CaseResponse, CaseSearchResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
-    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Form, FormSelect, Input,
-    PageActions, PageHeader, PageTitle, Pagination, SearchBar, Separator, Sheet, SheetClose,
-    SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetSide, SheetTitle, Skeleton,
-    Textarea,
+    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, FormSelect, Input, PageActions,
+    PageHeader, PageTitle, Pagination, SearchBar, Skeleton,
 };
-use shared_ui::{use_toast, HoverCard, HoverCardContent, HoverCardTrigger, ToastOptions};
+use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
+use super::form_sheet::{CaseFormSheet, FormMode};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn CaseListPage() -> Element {
     let ctx = use_context::<CourtContext>();
-    let toast = use_toast();
 
     let mut offset = use_signal(|| 0i64);
     let mut filter_status = use_signal(String::new);
@@ -25,12 +23,6 @@ pub fn CaseListPage() -> Element {
 
     // Sheet state for creating cases
     let mut show_sheet = use_signal(|| false);
-    let mut form_title = use_signal(String::new);
-    let mut form_description = use_signal(String::new);
-    let mut form_crime_type = use_signal(|| "fraud".to_string());
-    let mut form_priority = use_signal(|| "medium".to_string());
-    let mut form_district_code = use_signal(String::new);
-    let mut form_location = use_signal(String::new);
 
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
@@ -57,20 +49,6 @@ pub fn CaseListPage() -> Element {
         }
     });
 
-    let mut reset_form = move || {
-        form_title.set(String::new());
-        form_description.set(String::new());
-        form_crime_type.set("fraud".to_string());
-        form_priority.set("medium".to_string());
-        form_district_code.set(String::new());
-        form_location.set(String::new());
-    };
-
-    let open_create = move |_| {
-        reset_form();
-        show_sheet.set(true);
-    };
-
     let handle_clear = move |_| {
         filter_status.set(String::new());
         filter_crime_type.set(String::new());
@@ -82,46 +60,6 @@ pub fn CaseListPage() -> Element {
         || !filter_crime_type.read().is_empty()
         || !search_query.read().is_empty();
 
-    let handle_save = move |_: FormEvent| {
-        let court = ctx.court_id.read().clone();
-        let t = form_title.read().clone();
-        let d = form_description.read().clone();
-        let ct = form_crime_type.read().clone();
-        let p = form_priority.read().clone();
-        let dc = form_district_code.read().clone();
-        let loc = form_location.read().clone();
-
-        spawn(async move {
-            if t.trim().is_empty() {
-                toast.error("Title is required.".to_string(), ToastOptions::new());
-                return;
-            }
-
-            let body = serde_json::json!({
-                "title": t.trim(),
-                "description": d.trim(),
-                "crime_type": ct,
-                "priority": p,
-                "district_code": if dc.is_empty() { court.clone() } else { dc },
-                "location": loc.trim(),
-            });
-
-            match server::api::create_case(court, body.to_string()).await {
-                Ok(_) => {
-                    data.restart();
-                    show_sheet.set(false);
-                    toast.success(
-                        "Case created successfully".to_string(),
-                        ToastOptions::new(),
-                    );
-                }
-                Err(e) => {
-                    toast.error(format!("{}", e), ToastOptions::new());
-                }
-            }
-        });
-    };
-
     rsx! {
         div { class: "container",
             PageHeader {
@@ -129,7 +67,7 @@ pub fn CaseListPage() -> Element {
                 PageActions {
                     Button {
                         variant: ButtonVariant::Primary,
-                        onclick: open_create,
+                        onclick: move |_| show_sheet.set(true),
                         "New Case"
                     }
                 }
@@ -215,94 +153,12 @@ pub fn CaseListPage() -> Element {
                 },
             }
 
-            // Create case Sheet
-            Sheet {
+            CaseFormSheet {
+                mode: FormMode::Create,
+                initial: None,
                 open: show_sheet(),
                 on_close: move |_| show_sheet.set(false),
-                side: SheetSide::Right,
-                SheetContent {
-                    SheetHeader {
-                        SheetTitle { "New Case" }
-                        SheetDescription {
-                            "Fill in the details to file a new case."
-                        }
-                        SheetClose { on_close: move |_| show_sheet.set(false) }
-                    }
-
-                    Form {
-                        onsubmit: handle_save,
-
-                        div {
-                            class: "sheet-form",
-
-                            Input {
-                                label: "Title *",
-                                value: form_title.read().clone(),
-                                on_input: move |e: FormEvent| form_title.set(e.value().to_string()),
-                                placeholder: "e.g., United States v. Smith",
-                            }
-
-                            Textarea {
-                                label: "Description",
-                                value: form_description.read().clone(),
-                                on_input: move |e: FormEvent| form_description.set(e.value().to_string()),
-                                placeholder: "Case description...",
-                            }
-
-                            FormSelect {
-                                label: "Crime Type *",
-                                value: "{form_crime_type}",
-                                onchange: move |evt: Event<FormData>| form_crime_type.set(evt.value().to_string()),
-                                option { value: "fraud", "Fraud" }
-                                option { value: "drug_offense", "Drug Offense" }
-                                option { value: "racketeering", "Racketeering" }
-                                option { value: "cybercrime", "Cybercrime" }
-                                option { value: "tax_offense", "Tax Offense" }
-                                option { value: "money_laundering", "Money Laundering" }
-                                option { value: "immigration", "Immigration" }
-                                option { value: "firearms", "Firearms" }
-                                option { value: "other", "Other" }
-                            }
-
-                            FormSelect {
-                                label: "Priority",
-                                value: "{form_priority}",
-                                onchange: move |evt: Event<FormData>| form_priority.set(evt.value().to_string()),
-                                option { value: "low", "Low" }
-                                option { value: "medium", "Medium" }
-                                option { value: "high", "High" }
-                                option { value: "critical", "Critical" }
-                            }
-
-                            Input {
-                                label: "District Code",
-                                value: form_district_code.read().clone(),
-                                on_input: move |e: FormEvent| form_district_code.set(e.value().to_string()),
-                                placeholder: "Defaults to current court",
-                            }
-
-                            Input {
-                                label: "Location",
-                                value: form_location.read().clone(),
-                                on_input: move |e: FormEvent| form_location.set(e.value().to_string()),
-                                placeholder: "e.g., Federal Courthouse Room 301",
-                            }
-                        }
-
-                        Separator {}
-
-                        SheetFooter {
-                            div {
-                                class: "sheet-footer-actions",
-                                SheetClose { on_close: move |_| show_sheet.set(false) }
-                                Button {
-                                    variant: ButtonVariant::Primary,
-                                    "File Case"
-                                }
-                            }
-                        }
-                    }
-                }
+                on_saved: move |_| data.restart(),
             }
         }
     }

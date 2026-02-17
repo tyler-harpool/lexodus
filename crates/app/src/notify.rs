@@ -59,6 +59,7 @@ mod tests {
             has_password: true,
             court_roles: std::collections::HashMap::new(),
             court_tiers: std::collections::HashMap::new(),
+            preferred_court_id: None,
         }
     }
 

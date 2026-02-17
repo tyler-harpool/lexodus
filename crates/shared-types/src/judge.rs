@@ -52,7 +52,7 @@ pub fn is_valid_judge_status(s: &str) -> bool {
 // ── Judge API response ──────────────────────────────────────────────
 
 /// API response shape for a judge.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct JudgeResponse {
     pub id: String,

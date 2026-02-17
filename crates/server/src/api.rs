@@ -7137,3 +7137,95 @@ pub async fn set_preferred_court(court_id: String) -> Result<(), ServerFnError> 
 
     Ok(())
 }
+
+/// Generate court order HTML for PDF rendering / browser print.
+#[server]
+pub async fn generate_order_html(
+    court_id: String,
+    order_id: String,
+    signed: bool,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&order_id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+
+    let order = sqlx::query_as!(
+        shared_types::JudicialOrder,
+        r#"
+        SELECT id, court_id, case_id, judge_id, order_type, title, content,
+               status, is_sealed, signer_name, signed_at, signature_hash,
+               issued_at, effective_date, expiration_date, related_motions,
+               created_at, updated_at
+        FROM judicial_orders
+        WHERE id = $1 AND court_id = $2
+        "#,
+        uuid,
+        &court_id,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?
+    .ok_or_else(|| ServerFnError::new("Order not found"))?;
+
+    let signature_block = if signed {
+        let signer = order.signer_name.as_deref().unwrap_or("N/A");
+        let signed_at = order
+            .signed_at
+            .map(|d| d.format("%Y-%m-%d %H:%M UTC").to_string())
+            .unwrap_or_else(|| "Not yet signed".to_string());
+        format!(
+            r#"<div class="signature-block">
+                <hr/>
+                <p>Electronically signed by: {signer}</p>
+                <p>Date: {signed_at}</p>
+                <p>Court: {court_id}</p>
+            </div>"#,
+        )
+    } else {
+        String::new()
+    };
+
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>{title}</title>
+    <style>
+        body {{ font-family: 'Times New Roman', serif; margin: 1in; }}
+        .header {{ text-align: center; margin-bottom: 2em; }}
+        .court-name {{ font-size: 14pt; font-weight: bold; text-transform: uppercase; }}
+        .doc-type {{ font-size: 12pt; margin-top: 1em; }}
+        .case-info {{ margin: 1em 0; }}
+        .body-text {{ margin: 2em 0; line-height: 1.6; white-space: pre-wrap; }}
+        .signature-block {{ margin-top: 3em; }}
+        @media print {{ body {{ margin: 0.5in; }} }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="court-name">United States District Court — {court_id}</div>
+        <div class="doc-type">{order_type}</div>
+    </div>
+    <div class="case-info">
+        <p><strong>Case ID:</strong> {case_id}</p>
+        <p><strong>Order:</strong> {title}</p>
+        <p><strong>Status:</strong> {status}</p>
+    </div>
+    <div class="body-text">{content}</div>
+    {signature_block}
+</body>
+</html>"#,
+        title = order.title,
+        court_id = court_id,
+        order_type = order.order_type,
+        case_id = order.case_id,
+        status = order.status,
+        content = order.content,
+        signature_block = signature_block,
+    );
+
+    Ok(html)
+}

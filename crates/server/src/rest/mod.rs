@@ -209,6 +209,8 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/service-records/party/{party_id}", get(service_record::list_by_party))
         .route("/api/service-records/bulk/{document_id}", post(service_record::bulk_create))
         .route("/api/service-records/{id}/complete", post(service_record::complete_service_record))
+        // Courts (public)
+        .route("/api/courts", get(admin::list_courts))
         // Admin
         .route("/api/admin/tenants/init", post(admin::init_tenant))
         .route("/api/admin/tenants/stats", get(admin::tenant_stats))

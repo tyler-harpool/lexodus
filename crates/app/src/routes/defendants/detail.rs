@@ -8,6 +8,8 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use super::form_sheet::{DefendantFormSheet, FormMode};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -18,10 +20,12 @@ pub fn DefendantDetailPage(id: String) -> Element {
     let defendant_id = id.clone();
     let toast = use_toast();
 
+    let role = use_user_role();
+    let mut show_edit = use_signal(|| false);
     let mut show_delete_confirm = use_signal(|| false);
     let mut deleting = use_signal(|| false);
 
-    let data = use_resource(move || {
+    let mut data = use_resource(move || {
         let court = court_id.clone();
         let did = defendant_id.clone();
         async move {
@@ -66,10 +70,19 @@ pub fn DefendantDetailPage(id: String) -> Element {
                             Link { to: Route::DefendantList {},
                                 Button { variant: ButtonVariant::Secondary, "Back to List" }
                             }
-                            Button {
-                                variant: ButtonVariant::Destructive,
-                                onclick: move |_| show_delete_confirm.set(true),
-                                "Delete"
+                            if can(&role, Action::Edit) {
+                                Button {
+                                    variant: ButtonVariant::Primary,
+                                    onclick: move |_| show_edit.set(true),
+                                    "Edit"
+                                }
+                            }
+                            if can(&role, Action::Delete) {
+                                Button {
+                                    variant: ButtonVariant::Destructive,
+                                    onclick: move |_| show_delete_confirm.set(true),
+                                    "Delete"
+                                }
                             }
                         }
                     }
@@ -107,6 +120,14 @@ pub fn DefendantDetailPage(id: String) -> Element {
                         TabContent { value: "bond", index: 2usize,
                             BondTab { defendant: def.clone() }
                         }
+                    }
+
+                    DefendantFormSheet {
+                        mode: FormMode::Edit,
+                        initial: Some(def.clone()),
+                        open: show_edit(),
+                        on_close: move |_| show_edit.set(false),
+                        on_saved: move |_| data.restart(),
                     }
                 },
                 Some(None) => rsx! {

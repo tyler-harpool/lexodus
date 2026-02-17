@@ -10,6 +10,7 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -18,6 +19,11 @@ pub fn DocumentDetailPage(id: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let court_id = ctx.court_id.read().clone();
     let document_id = id.clone();
+
+    let role = use_user_role();
+    let toast = use_toast();
+    let mut show_strike_confirm = use_signal(|| false);
+    let mut striking = use_signal(|| false);
 
     let mut data = use_resource(move || {
         let court = court_id.clone();
@@ -33,12 +39,62 @@ pub fn DocumentDetailPage(id: String) -> Element {
     rsx! {
         div { class: "container",
             match &*data.read() {
-                Some(Some(doc)) => rsx! {
+                Some(Some(doc)) => {
+                    let strike_doc_id = doc.id.clone();
+                    let handle_strike = move |_: MouseEvent| {
+                        let court = ctx.court_id.read().clone();
+                        let did = strike_doc_id.clone();
+                        spawn(async move {
+                            striking.set(true);
+                            match server::api::strike_document_action(court, did).await {
+                                Ok(_) => {
+                                    toast.success(
+                                        "Document stricken from record".to_string(),
+                                        ToastOptions::new(),
+                                    );
+                                    show_strike_confirm.set(false);
+                                    data.restart();
+                                }
+                                Err(e) => {
+                                    toast.error(format!("{}", e), ToastOptions::new());
+                                    striking.set(false);
+                                    show_strike_confirm.set(false);
+                                }
+                            }
+                        });
+                    };
+
+                    rsx! {
                     PageHeader {
                         PageTitle { "{doc.title}" }
                         PageActions {
                             Link { to: Route::DocumentList {},
                                 Button { variant: ButtonVariant::Secondary, "Back to List" }
+                            }
+                            if can(&role, Action::Seal) && !doc.is_stricken {
+                                Button {
+                                    variant: ButtonVariant::Destructive,
+                                    onclick: move |_| show_strike_confirm.set(true),
+                                    "Strike"
+                                }
+                            }
+                        }
+                    }
+
+                    AlertDialogRoot {
+                        open: show_strike_confirm(),
+                        on_open_change: move |v| show_strike_confirm.set(v),
+                        AlertDialogContent {
+                            AlertDialogTitle { "Strike Document" }
+                            AlertDialogDescription {
+                                "This will permanently mark this document as stricken from the record. This action cannot be undone."
+                            }
+                            AlertDialogActions {
+                                AlertDialogCancel { "Cancel" }
+                                AlertDialogAction {
+                                    on_click: handle_strike,
+                                    if *striking.read() { "Striking..." } else { "Strike" }
+                                }
                             }
                         }
                     }
@@ -70,7 +126,7 @@ pub fn DocumentDetailPage(id: String) -> Element {
                             EventsTab { document_id: doc.id.clone() }
                         }
                     }
-                },
+                }},
                 Some(None) => rsx! {
                     Card {
                         CardContent {
@@ -167,6 +223,7 @@ fn MetadataTab(document: DocumentResponse) -> Element {
 #[component]
 fn SealingTab(document: DocumentResponse, on_refresh: EventHandler<()>) -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
     let toast = use_toast();
 
     let mut show_seal_confirm = use_signal(|| false);
@@ -260,37 +317,39 @@ fn SealingTab(document: DocumentResponse, on_refresh: EventHandler<()>) -> Eleme
                 }
             }
 
-            Card {
-                CardHeader { CardTitle { "Actions" } }
-                CardContent {
-                    div { class: "sheet-form",
-                        if !is_sealed {
-                            label { class: "input-label", "Sealing Level" }
-                            select {
-                                class: "input",
-                                value: seal_level.read().clone(),
-                                onchange: move |e: FormEvent| seal_level.set(e.value().to_string()),
-                                option { value: "SealedCourtOnly", "Court Only" }
-                                option { value: "SealedCaseParticipants", "Case Participants" }
-                                option { value: "SealedAttorneysOnly", "Attorneys Only" }
-                            }
-                            Input {
-                                label: "Reason Code",
-                                value: seal_reason.read().clone(),
-                                on_input: move |e: FormEvent| seal_reason.set(e.value().to_string()),
-                                placeholder: "e.g., JuvenileRecord, TradeSecret",
-                            }
-                            Button {
-                                variant: ButtonVariant::Destructive,
-                                onclick: move |_| show_seal_confirm.set(true),
-                                "Seal Document"
-                            }
-                        } else {
-                            p { class: "text-muted", "This document is currently sealed." }
-                            Button {
-                                variant: ButtonVariant::Primary,
-                                onclick: move |_| show_unseal_confirm.set(true),
-                                "Unseal Document"
+            if can(&role, Action::Seal) {
+                Card {
+                    CardHeader { CardTitle { "Actions" } }
+                    CardContent {
+                        div { class: "sheet-form",
+                            if !is_sealed {
+                                label { class: "input-label", "Sealing Level" }
+                                select {
+                                    class: "input",
+                                    value: seal_level.read().clone(),
+                                    onchange: move |e: FormEvent| seal_level.set(e.value().to_string()),
+                                    option { value: "SealedCourtOnly", "Court Only" }
+                                    option { value: "SealedCaseParticipants", "Case Participants" }
+                                    option { value: "SealedAttorneysOnly", "Attorneys Only" }
+                                }
+                                Input {
+                                    label: "Reason Code",
+                                    value: seal_reason.read().clone(),
+                                    on_input: move |e: FormEvent| seal_reason.set(e.value().to_string()),
+                                    placeholder: "e.g., JuvenileRecord, TradeSecret",
+                                }
+                                Button {
+                                    variant: ButtonVariant::Destructive,
+                                    onclick: move |_| show_seal_confirm.set(true),
+                                    "Seal Document"
+                                }
+                            } else {
+                                p { class: "text-muted", "This document is currently sealed." }
+                                Button {
+                                    variant: ButtonVariant::Primary,
+                                    onclick: move |_| show_unseal_confirm.set(true),
+                                    "Unseal Document"
+                                }
                             }
                         }
                     }

@@ -874,7 +874,7 @@ pub async fn create_from_template(
 
     let create_req = CreateJudicialOrderRequest {
         case_id: body.case_id,
-        judge_id: Uuid::nil(), // Will be set by the caller or defaulted
+        judge_id: body.judge_id.unwrap_or(Uuid::nil()),
         order_type: template.order_type,
         title: template.name,
         content,

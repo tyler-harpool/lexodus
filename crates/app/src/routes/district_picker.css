@@ -2,6 +2,7 @@
 
 .district-picker {
     padding: var(--space-xs) var(--space-sm);
+    position: relative;
 }
 
 .district-picker-trigger {
@@ -63,19 +64,117 @@
     padding: var(--space-xs);
 }
 
-/* Position dropdown to the right of sidebar instead of off-screen left */
-.district-picker .cyber-dropdown-menu-content {
-    left: 0;
-    right: auto;
-    min-width: 220px;
+/* ── Backdrop (closes popover on outside click) ── */
+.district-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
 }
 
-/* Dropdown items */
+/* ── Popover panel ── */
+.district-popover {
+    position: fixed;
+    top: var(--space-sm);
+    left: var(--sidebar-width);
+    z-index: 1000;
+    min-width: 300px;
+    max-height: calc(100vh - var(--space-lg));
+    background: var(--primary-color-4);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-primary);
+    border-radius: 6px;
+    box-shadow:
+        0 0 12px color-mix(in srgb, var(--color-primary) 25%, transparent),
+        0 8px 24px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: district-popover-in 0.15s ease-out;
+}
+
+@keyframes district-popover-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Search input ── */
+.district-search-wrap {
+    padding: var(--space-xs);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+    flex-shrink: 0;
+}
+
+.district-search-input {
+    width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-on-surface);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.district-search-input::placeholder {
+    color: var(--color-on-surface-muted);
+}
+
+.district-search-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+/* ── Scrollable court list ── */
+.district-list {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 50vh;
+    padding: var(--space-xs) 0;
+}
+
+.district-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.district-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.district-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color-6);
+    border-radius: var(--radius-full);
+}
+
+.district-no-results {
+    padding: var(--space-sm) var(--space-md);
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-sm);
+    text-align: center;
+}
+
+/* ── Court items ── */
 .district-item {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
     width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    user-select: none;
+}
+
+.district-item:hover {
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    color: var(--color-primary);
+}
+
+.district-item-active {
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .district-item-check {
@@ -89,9 +188,28 @@
     flex: 1;
 }
 
+.district-separator {
+    height: 1px;
+    margin: 0.35rem 0.5rem;
+    background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
 .district-request-link {
     color: var(--color-primary);
     font-size: var(--font-size-sm);
+}
+
+/* ── Mobile: popover inside the sidebar overlay ── */
+@media (max-width: 768px) {
+    .district-popover {
+        top: 3.5rem;
+        left: 0;
+        right: auto;
+        width: var(--sidebar-width);
+        min-width: unset;
+        max-height: calc(100vh - 4rem);
+        border-radius: 0 0 6px 6px;
+    }
 }
 
 /* ── Request Access Dialog ── */

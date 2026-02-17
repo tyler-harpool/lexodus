@@ -465,6 +465,7 @@ pub async fn register(
         has_password: true,
         court_roles,
         court_tiers: Default::default(),
+        preferred_court_id: None,
     };
 
     Ok((
@@ -592,6 +593,7 @@ pub async fn login(
         has_password: true,
         court_roles,
         court_tiers: Default::default(),
+        preferred_court_id: None,
     };
 
     Ok(Json(AuthResponse {
@@ -779,6 +781,7 @@ pub async fn upload_avatar(
         has_password: user.password_hash.is_some(),
         court_roles: std::collections::HashMap::new(),
         court_tiers: Default::default(),
+        preferred_court_id: None,
     }))
 }
 
@@ -1234,6 +1237,7 @@ pub async fn verify_phone(
         has_password: user.password_hash.is_some(),
         court_roles: std::collections::HashMap::new(),
         court_tiers: Default::default(),
+        preferred_court_id: None,
     }))
 }
 
@@ -1433,6 +1437,7 @@ pub async fn poll_device(
                 has_password: user.password_hash.is_some(),
                 court_roles,
                 court_tiers: Default::default(),
+                preferred_court_id: None,
             };
 
             Ok(Json(DeviceFlowPollResponse {

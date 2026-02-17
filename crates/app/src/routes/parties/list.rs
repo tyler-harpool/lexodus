@@ -1,53 +1,25 @@
 use dioxus::prelude::*;
-use shared_types::{
-    CaseSearchResponse, PaginatedResponse, PaginationMeta, PartyResponse,
-    VALID_ENTITY_TYPES, VALID_PARTY_TYPES,
-};
+use shared_types::{PaginatedResponse, PaginationMeta, PartyResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
-    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Form, Input, PageActions,
-    PageHeader, PageTitle, SearchBar, Separator, Sheet, SheetClose, SheetContent, SheetDescription,
-    SheetFooter, SheetHeader, SheetSide, SheetTitle, Skeleton,
+    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Input, PageActions, PageHeader,
+    PageTitle, SearchBar, Skeleton,
 };
-use shared_ui::{use_toast, HoverCard, HoverCardContent, HoverCardTrigger, ToastOptions};
+use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
+use super::form_sheet::{FormMode, PartyFormSheet};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn PartyListPage() -> Element {
     let ctx = use_context::<CourtContext>();
-    let toast = use_toast();
 
     let mut page = use_signal(|| 1i64);
     let mut search_query = use_signal(String::new);
     let mut search_input = use_signal(String::new);
+    let mut show_create = use_signal(|| false);
 
-    // Sheet state for creating a party
-    let mut show_sheet = use_signal(|| false);
-    let mut form_name = use_signal(String::new);
-    let mut form_case_id = use_signal(String::new);
-    let mut form_party_type = use_signal(|| "Defendant".to_string());
-    let mut form_entity_type = use_signal(|| "Individual".to_string());
-    let mut form_email = use_signal(String::new);
-    let mut form_phone = use_signal(String::new);
-    let mut form_first_name = use_signal(String::new);
-    let mut form_last_name = use_signal(String::new);
-
-    // Load available cases for the case selector in the create form
-    let cases_for_select = use_resource(move || {
-        let court = ctx.court_id.read().clone();
-        async move {
-            match server::api::search_cases(court, None, None, None, None, None, Some(100)).await {
-                Ok(json) => serde_json::from_str::<CaseSearchResponse>(&json)
-                    .ok()
-                    .map(|r| r.cases),
-                Err(_) => None,
-            }
-        }
-    });
-
-    // Load parties data
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let q = search_query.read().clone();
@@ -63,22 +35,6 @@ pub fn PartyListPage() -> Element {
         }
     });
 
-    let mut reset_form = move || {
-        form_name.set(String::new());
-        form_case_id.set(String::new());
-        form_party_type.set("Defendant".to_string());
-        form_entity_type.set("Individual".to_string());
-        form_email.set(String::new());
-        form_phone.set(String::new());
-        form_first_name.set(String::new());
-        form_last_name.set(String::new());
-    };
-
-    let open_create = move |_| {
-        reset_form();
-        show_sheet.set(true);
-    };
-
     let handle_search = move |_| {
         search_query.set(search_input.read().clone());
         page.set(1);
@@ -90,47 +46,6 @@ pub fn PartyListPage() -> Element {
         page.set(1);
     };
 
-    let handle_save = move |_: FormEvent| {
-        let court = ctx.court_id.read().clone();
-        let case_id_str = form_case_id.read().clone();
-
-        if form_name.read().trim().is_empty() {
-            toast.error("Name is required.".to_string(), ToastOptions::new());
-            return;
-        }
-        if case_id_str.is_empty() {
-            toast.error("Case is required.".to_string(), ToastOptions::new());
-            return;
-        }
-
-        let body = serde_json::json!({
-            "case_id": case_id_str,
-            "name": form_name.read().clone(),
-            "party_type": form_party_type.read().clone(),
-            "entity_type": form_entity_type.read().clone(),
-            "first_name": opt_str(&form_first_name.read()),
-            "last_name": opt_str(&form_last_name.read()),
-            "email": opt_str(&form_email.read()),
-            "phone": opt_str(&form_phone.read()),
-        });
-
-        spawn(async move {
-            match server::api::create_party(court, body.to_string()).await {
-                Ok(_) => {
-                    data.restart();
-                    show_sheet.set(false);
-                    toast.success(
-                        "Party created successfully".to_string(),
-                        ToastOptions::new(),
-                    );
-                }
-                Err(e) => {
-                    toast.error(format!("{}", e), ToastOptions::new());
-                }
-            }
-        });
-    };
-
     rsx! {
         div { class: "container",
             PageHeader {
@@ -138,7 +53,7 @@ pub fn PartyListPage() -> Element {
                 PageActions {
                     Button {
                         variant: ButtonVariant::Primary,
-                        onclick: open_create,
+                        onclick: move |_| show_create.set(true),
                         "New Party"
                     }
                 }
@@ -182,116 +97,12 @@ pub fn PartyListPage() -> Element {
                 },
             }
 
-            // Create party Sheet
-            Sheet {
-                open: show_sheet(),
-                on_close: move |_| show_sheet.set(false),
-                side: SheetSide::Right,
-                SheetContent {
-                    SheetHeader {
-                        SheetTitle { "New Party" }
-                        SheetDescription {
-                            "Add a party to an existing case."
-                        }
-                        SheetClose { on_close: move |_| show_sheet.set(false) }
-                    }
-
-                    Form {
-                        onsubmit: handle_save,
-
-                        div {
-                            class: "sheet-form",
-
-                            // Case selector
-                            label { class: "input-label", "Case *" }
-                            select {
-                                class: "input",
-                                value: form_case_id.read().clone(),
-                                onchange: move |e: FormEvent| form_case_id.set(e.value().to_string()),
-                                option { value: "", "-- Select a case --" }
-                                {match &*cases_for_select.read() {
-                                    Some(Some(cases)) => rsx! {
-                                        for c in cases.iter() {
-                                            option {
-                                                value: "{c.id}",
-                                                "{c.case_number} — {c.title}"
-                                            }
-                                        }
-                                    },
-                                    _ => rsx! {
-                                        option { value: "", disabled: true, "Loading cases..." }
-                                    },
-                                }}
-                            }
-
-                            Input {
-                                label: "Full Name *",
-                                value: form_name.read().clone(),
-                                on_input: move |e: FormEvent| form_name.set(e.value().to_string()),
-                                placeholder: "e.g., John Doe",
-                            }
-
-                            Input {
-                                label: "First Name",
-                                value: form_first_name.read().clone(),
-                                on_input: move |e: FormEvent| form_first_name.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Last Name",
-                                value: form_last_name.read().clone(),
-                                on_input: move |e: FormEvent| form_last_name.set(e.value().to_string()),
-                            }
-
-                            label { class: "input-label", "Party Type" }
-                            select {
-                                class: "input",
-                                value: form_party_type.read().clone(),
-                                onchange: move |e: FormEvent| form_party_type.set(e.value().to_string()),
-                                for pt in VALID_PARTY_TYPES.iter() {
-                                    option { value: *pt, "{pt}" }
-                                }
-                            }
-
-                            label { class: "input-label", "Entity Type" }
-                            select {
-                                class: "input",
-                                value: form_entity_type.read().clone(),
-                                onchange: move |e: FormEvent| form_entity_type.set(e.value().to_string()),
-                                for et in VALID_ENTITY_TYPES.iter() {
-                                    option { value: *et, "{et}" }
-                                }
-                            }
-
-                            Input {
-                                label: "Email",
-                                value: form_email.read().clone(),
-                                on_input: move |e: FormEvent| form_email.set(e.value().to_string()),
-                                placeholder: "e.g., john@example.com",
-                            }
-
-                            Input {
-                                label: "Phone",
-                                value: form_phone.read().clone(),
-                                on_input: move |e: FormEvent| form_phone.set(e.value().to_string()),
-                                placeholder: "e.g., (555) 123-4567",
-                            }
-                        }
-
-                        Separator {}
-
-                        SheetFooter {
-                            div {
-                                class: "sheet-footer-actions",
-                                SheetClose { on_close: move |_| show_sheet.set(false) }
-                                Button {
-                                    variant: ButtonVariant::Primary,
-                                    "Create Party"
-                                }
-                            }
-                        }
-                    }
-                }
+            PartyFormSheet {
+                mode: FormMode::Create,
+                initial: None,
+                open: show_create(),
+                on_close: move |_| show_create.set(false),
+                on_saved: move |_| data.restart(),
             }
         }
     }
@@ -431,11 +242,3 @@ fn party_status_badge_variant(status: &str) -> BadgeVariant {
     }
 }
 
-/// Return `serde_json::Value::Null` for empty strings, or the string value.
-fn opt_str(s: &str) -> serde_json::Value {
-    if s.trim().is_empty() {
-        serde_json::Value::Null
-    } else {
-        serde_json::Value::String(s.to_string())
-    }
-}

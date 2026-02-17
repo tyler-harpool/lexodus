@@ -2,31 +2,23 @@ use dioxus::prelude::*;
 use shared_types::{DeadlineResponse, DeadlineSearchResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
-    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Form, FormSelect, Input,
-    PageActions, PageHeader, PageTitle, Pagination, SearchBar, Separator, Sheet, SheetClose,
-    SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetSide, SheetTitle, Skeleton,
-    Textarea,
+    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, FormSelect,
+    PageActions, PageHeader, PageTitle, Pagination, SearchBar, Skeleton,
 };
-use shared_ui::{use_toast, HoverCard, HoverCardContent, HoverCardTrigger, ToastOptions};
+use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
+use super::form_sheet::{DeadlineFormSheet, FormMode};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn DeadlineListPage() -> Element {
     let ctx = use_context::<CourtContext>();
-    let toast = use_toast();
 
     let mut offset = use_signal(|| 0i64);
     let mut search_status = use_signal(String::new);
     let limit: i64 = 20;
-
-    // Sheet state for creating deadlines
     let mut show_sheet = use_signal(|| false);
-    let mut form_title = use_signal(String::new);
-    let mut form_due_at = use_signal(String::new);
-    let mut form_rule_code = use_signal(String::new);
-    let mut form_notes = use_signal(String::new);
 
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
@@ -51,63 +43,9 @@ pub fn DeadlineListPage() -> Element {
         }
     });
 
-    let mut reset_form = move || {
-        form_title.set(String::new());
-        form_due_at.set(String::new());
-        form_rule_code.set(String::new());
-        form_notes.set(String::new());
-    };
-
-    let open_create = move |_| {
-        reset_form();
-        show_sheet.set(true);
-    };
-
     let handle_clear = move |_| {
         search_status.set(String::new());
         offset.set(0);
-    };
-
-    let handle_save = move |_: FormEvent| {
-        let court = ctx.court_id.read().clone();
-        let t = form_title.read().clone();
-        let d = form_due_at.read().clone();
-        let r = form_rule_code.read().clone();
-        let n = form_notes.read().clone();
-
-        spawn(async move {
-            if t.trim().is_empty() || d.trim().is_empty() {
-                toast.error(
-                    "Title and due date are required.".to_string(),
-                    ToastOptions::new(),
-                );
-                return;
-            }
-
-            // Convert HTML datetime-local to RFC3339
-            let due_rfc3339 = format!("{}:00Z", d);
-
-            let body = serde_json::json!({
-                "title": t.trim(),
-                "due_at": due_rfc3339,
-                "rule_code": if r.is_empty() { None::<String> } else { Some(r) },
-                "notes": if n.is_empty() { None::<String> } else { Some(n) },
-            });
-
-            match server::api::create_deadline(court, body.to_string()).await {
-                Ok(_) => {
-                    data.restart();
-                    show_sheet.set(false);
-                    toast.success(
-                        "Deadline created successfully".to_string(),
-                        ToastOptions::new(),
-                    );
-                }
-                Err(e) => {
-                    toast.error(format!("{}", e), ToastOptions::new());
-                }
-            }
-        });
     };
 
     rsx! {
@@ -117,7 +55,7 @@ pub fn DeadlineListPage() -> Element {
                 PageActions {
                     Button {
                         variant: ButtonVariant::Primary,
-                        onclick: open_create,
+                        onclick: move |_| show_sheet.set(true),
                         "New Deadline"
                     }
                 }
@@ -171,69 +109,12 @@ pub fn DeadlineListPage() -> Element {
                 },
             }
 
-            // Create deadline Sheet
-            Sheet {
+            DeadlineFormSheet {
+                mode: FormMode::Create,
+                initial: None,
                 open: show_sheet(),
                 on_close: move |_| show_sheet.set(false),
-                side: SheetSide::Right,
-                SheetContent {
-                    SheetHeader {
-                        SheetTitle { "New Deadline" }
-                        SheetDescription {
-                            "Set a deadline with an associated rule and due date."
-                        }
-                        SheetClose { on_close: move |_| show_sheet.set(false) }
-                    }
-
-                    Form {
-                        onsubmit: handle_save,
-
-                        div {
-                            class: "sheet-form",
-
-                            Input {
-                                label: "Title *",
-                                value: form_title.read().clone(),
-                                on_input: move |e: FormEvent| form_title.set(e.value().to_string()),
-                                placeholder: "e.g., File Motion Response",
-                            }
-
-                            Input {
-                                label: "Due Date *",
-                                input_type: "datetime-local",
-                                value: form_due_at.read().clone(),
-                                on_input: move |e: FormEvent| form_due_at.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Rule Code",
-                                value: form_rule_code.read().clone(),
-                                on_input: move |e: FormEvent| form_rule_code.set(e.value().to_string()),
-                                placeholder: "e.g., FRCP 12(b)",
-                            }
-
-                            Textarea {
-                                label: "Notes",
-                                value: form_notes.read().clone(),
-                                on_input: move |e: FormEvent| form_notes.set(e.value().to_string()),
-                                placeholder: "Optional notes...",
-                            }
-                        }
-
-                        Separator {}
-
-                        SheetFooter {
-                            div {
-                                class: "sheet-footer-actions",
-                                SheetClose { on_close: move |_| show_sheet.set(false) }
-                                Button {
-                                    variant: ButtonVariant::Primary,
-                                    "Create Deadline"
-                                }
-                            }
-                        }
-                    }
-                }
+                on_saved: move |_| data.restart(),
             }
         }
     }

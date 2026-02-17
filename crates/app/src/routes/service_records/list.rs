@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
-use shared_types::{PaginatedResponse, PaginationMeta, ServiceRecordResponse};
+use shared_types::{
+    DocumentResponse, PaginatedResponse, PaginationMeta, PartyResponse, ServiceRecordResponse,
+};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Form, Input, PageActions,
@@ -28,6 +30,31 @@ pub fn ServiceRecordListPage() -> Element {
     let mut form_served_by = use_signal(String::new);
     let mut form_service_date = use_signal(String::new);
     let mut form_notes = use_signal(String::new);
+
+    // Load documents and parties for dropdown selectors
+    let documents_for_select = use_resource(move || {
+        let court = ctx.court_id.read().clone();
+        async move {
+            match server::api::list_all_documents(court, None, None, Some(100)).await {
+                Ok(json) => serde_json::from_str::<PaginatedResponse<DocumentResponse>>(&json)
+                    .ok()
+                    .map(|r| r.data),
+                Err(_) => None,
+            }
+        }
+    });
+
+    let parties_for_select = use_resource(move || {
+        let court = ctx.court_id.read().clone();
+        async move {
+            match server::api::list_all_parties(court, None, None, Some(100)).await {
+                Ok(json) => serde_json::from_str::<PaginatedResponse<PartyResponse>>(&json)
+                    .ok()
+                    .map(|r| r.data),
+                Err(_) => None,
+            }
+        }
+    });
 
     // Load service records data
     let mut data = use_resource(move || {
@@ -183,18 +210,46 @@ pub fn ServiceRecordListPage() -> Element {
                         div {
                             class: "sheet-form",
 
-                            Input {
-                                label: "Document ID *",
+                            label { class: "input-label", "Document *" }
+                            select {
+                                class: "input",
                                 value: form_document_id.read().clone(),
-                                on_input: move |e: FormEvent| form_document_id.set(e.value().to_string()),
-                                placeholder: "UUID of the document",
+                                onchange: move |e: FormEvent| form_document_id.set(e.value().to_string()),
+                                option { value: "", "-- Select a document --" }
+                                {match &*documents_for_select.read() {
+                                    Some(Some(docs)) => rsx! {
+                                        for d in docs.iter() {
+                                            option {
+                                                value: "{d.id}",
+                                                "{d.title} ({d.document_type})"
+                                            }
+                                        }
+                                    },
+                                    _ => rsx! {
+                                        option { value: "", disabled: true, "Loading documents..." }
+                                    },
+                                }}
                             }
 
-                            Input {
-                                label: "Party ID *",
+                            label { class: "input-label", "Party *" }
+                            select {
+                                class: "input",
                                 value: form_party_id.read().clone(),
-                                on_input: move |e: FormEvent| form_party_id.set(e.value().to_string()),
-                                placeholder: "UUID of the party being served",
+                                onchange: move |e: FormEvent| form_party_id.set(e.value().to_string()),
+                                option { value: "", "-- Select a party --" }
+                                {match &*parties_for_select.read() {
+                                    Some(Some(parties)) => rsx! {
+                                        for p in parties.iter() {
+                                            option {
+                                                value: "{p.id}",
+                                                "{p.name} ({p.party_role})"
+                                            }
+                                        }
+                                    },
+                                    _ => rsx! {
+                                        option { value: "", disabled: true, "Loading parties..." }
+                                    },
+                                }}
                             }
 
                             label { class: "input-label", "Service Method *" }

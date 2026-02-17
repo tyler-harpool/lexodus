@@ -133,3 +133,29 @@ pub fn use_sidebar_visibility() -> SidebarVisibility {
         },
     }
 }
+
+/// Actions that can be role-gated in the UI.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Action {
+    Create,
+    Edit,
+    Delete,
+    Sign,
+    Issue,
+    Serve,
+    Seal,
+    GeneratePdf,
+}
+
+/// Check if a role is permitted to perform an action.
+/// v1: permissive defaults — structure exists so we don't hardcode buttons everywhere.
+pub fn can(role: &UserRole, action: Action) -> bool {
+    match action {
+        Action::Sign => matches!(role, UserRole::Judge | UserRole::Admin),
+        Action::Issue | Action::Serve => matches!(role, UserRole::Clerk | UserRole::Admin),
+        Action::Seal => matches!(role, UserRole::Judge | UserRole::Clerk | UserRole::Admin),
+        Action::Create | Action::Edit | Action::Delete | Action::GeneratePdf => {
+            !matches!(role, UserRole::Public)
+        }
+    }
+}

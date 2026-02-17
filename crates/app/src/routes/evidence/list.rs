@@ -1,50 +1,25 @@
 use dioxus::prelude::*;
-use shared_types::{
-    CaseSearchResponse, EvidenceResponse, PaginatedResponse, PaginationMeta, EVIDENCE_TYPES,
-};
+use shared_types::{EvidenceResponse, PaginatedResponse, PaginationMeta};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
-    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Form, Input, PageActions,
-    PageHeader, PageTitle, SearchBar, Separator, Sheet, SheetClose, SheetContent, SheetDescription,
-    SheetFooter, SheetHeader, SheetSide, SheetTitle, Skeleton,
+    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Input, PageActions, PageHeader,
+    PageTitle, SearchBar, Skeleton,
 };
-use shared_ui::{use_toast, HoverCard, HoverCardContent, HoverCardTrigger, ToastOptions};
+use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
+use super::form_sheet::{EvidenceFormSheet, FormMode};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn EvidenceListPage() -> Element {
     let ctx = use_context::<CourtContext>();
-    let toast = use_toast();
 
     let mut page = use_signal(|| 1i64);
     let mut search_query = use_signal(String::new);
     let mut search_input = use_signal(String::new);
+    let mut show_create = use_signal(|| false);
 
-    // Sheet state for creating evidence
-    let mut show_sheet = use_signal(|| false);
-    let mut form_description = use_signal(String::new);
-    let mut form_case_id = use_signal(String::new);
-    let mut form_evidence_type = use_signal(|| "Physical".to_string());
-    let mut form_seized_date = use_signal(String::new);
-    let mut form_seized_by = use_signal(String::new);
-    let mut form_location = use_signal(String::new);
-
-    // Load available cases for the case selector in the create form
-    let cases_for_select = use_resource(move || {
-        let court = ctx.court_id.read().clone();
-        async move {
-            match server::api::search_cases(court, None, None, None, None, None, Some(100)).await {
-                Ok(json) => serde_json::from_str::<CaseSearchResponse>(&json)
-                    .ok()
-                    .map(|r| r.cases),
-                Err(_) => None,
-            }
-        }
-    });
-
-    // Load evidence data
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let q = search_query.read().clone();
@@ -60,20 +35,6 @@ pub fn EvidenceListPage() -> Element {
         }
     });
 
-    let mut reset_form = move || {
-        form_description.set(String::new());
-        form_case_id.set(String::new());
-        form_evidence_type.set("Physical".to_string());
-        form_seized_date.set(String::new());
-        form_seized_by.set(String::new());
-        form_location.set(String::new());
-    };
-
-    let open_create = move |_| {
-        reset_form();
-        show_sheet.set(true);
-    };
-
     let handle_search = move |_| {
         search_query.set(search_input.read().clone());
         page.set(1);
@@ -85,45 +46,6 @@ pub fn EvidenceListPage() -> Element {
         page.set(1);
     };
 
-    let handle_save = move |_: FormEvent| {
-        let court = ctx.court_id.read().clone();
-        let case_id_str = form_case_id.read().clone();
-
-        if form_description.read().trim().is_empty() {
-            toast.error("Description is required.".to_string(), ToastOptions::new());
-            return;
-        }
-        if case_id_str.is_empty() {
-            toast.error("Case is required.".to_string(), ToastOptions::new());
-            return;
-        }
-
-        let body = serde_json::json!({
-            "case_id": case_id_str,
-            "description": form_description.read().clone(),
-            "evidence_type": form_evidence_type.read().clone(),
-            "seized_date": opt_date(&form_seized_date.read()),
-            "seized_by": opt_str(&form_seized_by.read()),
-            "location": opt_str(&form_location.read()),
-        });
-
-        spawn(async move {
-            match server::api::create_evidence(court, body.to_string()).await {
-                Ok(_) => {
-                    data.restart();
-                    show_sheet.set(false);
-                    toast.success(
-                        "Evidence created successfully".to_string(),
-                        ToastOptions::new(),
-                    );
-                }
-                Err(e) => {
-                    toast.error(format!("{}", e), ToastOptions::new());
-                }
-            }
-        });
-    };
-
     rsx! {
         div { class: "container",
             PageHeader {
@@ -131,7 +53,7 @@ pub fn EvidenceListPage() -> Element {
                 PageActions {
                     Button {
                         variant: ButtonVariant::Primary,
-                        onclick: open_create,
+                        onclick: move |_| show_create.set(true),
                         "New Evidence"
                     }
                 }
@@ -175,101 +97,12 @@ pub fn EvidenceListPage() -> Element {
                 },
             }
 
-            // Create evidence Sheet
-            Sheet {
-                open: show_sheet(),
-                on_close: move |_| show_sheet.set(false),
-                side: SheetSide::Right,
-                SheetContent {
-                    SheetHeader {
-                        SheetTitle { "New Evidence" }
-                        SheetDescription {
-                            "Add an evidence item to an existing case."
-                        }
-                        SheetClose { on_close: move |_| show_sheet.set(false) }
-                    }
-
-                    Form {
-                        onsubmit: handle_save,
-
-                        div {
-                            class: "sheet-form",
-
-                            // Case selector
-                            label { class: "input-label", "Case *" }
-                            select {
-                                class: "input",
-                                value: form_case_id.read().clone(),
-                                onchange: move |e: FormEvent| form_case_id.set(e.value().to_string()),
-                                option { value: "", "-- Select a case --" }
-                                {match &*cases_for_select.read() {
-                                    Some(Some(cases)) => rsx! {
-                                        for c in cases.iter() {
-                                            option {
-                                                value: "{c.id}",
-                                                "{c.case_number} — {c.title}"
-                                            }
-                                        }
-                                    },
-                                    _ => rsx! {
-                                        option { value: "", disabled: true, "Loading cases..." }
-                                    },
-                                }}
-                            }
-
-                            Input {
-                                label: "Description *",
-                                value: form_description.read().clone(),
-                                on_input: move |e: FormEvent| form_description.set(e.value().to_string()),
-                                placeholder: "e.g., Recovered laptop from suspect's residence",
-                            }
-
-                            label { class: "input-label", "Evidence Type" }
-                            select {
-                                class: "input",
-                                value: form_evidence_type.read().clone(),
-                                onchange: move |e: FormEvent| form_evidence_type.set(e.value().to_string()),
-                                for et in EVIDENCE_TYPES.iter() {
-                                    option { value: *et, "{et}" }
-                                }
-                            }
-
-                            Input {
-                                label: "Seized Date",
-                                input_type: "date",
-                                value: form_seized_date.read().clone(),
-                                on_input: move |e: FormEvent| form_seized_date.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Seized By",
-                                value: form_seized_by.read().clone(),
-                                on_input: move |e: FormEvent| form_seized_by.set(e.value().to_string()),
-                                placeholder: "e.g., Special Agent Smith",
-                            }
-
-                            Input {
-                                label: "Storage Location",
-                                value: form_location.read().clone(),
-                                on_input: move |e: FormEvent| form_location.set(e.value().to_string()),
-                                placeholder: "e.g., Evidence Locker B-12",
-                            }
-                        }
-
-                        Separator {}
-
-                        SheetFooter {
-                            div {
-                                class: "sheet-footer-actions",
-                                SheetClose { on_close: move |_| show_sheet.set(false) }
-                                Button {
-                                    variant: ButtonVariant::Primary,
-                                    "Create Evidence"
-                                }
-                            }
-                        }
-                    }
-                }
+            EvidenceFormSheet {
+                mode: FormMode::Create,
+                initial: None,
+                open: show_create(),
+                on_close: move |_| show_create.set(false),
+                on_saved: move |_| data.restart(),
             }
         }
     }
@@ -420,20 +253,3 @@ fn evidence_type_badge_variant(evidence_type: &str) -> BadgeVariant {
     }
 }
 
-/// Return `serde_json::Value::Null` for empty strings, or the string value.
-fn opt_str(s: &str) -> serde_json::Value {
-    if s.trim().is_empty() {
-        serde_json::Value::Null
-    } else {
-        serde_json::Value::String(s.to_string())
-    }
-}
-
-/// Return `serde_json::Value::Null` for empty date strings, or the date string value.
-fn opt_date(s: &str) -> serde_json::Value {
-    if s.trim().is_empty() {
-        serde_json::Value::Null
-    } else {
-        serde_json::Value::String(s.to_string())
-    }
-}
