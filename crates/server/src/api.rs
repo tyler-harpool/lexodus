@@ -5081,6 +5081,89 @@ pub async fn create_sentencing_condition(
     Ok(serde_json::to_string(&row).unwrap_or_default())
 }
 
+// ── Sentencing List-All + BOP + Prior Sentence Server Functions ──
+
+#[server]
+pub async fn list_all_sentencing(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = sentencing::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::SentencingResponse> =
+        rows.into_iter().map(shared_types::SentencingResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_bop_designations(
+    court_id: String,
+    sentencing_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::bop_designation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let s_uuid = Uuid::parse_str(&sentencing_id)
+        .map_err(|_| ServerFnError::new("Invalid sentencing_id UUID"))?;
+    let rows = bop_designation::list_by_sentencing(pool, &court_id, s_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_prior_sentences(
+    court_id: String,
+    sentencing_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::prior_sentence;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let s_uuid = Uuid::parse_str(&sentencing_id)
+        .map_err(|_| ServerFnError::new("Invalid sentencing_id UUID"))?;
+    let rows = prior_sentence::list_by_sentencing(pool, &court_id, s_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
 // ── Speedy Trial Server Functions ──────────────────────
 
 #[server]

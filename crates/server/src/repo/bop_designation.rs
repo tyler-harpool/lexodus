@@ -39,6 +39,32 @@ pub async fn create(
     Ok(row)
 }
 
+/// List all BOP designations for a specific sentencing record.
+pub async fn list_by_sentencing(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    sentencing_id: Uuid,
+) -> Result<Vec<BopDesignation>, AppError> {
+    let rows = sqlx::query_as!(
+        BopDesignation,
+        r#"
+        SELECT id, court_id, sentencing_id, defendant_id, facility,
+               security_level, designation_date, designation_reason,
+               rdap_eligible, rdap_enrolled, created_at
+        FROM bop_designations
+        WHERE sentencing_id = $1 AND court_id = $2
+        ORDER BY designation_date DESC
+        "#,
+        sentencing_id,
+        court_id,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok(rows)
+}
+
 /// List all BOP designations where the defendant is RDAP-eligible.
 pub async fn list_rdap_eligible(
     pool: &Pool<Postgres>,

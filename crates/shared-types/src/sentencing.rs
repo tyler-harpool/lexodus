@@ -71,7 +71,7 @@ pub struct SentencingRecord {
 // ── SentencingRecord API response ───────────────────────────────────
 
 /// API response shape for a sentencing record.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SentencingResponse {
     pub id: String,
@@ -245,7 +245,7 @@ pub struct SentencingSpecialCondition {
 }
 
 /// API response for a sentencing special condition.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SpecialConditionResponse {
     pub id: String,
@@ -303,7 +303,7 @@ pub struct BopDesignation {
 }
 
 /// API response for a BOP designation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct BopDesignationResponse {
     pub id: String,
@@ -370,7 +370,7 @@ pub struct PriorSentence {
 }
 
 /// API response for a prior sentence.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PriorSentenceResponse {
     pub id: String,
