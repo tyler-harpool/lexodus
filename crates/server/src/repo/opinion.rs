@@ -219,6 +219,58 @@ pub async fn update(
     Ok(row)
 }
 
+/// List all opinions for a court with optional search, pagination.
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<JudicialOpinion>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!" FROM judicial_opinions
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2 OR LOWER(case_name) LIKE $2 OR LOWER(author_judge_name) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        JudicialOpinion,
+        r#"
+        SELECT id, court_id, case_id, case_name, docket_number,
+               author_judge_id, author_judge_name, opinion_type,
+               COALESCE(disposition, '') as "disposition!",
+               title,
+               COALESCE(syllabus, '') as "syllabus!",
+               content, status, is_published, is_precedential,
+               citation_volume, citation_reporter, citation_page,
+               filed_at, published_at, keywords, created_at, updated_at
+        FROM judicial_opinions
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2 OR LOWER(case_name) LIKE $2 OR LOWER(author_judge_name) LIKE $2)
+        ORDER BY created_at DESC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}
+
 /// Delete an opinion. Returns true if a row was deleted.
 pub async fn delete(
     pool: &Pool<Postgres>,

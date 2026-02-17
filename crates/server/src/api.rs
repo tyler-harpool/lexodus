@@ -5612,6 +5612,52 @@ pub async fn rule_on_recusal(
 // ── Opinion Server Functions ───────────────────────────
 
 #[server]
+pub async fn list_all_opinions(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = opinion::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::JudicialOpinionResponse> =
+        rows.into_iter().map(shared_types::JudicialOpinionResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+#[server]
 pub async fn list_opinions_by_case(
     court_id: String,
     case_id: String,
@@ -5866,6 +5912,26 @@ pub async fn create_headnote(
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
     Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Opinion Citation Server Functions ───────────────────
+
+#[server]
+pub async fn list_opinion_citations(
+    court_id: String,
+    opinion_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion_citation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let rows = opinion_citation::list_by_opinion(pool, &court_id, op_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
 }
 
 // ── Victim Server Functions ────────────────────────────
