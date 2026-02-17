@@ -6080,6 +6080,69 @@ pub async fn delete_victim(court_id: String, id: String) -> Result<(), ServerFnE
     Ok(())
 }
 
+/// List all victims for a court (across all cases) with optional search and pagination.
+#[server]
+pub async fn list_all_victims(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::victim;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = victim::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::VictimResponse> =
+        rows.into_iter().map(shared_types::VictimResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let body = shared_types::PaginatedResponse { data: responses, meta };
+    Ok(serde_json::to_string(&body).unwrap_or_default())
+}
+
+/// List notifications for a specific victim.
+#[server]
+pub async fn list_victim_notifications(
+    court_id: String,
+    victim_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::victim_notification;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&victim_id).map_err(|_| ServerFnError::new("Invalid victim_id UUID"))?;
+    let rows = victim_notification::list_by_victim(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    let responses: Vec<shared_types::VictimNotificationResponse> =
+        rows.into_iter().map(shared_types::VictimNotificationResponse::from).collect();
+    Ok(serde_json::to_string(&responses).unwrap_or_default())
+}
+
 // ── Representation Server Functions ────────────────────
 
 #[server]
