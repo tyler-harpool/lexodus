@@ -25,7 +25,6 @@ pub fn OrderDetailPage(id: String) -> Element {
     let mut show_delete_confirm = use_signal(|| false);
     let mut deleting = use_signal(|| false);
     let mut generating_pdf = use_signal(|| false);
-    let mut pdf_html = use_signal::<Option<String>>(|| None);
 
     let mut data = use_resource(move || {
         let court = court_id.clone();
@@ -67,15 +66,35 @@ pub fn OrderDetailPage(id: String) -> Element {
             match &*data.read() {
                 Some(Some(order)) => {
                     let pdf_order_id = id.clone();
+                    let pdf_title = order.title.clone();
                     let is_signed = order.status == "Signed" || order.status == "Filed";
                     let handle_generate_pdf = move |_: MouseEvent| {
                         let court = ctx.court_id.read().clone();
                         let oid = pdf_order_id.clone();
+                        let filename = format!("order-{}.pdf", pdf_title.replace(' ', "_").to_lowercase());
                         spawn(async move {
                             generating_pdf.set(true);
-                            match server::api::generate_order_html(court, oid, is_signed).await {
-                                Ok(html) => {
-                                    pdf_html.set(Some(html));
+                            match server::api::generate_order_pdf(court, oid, is_signed).await {
+                                Ok(b64) => {
+                                    // Trigger browser download via JS
+                                    let js = format!(
+                                        r#"(() => {{
+                                            const b64 = "{}";
+                                            const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+                                            const blob = new Blob([bytes], {{ type: "application/pdf" }});
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement("a");
+                                            a.href = url;
+                                            a.download = "{}";
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            URL.revokeObjectURL(url);
+                                        }})()"#,
+                                        b64, filename
+                                    );
+                                    let _ = dioxus::document::eval(&js);
+                                    toast.success("PDF downloaded".to_string(), ToastOptions::new());
                                 }
                                 Err(e) => {
                                     toast.error(format!("PDF generation failed: {}", e), ToastOptions::new());
@@ -159,35 +178,6 @@ pub fn OrderDetailPage(id: String) -> Element {
                         on_saved: move |_| data.restart(),
                     }
 
-                    if let Some(html) = pdf_html.read().as_ref() {
-                        Card {
-                            CardHeader {
-                                div {
-                                    style: "display: flex; justify-content: space-between; align-items: center;",
-                                    CardTitle { "PDF Preview" }
-                                    div {
-                                        style: "display: flex; gap: var(--space-sm);",
-                                        Button {
-                                            variant: ButtonVariant::Secondary,
-                                            onclick: move |_| pdf_html.set(None),
-                                            "Close Preview"
-                                        }
-                                    }
-                                }
-                            }
-                            CardContent {
-                                p { class: "text-muted",
-                                    style: "margin-bottom: var(--space-md);",
-                                    "Use your browser's Print function (Ctrl+P / Cmd+P) to save as PDF."
-                                }
-                                div {
-                                    class: "pdf-preview",
-                                    style: "border: 1px solid var(--border); padding: var(--space-lg); background: white; max-height: 600px; overflow-y: auto;",
-                                    dangerous_inner_html: "{html}",
-                                }
-                            }
-                        }
-                    }
                 }},
                 Some(None) => rsx! {
                     Card {
