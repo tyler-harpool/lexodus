@@ -1,26 +1,26 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        WITH updated AS (\n            UPDATE service_records\n            SET successful = true, proof_of_service_filed = true\n            WHERE id = $1 AND court_id = $2\n            RETURNING *\n        )\n        SELECT\n            u.id, u.court_id, u.document_id, u.party_id,\n            COALESCE(p.name, 'Unknown') AS \"party_name!\",\n            COALESCE(p.party_type, 'Unknown') AS \"party_type!\",\n            u.service_date, u.service_method, u.served_by,\n            u.proof_of_service_filed, u.successful, u.attempts, u.notes\n        FROM updated u\n        LEFT JOIN parties p ON p.id = u.party_id AND p.court_id = u.court_id\n        ",
+  "query": "\n        WITH updated AS (\n            UPDATE service_records\n            SET successful = true, proof_of_service_filed = true\n            WHERE id = $1 AND court_id = $2\n            RETURNING *\n        )\n        SELECT\n            u.id AS \"id!\", u.court_id AS \"court_id!\", u.document_id AS \"document_id!\", u.party_id AS \"party_id!\",\n            COALESCE(p.name, 'Unknown') AS \"party_name!\",\n            COALESCE(p.party_type, 'Unknown') AS \"party_type!\",\n            u.service_date AS \"service_date!\", u.service_method AS \"service_method!\", u.served_by AS \"served_by!\",\n            u.proof_of_service_filed AS \"proof_of_service_filed!\", u.successful AS \"successful!\", u.attempts AS \"attempts!\", u.notes\n        FROM updated u\n        LEFT JOIN parties p ON p.id = u.party_id AND p.court_id = u.court_id\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id!",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "court_id",
+        "name": "court_id!",
         "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "document_id",
+        "name": "document_id!",
         "type_info": "Uuid"
       },
       {
         "ordinal": 3,
-        "name": "party_id",
+        "name": "party_id!",
         "type_info": "Uuid"
       },
       {
@@ -35,32 +35,32 @@
       },
       {
         "ordinal": 6,
-        "name": "service_date",
+        "name": "service_date!",
         "type_info": "Timestamptz"
       },
       {
         "ordinal": 7,
-        "name": "service_method",
+        "name": "service_method!",
         "type_info": "Text"
       },
       {
         "ordinal": 8,
-        "name": "served_by",
+        "name": "served_by!",
         "type_info": "Text"
       },
       {
         "ordinal": 9,
-        "name": "proof_of_service_filed",
+        "name": "proof_of_service_filed!",
         "type_info": "Bool"
       },
       {
         "ordinal": 10,
-        "name": "successful",
+        "name": "successful!",
         "type_info": "Bool"
       },
       {
         "ordinal": 11,
-        "name": "attempts",
+        "name": "attempts!",
         "type_info": "Int4"
       },
       {
@@ -91,5 +91,5 @@
       true
     ]
   },
-  "hash": "5bfb8cfd6eb0ee8c9f82829c44a5975a38574a49115bca89baa80baa8f541e2b"
+  "hash": "03790a47fd88b31725aaf33ef0f1ed656b54499f783a2bc3f4bc7c675c03c7f5"
 }

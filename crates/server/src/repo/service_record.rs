@@ -113,11 +113,11 @@ pub async fn create(
             RETURNING *
         )
         SELECT
-            i.id, i.court_id, i.document_id, i.party_id,
+            i.id AS "id!", i.court_id AS "court_id!", i.document_id AS "document_id!", i.party_id AS "party_id!",
             COALESCE(p.name, 'Unknown') AS "party_name!",
             COALESCE(p.party_type, 'Unknown') AS "party_type!",
-            i.service_date, i.service_method, i.served_by,
-            i.proof_of_service_filed, i.successful, i.attempts, i.notes
+            i.service_date AS "service_date!", i.service_method AS "service_method!", i.served_by AS "served_by!",
+            i.proof_of_service_filed AS "proof_of_service_filed!", i.successful AS "successful!", i.attempts AS "attempts!", i.notes
         FROM inserted i
         LEFT JOIN parties p ON p.id = i.party_id AND p.court_id = i.court_id
         "#,
@@ -352,11 +352,11 @@ pub async fn complete(
             RETURNING *
         )
         SELECT
-            u.id, u.court_id, u.document_id, u.party_id,
+            u.id AS "id!", u.court_id AS "court_id!", u.document_id AS "document_id!", u.party_id AS "party_id!",
             COALESCE(p.name, 'Unknown') AS "party_name!",
             COALESCE(p.party_type, 'Unknown') AS "party_type!",
-            u.service_date, u.service_method, u.served_by,
-            u.proof_of_service_filed, u.successful, u.attempts, u.notes
+            u.service_date AS "service_date!", u.service_method AS "service_method!", u.served_by AS "served_by!",
+            u.proof_of_service_filed AS "proof_of_service_filed!", u.successful AS "successful!", u.attempts AS "attempts!", u.notes
         FROM updated u
         LEFT JOIN parties p ON p.id = u.party_id AND p.court_id = u.court_id
         "#,
@@ -481,11 +481,11 @@ pub async fn bulk_create(
                 RETURNING *
             )
             SELECT
-                i.id, i.court_id, i.document_id, i.party_id,
+                i.id AS "id!", i.court_id AS "court_id!", i.document_id AS "document_id!", i.party_id AS "party_id!",
                 COALESCE(p.name, 'Unknown') AS "party_name!",
                 COALESCE(p.party_type, 'Unknown') AS "party_type!",
-                i.service_date, i.service_method, i.served_by,
-                i.proof_of_service_filed, i.successful, i.attempts, i.notes
+                i.service_date AS "service_date!", i.service_method AS "service_method!", i.served_by AS "served_by!",
+                i.proof_of_service_filed AS "proof_of_service_filed!", i.successful AS "successful!", i.attempts AS "attempts!", i.notes
             FROM inserted i
             LEFT JOIN parties p ON p.id = i.party_id AND p.court_id = i.court_id
             "#,
