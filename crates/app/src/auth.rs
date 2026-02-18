@@ -80,56 +80,44 @@ pub fn use_user_role() -> UserRole {
 /// Determine which sidebar groups are visible for the current user's role.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SidebarVisibility {
-    pub core: bool,
-    pub case_management: bool,
-    pub court_operations: bool,
-    pub legal_documents: bool,
-    pub people_orgs: bool,
-    pub administration: bool,
+    pub work: bool,    // Queue, Cases, Calendar, Deadlines
+    pub people: bool,  // Attorneys, Judges
+    pub legal: bool,   // Opinions
+    pub admin: bool,   // Compliance, Rules, Users, Settings
 }
 
 pub fn use_sidebar_visibility() -> SidebarVisibility {
     let role = use_user_role();
     match role {
         UserRole::Admin => SidebarVisibility {
-            core: true,
-            case_management: true,
-            court_operations: true,
-            legal_documents: true,
-            people_orgs: true,
-            administration: true,
+            work: true,
+            people: true,
+            legal: true,
+            admin: true,
         },
         UserRole::Clerk => SidebarVisibility {
-            core: true,
-            case_management: true,
-            court_operations: true,
-            legal_documents: true,
-            people_orgs: true,
-            administration: true,
+            work: true,
+            people: true,
+            legal: true,
+            admin: true,
         },
         UserRole::Judge => SidebarVisibility {
-            core: true,
-            case_management: true,
-            court_operations: true,
-            legal_documents: true,
-            people_orgs: false,
-            administration: false,
+            work: true,
+            people: false,
+            legal: true,
+            admin: false,
         },
         UserRole::Attorney => SidebarVisibility {
-            core: true,
-            case_management: true,
-            court_operations: false,
-            legal_documents: true,
-            people_orgs: false,
-            administration: false,
+            work: true,
+            people: false,
+            legal: true,
+            admin: false,
         },
         UserRole::Public => SidebarVisibility {
-            core: true,
-            case_management: false,
-            court_operations: false,
-            legal_documents: false,
-            people_orgs: false,
-            administration: false,
+            work: true,
+            people: false,
+            legal: false,
+            admin: false,
         },
     }
 }

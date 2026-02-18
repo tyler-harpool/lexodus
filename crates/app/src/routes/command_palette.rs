@@ -17,21 +17,20 @@ pub fn CommandPalette(show: Signal<bool>) -> Element {
 
     // Static navigation items
     let nav_items: Vec<(&str, &str, Route)> = vec![
-        ("Dashboard", "Go to dashboard", Route::Dashboard {}),
+        ("Queue", "Go to work queue", Route::Dashboard {}),
         ("Cases", "View all cases", Route::CaseList {}),
-        ("Attorneys", "View all attorneys", Route::AttorneyList {}),
-        ("Judges", "View all judges", Route::JudgeList {}),
         ("Calendar", "Court calendar", Route::CalendarList {}),
         ("Deadlines", "View deadlines", Route::DeadlineList {}),
-        ("Docket", "View docket entries", Route::DocketList {}),
-        ("Orders", "View court orders", Route::OrderList {}),
+        ("Attorneys", "View all attorneys", Route::AttorneyList {}),
+        ("Judges", "View all judges", Route::JudgeList {}),
         ("Opinions", "View opinions", Route::OpinionList {}),
-        ("Evidence", "View evidence", Route::EvidenceList {}),
-        ("Documents", "View documents", Route::DocumentList {}),
-        ("Sentencing", "View sentencing", Route::SentencingList {}),
-        ("Filings", "View filings", Route::FilingList {}),
-        ("Defendants", "View defendants", Route::DefendantList {}),
-        ("Parties", "View parties", Route::PartyList {}),
+        (
+            "Compliance",
+            "Compliance dashboard",
+            Route::ComplianceDashboard {},
+        ),
+        ("Rules", "Court rules", Route::RuleList {}),
+        ("Users", "Manage users", Route::Users {}),
         (
             "Settings",
             "User settings",
@@ -40,12 +39,6 @@ pub fn CommandPalette(show: Signal<bool>) -> Element {
                 verified: None,
             },
         ),
-        (
-            "Compliance",
-            "Compliance dashboard",
-            Route::ComplianceDashboard {},
-        ),
-        ("Rules", "Court rules", Route::RuleList {}),
     ];
 
     let filtered: Vec<_> = if q.is_empty() {
