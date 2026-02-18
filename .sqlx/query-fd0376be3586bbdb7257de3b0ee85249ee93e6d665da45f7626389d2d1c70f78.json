@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_id, description, evidence_type,\n               seized_date, seized_by,\n               COALESCE(location, '') as \"location!\",\n               is_sealed, created_at\n        FROM evidence\n        WHERE court_id = $1\n          AND ($2::TEXT IS NULL OR LOWER(description) LIKE $2)\n        ORDER BY description ASC\n        LIMIT $3 OFFSET $4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "evidence_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "seized_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "seized_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "location!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "fd0376be3586bbdb7257de3b0ee85249ee93e6d665da45f7626389d2d1c70f78"
+}

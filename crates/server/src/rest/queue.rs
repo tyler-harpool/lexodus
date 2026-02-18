@@ -62,8 +62,7 @@ pub async fn list_queue(
 // GET /api/queue/stats
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, serde::Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::IntoParams))]
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
 pub struct QueueStatsParams {
     pub user_id: Option<i64>,
 }
@@ -177,8 +176,7 @@ pub async fn create_queue_item(
 // POST /api/queue/{id}/claim
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, serde::Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
 pub struct ClaimRequest {
     pub user_id: i64,
 }

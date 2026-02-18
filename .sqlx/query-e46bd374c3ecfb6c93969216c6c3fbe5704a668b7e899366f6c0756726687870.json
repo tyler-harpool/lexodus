@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_id, name, victim_type,\n               notification_email, notification_mail, notification_phone,\n               created_at, updated_at\n        FROM victims\n        WHERE court_id = $1\n          AND ($2::TEXT IS NULL OR LOWER(name) LIKE $2)\n        ORDER BY name ASC\n        LIMIT $3 OFFSET $4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "victim_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "notification_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "notification_mail",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "notification_phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e46bd374c3ecfb6c93969216c6c3fbe5704a668b7e899366f6c0756726687870"
+}

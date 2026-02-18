@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(*) as \"count!\"\n        FROM clerk_queue\n        WHERE court_id = $1\n          AND ($2::TEXT IS NULL OR status = $2)\n          AND ($3::TEXT IS NULL OR queue_type = $3)\n          AND ($4::INT IS NULL OR priority = $4)\n          AND ($5::BIGINT IS NULL OR assigned_to = $5)\n          AND ($6::UUID IS NULL OR case_id = $6)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "71d26703d6c21810fb4f1a1469256a317168421fdc62de4e0af50852f410c1e9"
+}

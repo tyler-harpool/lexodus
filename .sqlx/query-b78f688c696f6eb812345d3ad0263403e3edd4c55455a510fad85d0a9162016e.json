@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(*) as \"count!\" FROM judicial_opinions\n        WHERE court_id = $1\n          AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2 OR LOWER(case_name) LIKE $2 OR LOWER(author_judge_name) LIKE $2)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b78f688c696f6eb812345d3ad0263403e3edd4c55455a510fad85d0a9162016e"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(*) as \"count!\"\n        FROM sentencing s\n        LEFT JOIN criminal_cases c ON c.id = s.case_id\n        WHERE s.court_id = $1\n          AND ($2::TEXT IS NULL OR LOWER(c.case_number) LIKE $2)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "dac3e21ec35f45bc165fa7debf4dcd0a2aaccfc240ced7a9ac1f7fc2f852bf47"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE service_records\n        SET successful = true, proof_of_service_filed = true\n        WHERE id = $1 AND court_id = $2\n        RETURNING\n            id, court_id, document_id, party_id, service_date,\n            service_method, served_by, proof_of_service_filed, successful, attempts, notes,\n            certificate_of_service\n        ",
+  "query": "\n        SELECT\n            sr.id, sr.court_id, sr.document_id, sr.party_id,\n            COALESCE(p.name, 'Unknown') AS \"party_name!\",\n            COALESCE(p.party_type, 'Unknown') AS \"party_type!\",\n            sr.service_date, sr.service_method, sr.served_by,\n            sr.proof_of_service_filed, sr.successful, sr.attempts, sr.notes\n        FROM service_records sr\n        LEFT JOIN parties p ON p.id = sr.party_id AND p.court_id = sr.court_id\n        WHERE sr.id = $1 AND sr.court_id = $2\n        ",
   "describe": {
     "columns": [
       {
@@ -25,42 +25,47 @@
       },
       {
         "ordinal": 4,
-        "name": "service_date",
-        "type_info": "Timestamptz"
+        "name": "party_name!",
+        "type_info": "Text"
       },
       {
         "ordinal": 5,
-        "name": "service_method",
+        "name": "party_type!",
         "type_info": "Text"
       },
       {
         "ordinal": 6,
+        "name": "service_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "service_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "served_by",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 9,
         "name": "proof_of_service_filed",
         "type_info": "Bool"
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "successful",
         "type_info": "Bool"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "attempts",
         "type_info": "Int4"
       },
       {
-        "ordinal": 10,
+        "ordinal": 12,
         "name": "notes",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 11,
-        "name": "certificate_of_service",
         "type_info": "Text"
       }
     ],
@@ -75,15 +80,16 @@
       false,
       false,
       false,
+      null,
+      null,
       false,
       false,
       false,
       false,
       false,
       false,
-      true,
       true
     ]
   },
-  "hash": "428350a30f7f2fbe188485c04c779b5bcfb3ebf924237a42fc026f2d6c3d6598"
+  "hash": "9656d82c63e61b43a154bab76187c7a00109133b9ec4afae96f06486baa05316"
 }

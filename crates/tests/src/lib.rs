@@ -180,3 +180,9 @@ mod document_event_tests;
 
 #[cfg(test)]
 mod event_submit_tests;
+
+#[cfg(test)]
+mod pdf_tests;
+
+#[cfg(test)]
+mod queue_create_tests;

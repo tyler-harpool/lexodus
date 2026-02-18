@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, court_id, requested_role, status,\n                  requested_at, reviewed_by, reviewed_at, notes\n           FROM court_role_requests\n           WHERE status = 'pending'\n           ORDER BY requested_at ASC",
+  "query": "SELECT crr.id, crr.user_id, crr.court_id, crr.requested_role, crr.status,\n                  crr.requested_at, crr.reviewed_by, crr.reviewed_at, crr.notes,\n                  u.display_name AS user_display_name,\n                  u.email AS user_email\n           FROM court_role_requests crr\n           LEFT JOIN users u ON u.id = crr.user_id\n           WHERE crr.court_id = $1 AND crr.status = 'pending'\n           ORDER BY crr.requested_at ASC",
   "describe": {
     "columns": [
       {
@@ -47,10 +47,22 @@
         "ordinal": 8,
         "name": "notes",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "user_display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "user_email",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -61,8 +73,10 @@
       false,
       true,
       true,
+      true,
+      false,
       true
     ]
   },
-  "hash": "83afda874402353e124a988cda0b6d0559aa904543d4006aa1fea4448373b30c"
+  "hash": "da4bd683b26a6bacb75df238e5d9f70faaff4137927219445f7194c9c12ba289"
 }

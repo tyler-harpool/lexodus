@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO service_records (\n                court_id, document_id, party_id, service_date,\n                service_method, served_by, proof_of_service_filed, successful, attempts,\n                certificate_of_service\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, false, true, 1, $7)\n            RETURNING\n                id, court_id, document_id, party_id, service_date,\n                service_method, served_by, proof_of_service_filed, successful, attempts, notes,\n                certificate_of_service\n            ",
+  "query": "\n        WITH inserted AS (\n            INSERT INTO service_records (\n                court_id, document_id, party_id, service_date,\n                service_method, served_by, proof_of_service_filed, successful, attempts, notes,\n                certificate_of_service\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, false, true, 1, $7, $8)\n            RETURNING *\n        )\n        SELECT\n            i.id, i.court_id, i.document_id, i.party_id,\n            COALESCE(p.name, 'Unknown') AS \"party_name!\",\n            COALESCE(p.party_type, 'Unknown') AS \"party_type!\",\n            i.service_date, i.service_method, i.served_by,\n            i.proof_of_service_filed, i.successful, i.attempts, i.notes\n        FROM inserted i\n        LEFT JOIN parties p ON p.id = i.party_id AND p.court_id = i.court_id\n        ",
   "describe": {
     "columns": [
       {
@@ -25,42 +25,47 @@
       },
       {
         "ordinal": 4,
-        "name": "service_date",
-        "type_info": "Timestamptz"
+        "name": "party_name!",
+        "type_info": "Text"
       },
       {
         "ordinal": 5,
-        "name": "service_method",
+        "name": "party_type!",
         "type_info": "Text"
       },
       {
         "ordinal": 6,
+        "name": "service_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "service_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "served_by",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 9,
         "name": "proof_of_service_filed",
         "type_info": "Bool"
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "successful",
         "type_info": "Bool"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "attempts",
         "type_info": "Int4"
       },
       {
-        "ordinal": 10,
+        "ordinal": 12,
         "name": "notes",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 11,
-        "name": "certificate_of_service",
         "type_info": "Text"
       }
     ],
@@ -72,6 +77,7 @@
         "Timestamptz",
         "Text",
         "Text",
+        "Text",
         "Text"
       ]
     },
@@ -80,15 +86,16 @@
       false,
       false,
       false,
+      null,
+      null,
       false,
       false,
       false,
       false,
       false,
       false,
-      true,
       true
     ]
   },
-  "hash": "3ecd68defe9f825ef22b1a9bec72e7996449a952e1a327da98df3151dd81dc28"
+  "hash": "64a07749fb8b1b56c78c996394878b312a73ed5fdf6024cf46a43c0636c62c7b"
 }

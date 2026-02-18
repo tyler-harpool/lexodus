@@ -181,9 +181,9 @@ pub async fn stats(
     .await
     .map_err(SqlxErrorExt::into_app_error)?;
 
-    let avg_processing_mins = sqlx::query_scalar!(
+    let avg_processing_mins: Option<f64> = sqlx::query_scalar!(
         r#"
-        SELECT EXTRACT(EPOCH FROM AVG(completed_at - created_at)) / 60.0 as "avg?"
+        SELECT (EXTRACT(EPOCH FROM AVG(completed_at - created_at)) / 60.0)::FLOAT8 as "avg?"
         FROM clerk_queue
         WHERE court_id = $1 AND status = 'completed' AND completed_at IS NOT NULL
         "#,
@@ -198,7 +198,7 @@ pub async fn stats(
         my_count,
         today_count,
         urgent_count,
-        avg_processing_mins: avg_processing_mins.map(|f| f as f64),
+        avg_processing_mins,
     })
 }
 

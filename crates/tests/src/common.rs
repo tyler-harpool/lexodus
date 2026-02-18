@@ -40,7 +40,7 @@ pub async fn test_app() -> (Router, Pool<Postgres>, tokio::sync::MutexGuard<'sta
         .expect("Failed to run migrations");
 
     // Truncate all data and re-seed
-    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests CASCADE")
+    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue CASCADE")
         .execute(&pool)
         .await
         .expect("Failed to truncate");
@@ -195,6 +195,44 @@ async fn send(app: &Router, req: Request<Body>) -> (StatusCode, Value) {
     (status, body)
 }
 
+/// Send a request and return raw bytes + status + headers (for non-JSON responses like PDFs).
+pub async fn send_raw(
+    app: &Router,
+    req: Request<Body>,
+) -> (StatusCode, axum::http::HeaderMap, Vec<u8>) {
+    let response = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("Failed to send request");
+
+    let status = response.status();
+    let headers = response.headers().clone();
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("Failed to read body");
+
+    (status, headers, body_bytes.to_vec())
+}
+
+/// POST JSON to a route with a court header, returning raw bytes (for PDF endpoints).
+pub async fn post_json_raw(
+    app: &Router,
+    uri: &str,
+    body: &str,
+    court: &str,
+) -> (StatusCode, axum::http::HeaderMap, Vec<u8>) {
+    let req = Request::builder()
+        .method("POST")
+        .uri(uri)
+        .header("content-type", "application/json")
+        .header("x-court-district", court)
+        .body(Body::from(body.to_string()))
+        .unwrap();
+
+    send_raw(app, req).await
+}
+
 /// Build a test router with a very tight rate limit for testing 429 responses.
 pub async fn test_app_rate_limited(
     max_requests: u32,
@@ -216,7 +254,7 @@ pub async fn test_app_rate_limited(
         .await
         .expect("Failed to run migrations");
 
-    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests CASCADE")
+    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue CASCADE")
         .execute(&pool)
         .await
         .expect("Failed to truncate");
@@ -667,6 +705,25 @@ pub async fn create_test_party(
     .expect("Failed to create test party");
 
     row.to_string()
+}
+
+/// Create a test queue item via the API and return the response JSON.
+pub async fn create_test_queue_item(
+    app: &Router,
+    court: &str,
+    title: &str,
+    source_id: &str,
+) -> serde_json::Value {
+    let body = serde_json::json!({
+        "queue_type": "filing",
+        "priority": 3,
+        "title": title,
+        "source_type": "filing",
+        "source_id": source_id,
+    });
+    let (status, resp) = post_json(app, "/api/queue", &body.to_string(), court).await;
+    assert_eq!(status, StatusCode::CREATED, "Failed to create queue item: {resp}");
+    resp
 }
 
 /// Create a test party with a specific service method and name.
