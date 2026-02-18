@@ -37,6 +37,7 @@ pub mod compliance;
 pub mod reminder;
 pub mod federal_rule;
 pub mod victim;
+pub mod queue;
 
 use axum::{routing::{get, post, put, delete, patch}, Router};
 use crate::db::AppState;
@@ -338,19 +339,12 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/conflict-checks/check", post(conflict_check::run_conflict_check))
         .route("/api/conflict-checks/{id}/clear", post(conflict_check::clear_conflict))
         // PDF Generation
-        .route("/api/pdf/rule16b/{format}", post(pdf::generate_rule16b_fmt))
         .route("/api/pdf/rule16b", post(pdf::generate_rule16b))
-        .route("/api/pdf/signed/rule16b/{format}", post(pdf::generate_signed_rule16b_fmt))
         .route("/api/pdf/signed/rule16b", post(pdf::generate_signed_rule16b))
-        .route("/api/pdf/court-order/{format}", post(pdf::generate_court_order_fmt))
         .route("/api/pdf/court-order", post(pdf::generate_court_order))
-        .route("/api/pdf/minute-entry/{format}", post(pdf::generate_minute_entry_fmt))
         .route("/api/pdf/minute-entry", post(pdf::generate_minute_entry))
-        .route("/api/pdf/waiver-indictment/{format}", post(pdf::generate_waiver_fmt))
         .route("/api/pdf/waiver-indictment", post(pdf::generate_waiver))
-        .route("/api/pdf/conditions-release/{format}", post(pdf::generate_conditions_fmt))
         .route("/api/pdf/conditions-release", post(pdf::generate_conditions))
-        .route("/api/pdf/criminal-judgment/{format}", post(pdf::generate_judgment_fmt))
         .route("/api/pdf/criminal-judgment", post(pdf::generate_judgment))
         .route("/api/pdf/batch", post(pdf::batch_generate))
         // Signatures
@@ -401,6 +395,14 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/attorneys/{id}/win-rate", get(attorney::get_win_rate))
         .route("/api/attorneys/{id}/case-count", get(attorney::get_case_count))
         .route("/api/attorneys/top-performers", get(attorney::list_top_performers))
+        // Queue
+        .route("/api/queue", get(queue::list_queue).post(queue::create_queue_item))
+        .route("/api/queue/stats", get(queue::queue_stats))
+        .route("/api/queue/{id}", get(queue::get_queue_item))
+        .route("/api/queue/{id}/claim", post(queue::claim_queue_item))
+        .route("/api/queue/{id}/release", post(queue::release_queue_item))
+        .route("/api/queue/{id}/advance", post(queue::advance_queue_item))
+        .route("/api/queue/{id}/reject", post(queue::reject_queue_item))
         // Template SaaS routes (users, products, auth, billing)
         .merge(template_crud::rest_router())
 }
