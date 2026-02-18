@@ -1085,4 +1085,163 @@ VALUES
  ARRAY['d12af007-0000-0000-0000-000000000007']::UUID[])
 ON CONFLICT (id) DO NOTHING;
 
+-- ============================================================
+-- SENTENCING RECORDS (3 rows)
+-- ============================================================
+
+INSERT INTO sentencing (id, court_id, case_id, defendant_id, judge_id,
+    base_offense_level, specific_offense_level, adjusted_offense_level, total_offense_level,
+    criminal_history_category, criminal_history_points,
+    guidelines_range_low_months, guidelines_range_high_months,
+    custody_months, probation_months,
+    fine_amount, restitution_amount, forfeiture_amount, special_assessment,
+    departure_type, departure_reason, variance_type, variance_justification,
+    supervised_release_months, appeal_waiver, sentencing_date, judgment_date)
+VALUES
+-- Case 7: Ahmed (tax_offense, sentenced)
+('d9bb0001-0000-0000-0000-000000000001', 'district9',
+ 'd9c00007-0000-0000-0000-000000000007', 'd9de000a-0000-0000-0000-000000000001', 'd9b00001-0000-0000-0000-000000000001',
+ 18, 20, 22, 22,
+ 'I', 1,
+ 41, 51,
+ 36, 0,
+ 25000.00, 1200000.00, 0.00, 100.00,
+ 'None', NULL, 'Downward', 'Defendant provided substantial assistance to the government in related investigations pursuant to USSG 5K1.1',
+ 36, false, NOW() - INTERVAL '45 days', NOW() - INTERVAL '42 days'),
+-- Case 8: Reeves (drug_offense, on_appeal)
+('d9bb0002-0000-0000-0000-000000000002', 'district9',
+ 'd9c00008-0000-0000-0000-000000000008', 'd9de000b-0000-0000-0000-000000000002', 'd9b00001-0000-0000-0000-000000000001',
+ 28, 30, 32, 32,
+ 'III', 6,
+ 151, 188,
+ 168, 0,
+ 50000.00, 0.00, 500000.00, 100.00,
+ 'None', NULL, 'None', NULL,
+ 60, true, NOW() - INTERVAL '90 days', NOW() - INTERVAL '87 days'),
+-- Case 10: Park (cybercrime, awaiting_sentencing — not yet sentenced)
+('d12bb001-0000-0000-0000-000000000001', 'district12',
+ 'd12c0002-0000-0000-0000-000000000002', 'd12de002-0000-0000-0000-000000000002', 'd12b0001-0000-0000-0000-000000000001',
+ 24, 26, 28, 28,
+ 'II', 3,
+ 87, 108,
+ NULL, NULL,
+ NULL, NULL, NULL, NULL,
+ NULL, NULL, NULL, NULL,
+ NULL, false, NULL, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- CLERK QUEUE ITEMS (12 rows)
+-- ============================================================
+
+INSERT INTO clerk_queue (id, court_id, queue_type, priority, status, title, description,
+    source_type, source_id, case_id, case_number, assigned_to, submitted_by,
+    current_step, metadata, completed_at)
+VALUES
+-- 1. Case 1 (Rodriguez) filing — criminal complaint docket entry
+('d9be0001-0000-0000-0000-000000000001', 'district9', 'filing', 3, 'pending',
+ 'New Filing: USA v. Rodriguez - Criminal Complaint',
+ 'Criminal complaint filed against Carlos Rodriguez for distribution of fentanyl-laced counterfeit oxycodone pills. Requires docketing and NEF generation.',
+ 'filing', 'd9d00001-0000-0000-0000-000000000001',
+ 'd9c00001-0000-0000-0000-000000000001', '9:26-cr-00101',
+ NULL, NULL, 'review', '{}', NULL),
+-- 2. Case 15 (Carter) filing — indictment docket entry (district12)
+('d9be0002-0000-0000-0000-000000000002', 'district12', 'filing', 3, 'pending',
+ 'New Filing: USA v. Carter - Indictment',
+ 'Grand jury indictment returned charging Terrence Carter with RICO conspiracy and money laundering conspiracy.',
+ 'filing', 'd12d0033-0000-0000-0000-000000000006',
+ 'd12c0007-0000-0000-0000-000000000007', '12:26-cr-00225',
+ NULL, NULL, 'review', '{}', NULL),
+-- 3. Case 9 (Gonzalez) plea — notice of plea negotiations docket entry (district12)
+('d9be0003-0000-0000-0000-000000000003', 'district12', 'filing', 3, 'in_review',
+ 'Plea Agreement: USA v. Gonzalez',
+ 'Notice of plea agreement negotiations filed. Parties request continuance of trial date pending finalization of plea terms.',
+ 'filing', 'd12d0007-0000-0000-0000-000000000007',
+ 'd12c0001-0000-0000-0000-000000000001', '12:26-cr-00201',
+ NULL, NULL, 'review', '{}', NULL),
+-- 4. Case 3 (Williams RICO) discovery response — docket entry
+('d9be0004-0000-0000-0000-000000000004', 'district9', 'filing', 3, 'processing',
+ 'Discovery Response: USA v. Williams et al.',
+ 'Government response in opposition to motion for protective order. Needs docketing and service notification.',
+ 'filing', 'd9d00012-0000-0000-0000-000000000009',
+ 'd9c00003-0000-0000-0000-000000000003', '9:26-cr-00103',
+ NULL, NULL, 'docket', '{}', NULL),
+-- 5. Case 5 (Jackson) trial readiness notice — docket entry
+('d9be0005-0000-0000-0000-000000000005', 'district9', 'filing', 3, 'processing',
+ 'Trial Notice: USA v. Jackson',
+ 'Notice of trial readiness filed by the Government. Trial set for 03/03/2026. Requires NEF to all parties.',
+ 'filing', 'd9d00029-0000-0000-0000-000000000005',
+ 'd9c00005-0000-0000-0000-000000000005', '9:25-cr-00098',
+ NULL, NULL, 'nef', '{}', NULL),
+-- 6. Case 3 (Williams RICO) motion to compel
+('d9be0006-0000-0000-0000-000000000006', 'district9', 'motion', 2, 'pending',
+ 'Motion to Compel: USA v. Williams et al.',
+ 'Motion to compel production of financial records from Meridian Financial Corp filed by defense. Requires routing to assigned judge.',
+ 'motion', 'd9af0002-0000-0000-0000-000000000002',
+ 'd9c00003-0000-0000-0000-000000000003', '9:26-cr-00103',
+ NULL, NULL, 'review', '{}', NULL),
+-- 7. Case 4 (Petrov) motion to suppress — completed
+('d9be0007-0000-0000-0000-000000000007', 'district9', 'motion', 2, 'completed',
+ 'Motion to Suppress: USA v. Petrov',
+ 'Motion to suppress evidence obtained from search of cryptocurrency exchange records. Fully processed and ruled upon.',
+ 'motion', 'd9af0005-0000-0000-0000-000000000005',
+ 'd9c00004-0000-0000-0000-000000000004', '9:26-cr-00104',
+ NULL, NULL, 'completed', '{}', NOW() - INTERVAL '8 days'),
+-- 8. Case 12 (Volkov & Sokolov) sealed motion — processing, route to judge (district12)
+('d9be0008-0000-0000-0000-000000000008', 'district12', 'motion', 2, 'processing',
+ 'Sealed Motion: USA v. Volkov & Sokolov',
+ 'Motion to seal case and all filings. Sealed proceeding requires special handling and routing to assigned judge under CIPA protocols.',
+ 'motion', 'd12af002-0000-0000-0000-000000000002',
+ 'd12c0004-0000-0000-0000-000000000004', '12:26-cr-00210',
+ NULL, NULL, 'route_judge', '{}', NULL),
+-- 9. Case 7 (Ahmed) judgment order — completed
+('d9be0009-0000-0000-0000-000000000009', 'district9', 'order', 3, 'completed',
+ 'Judgment: USA v. Ahmed',
+ 'Judgment and commitment order following sentencing. Defendant sentenced to 36 months custody, 3 years supervised release, restitution of $1.2M.',
+ 'order', 'd9ba0007-0000-0000-0000-000000000007',
+ 'd9c00007-0000-0000-0000-000000000007', '9:24-cr-00042',
+ NULL, NULL, 'completed', '{}', NOW() - INTERVAL '40 days'),
+-- 10. Case 11 (Thompson) dismissal order — completed (district12)
+('d9be000a-0000-0000-0000-000000000001', 'district12', 'order', 3, 'completed',
+ 'Order of Dismissal: USA v. Thompson',
+ 'Order of dismissal with prejudice. Case dismissed after successful suppression motion. Defendant discharged from all conditions of release.',
+ 'order', 'd12ba002-0000-0000-0000-000000000002',
+ 'd12c0003-0000-0000-0000-000000000003', '12:25-cr-00165',
+ NULL, NULL, 'completed', '{}', NOW() - INTERVAL '58 days'),
+-- 11. Case 5 (Jackson) speedy trial deadline alert — CRITICAL
+('d9be000b-0000-0000-0000-000000000002', 'district9', 'deadline_alert', 1, 'pending',
+ 'URGENT: Speedy Trial Deadline in 5 Days - USA v. Jackson',
+ 'CRITICAL: Speedy Trial Act 70-day clock expires in 5 days. Trial MUST begin by this date or case is subject to dismissal. Immediate judicial attention required.',
+ 'deadline', 'd9eb0006-0000-0000-0000-000000000006',
+ 'd9c00005-0000-0000-0000-000000000005', '9:25-cr-00098',
+ NULL, NULL, 'review', '{}', NULL),
+-- 12. General admin — rejected
+('d9be000c-0000-0000-0000-000000000003', 'district9', 'general', 4, 'rejected',
+ 'Administrative: Court Calendar Update',
+ 'Request to update court calendar with revised scheduling information. Rejected as duplicate of existing calendar entry.',
+ 'document', 'd9ac0001-0000-0000-0000-000000000001',
+ NULL, NULL,
+ NULL, NULL, 'review', '{"reject_reason":"Duplicate of existing calendar entry"}', NOW() - INTERVAL '2 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- VICTIMS (4 rows)
+-- ============================================================
+
+INSERT INTO victims (id, court_id, case_id, name, victim_type, notification_email, notification_mail, notification_phone)
+VALUES
+-- Case 3 (Williams RICO): corporate victim
+('d9bc0001-0000-0000-0000-000000000001', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'Meridian Financial Corp', 'Organization', 'legal@meridianfinancial.com', false, NULL),
+-- Case 3 (Williams RICO): individual victim
+('d9bc0002-0000-0000-0000-000000000002', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'James Whitmore', 'Individual', 'j.whitmore@email.com', false, '555-0150'),
+-- Case 5 (Jackson firearms): minor victim
+('d9bc0003-0000-0000-0000-000000000003', 'district9', 'd9c00005-0000-0000-0000-000000000005',
+ 'Tyler Bennett', 'Minor', 'guardian.bennett@email.com', true, '555-0155'),
+-- Case 7 (Ahmed tax): government victim
+('d9bc0004-0000-0000-0000-000000000004', 'district9', 'd9c00007-0000-0000-0000-000000000007',
+ 'Internal Revenue Service', 'Government', NULL, true, NULL)
+ON CONFLICT (id) DO NOTHING;
+
 END $$;
