@@ -40,6 +40,22 @@
 .clerk-filter-select {
     padding: var(--space-xs) var(--space-sm);
     min-width: 140px;
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: var(--font-size-sm);
+    appearance: auto;
+}
+
+.clerk-filter-select:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -1px;
+}
+
+.clerk-filter-select option {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
 }
 
 .clerk-empty-state {
