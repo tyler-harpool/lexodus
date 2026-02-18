@@ -97,6 +97,21 @@ pub fn JudgeDashboard() -> Element {
                         button { class: "quick-action-btn", "View Calendar" }
                     }
                 }
+
+                // Pending rulings queue placeholder
+                Card {
+                    CardHeader { "Pending Rulings" }
+                    CardContent {
+                        div { class: "clerk-empty-state",
+                            p { style: "font-size: var(--font-size-lg); font-weight: 600; margin-bottom: var(--space-xs);",
+                                "No items pending"
+                            }
+                            p { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);",
+                                "Items requiring your attention will appear here."
+                            }
+                        }
+                    }
+                }
             },
             None => rsx! {
                 div { class: "judge-stats-grid",

@@ -96,6 +96,21 @@ pub fn AttorneyDashboard() -> Element {
                         button { class: "quick-action-btn", "View Calendar" }
                     }
                 }
+
+                // My filings queue placeholder
+                Card {
+                    CardHeader { "My Filings" }
+                    CardContent {
+                        div { class: "clerk-empty-state",
+                            p { style: "font-size: var(--font-size-lg); font-weight: 600; margin-bottom: var(--space-xs);",
+                                "No pending filings"
+                            }
+                            p { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);",
+                                "Track your filed documents here."
+                            }
+                        }
+                    }
+                }
             },
             None => rsx! {
                 div { class: "judge-stats-grid",
