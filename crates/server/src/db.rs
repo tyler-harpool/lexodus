@@ -4,11 +4,14 @@ use sqlx::{Pool, Postgres};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 
+use crate::search::SearchIndex;
+
 /// Shared application state passed to Axum handlers via `State`.
 /// Derives `FromRef` so handlers can extract `State<PgPool>` directly.
 #[derive(Clone, FromRef)]
 pub struct AppState {
     pub pool: Pool<Postgres>,
+    pub search: std::sync::Arc<SearchIndex>,
 }
 
 /// Pool created lazily — no connections are opened until the first query.
@@ -47,6 +50,7 @@ pub async fn run_migrations(pool: &Pool<Postgres>) {
 
 /// Get or initialize the database connection pool.
 /// Migrations run once on the first call; subsequent calls return immediately.
+/// Also initializes the Tantivy search index on first call.
 ///
 /// Used by Dioxus server functions (`api.rs`) which share a single long-lived runtime.
 /// REST handlers use `State<PgPool>` from `AppState` instead.
@@ -57,6 +61,9 @@ pub async fn get_db() -> &'static Pool<Postgres> {
     // the first caller executes; migrations are idempotent regardless.
     if !MIGRATED.swap(true, Ordering::SeqCst) {
         run_migrations(pool).await;
+        // Build the full-text search index after migrations complete.
+        let search = crate::search::init_search();
+        crate::search::build_index(pool, search).await;
     }
 
     pool

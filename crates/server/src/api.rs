@@ -7353,3 +7353,22 @@ pub async fn reject_queue_item_fn(
     serde_json::to_string(&shared_types::QueueItemResponse::from(item))
         .map_err(|e| ServerFnError::new(e.to_string()))
 }
+
+// ── Global Search ──────────────────────────────────────────────────
+
+/// Full-text search across all court entities (cases, attorneys, judges, etc.).
+/// Returns JSON array of SearchResult objects matching the query within the given court.
+#[server]
+pub async fn global_search(
+    court_id: String,
+    query: String,
+    limit: Option<usize>,
+) -> Result<String, ServerFnError> {
+    // Ensure DB + search index are initialized.
+    let _pool = get_db().await;
+    let search = crate::search::get_search();
+    let max_results = limit.unwrap_or(20);
+
+    let results = search.search(&query, &court_id, max_results);
+    serde_json::to_string(&results).map_err(|e| ServerFnError::new(e.to_string()))
+}

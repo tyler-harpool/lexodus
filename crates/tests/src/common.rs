@@ -60,7 +60,8 @@ pub async fn test_app() -> (Router, Pool<Postgres>, tokio::sync::MutexGuard<'sta
     .await
     .expect("Failed to seed test user");
 
-    let state = server::db::AppState { pool: pool.clone() };
+    let search = std::sync::Arc::new(server::search::SearchIndex::new());
+    let state = server::db::AppState { pool: pool.clone(), search };
     // Include the permissive auth middleware so AuthRequired extractors work
     // when a JWT Bearer token is present; unauthenticated requests still pass through.
     let router = server::rest::api_router()
@@ -270,7 +271,8 @@ pub async fn test_app_rate_limited(
         max_requests,
         std::time::Duration::from_secs(60),
     );
-    let state = server::db::AppState { pool: pool.clone() };
+    let search = std::sync::Arc::new(server::search::SearchIndex::new());
+    let state = server::db::AppState { pool: pool.clone(), search };
     let router = server::rest::api_router_with_rate_limit(rate_limit)
         .layer(middleware::from_fn_with_state(
             state.clone(),

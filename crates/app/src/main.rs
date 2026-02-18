@@ -78,7 +78,9 @@ fn main() {
             }
         });
 
-        let state = server::db::AppState { pool: pool.clone() };
+        let search = std::sync::Arc::new(server::search::SearchIndex::new());
+        server::search::build_index(&pool, &search).await;
+        let state = server::db::AppState { pool: pool.clone(), search };
 
         let mut router = dioxus::server::router(App).merge(server::openapi::api_router(pool));
 
