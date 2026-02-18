@@ -7181,14 +7181,9 @@ pub async fn generate_order_pdf(
         .unwrap_or_else(|| "Not yet signed".to_string());
     let order_date = order.created_at.format("%B %d, %Y").to_string();
 
-    // Escape content for Typst (double-quotes and backslashes)
-    let escape_typst = |s: &str| -> String {
-        s.replace('\\', "\\\\")
-            .replace('"', "\\\"")
-            .replace('#', "\\#")
-    };
+    use crate::typst::escape_typst;
 
-    // Build the data bindings that precede the template
+    // Build the data bindings that precede the court-order template
     let data_bindings = format!(
         r##"#let court_name = "{court_name}"
 #let case_id = "{case_id}"
@@ -7218,38 +7213,143 @@ pub async fn generate_order_pdf(
     let template = include_str!("../../../templates/court-order.typ");
     let full_source = format!("{data_bindings}{template}");
 
-    // Compile via typst CLI: stdin → stdout
-    let mut child = tokio::process::Command::new("typst")
-        .args(["compile", "-", "-"])
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| ServerFnError::new(format!("Failed to spawn typst: {e}")))?;
-
-    // Write source to stdin
-    if let Some(mut stdin) = child.stdin.take() {
-        use tokio::io::AsyncWriteExt;
-        stdin
-            .write_all(full_source.as_bytes())
-            .await
-            .map_err(|e| ServerFnError::new(format!("Failed to write to typst stdin: {e}")))?;
-        drop(stdin);
-    }
-
-    let output = child
-        .wait_with_output()
+    // Compile via shared typst module
+    let pdf_bytes = crate::typst::compile_typst(&full_source)
         .await
-        .map_err(|e| ServerFnError::new(format!("typst process error: {e}")))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(ServerFnError::new(format!(
-            "Typst compilation failed: {stderr}"
-        )));
-    }
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     // Return base64-encoded PDF bytes
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&output.stdout);
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&pdf_bytes);
     Ok(b64)
+}
+
+// ── Queue Server Functions ─────────────────────────────
+
+#[server]
+pub async fn search_queue(
+    court_id: String,
+    status: Option<String>,
+    queue_type: Option<String>,
+    priority: Option<i32>,
+    assigned_to: Option<i64>,
+    case_id: Option<String>,
+    offset: Option<i64>,
+    limit: Option<i64>,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let case_uuid = case_id.as_deref()
+        .map(|s| uuid::Uuid::parse_str(s))
+        .transpose()
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let (items, total) = crate::repo::queue::search(
+        pool,
+        &court_id,
+        status.as_deref(),
+        queue_type.as_deref(),
+        priority,
+        assigned_to,
+        case_uuid,
+        offset.unwrap_or(0),
+        limit.unwrap_or(20).clamp(1, 100),
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.message))?;
+
+    let resp = shared_types::QueueSearchResponse {
+        items: items.into_iter().map(shared_types::QueueItemResponse::from).collect(),
+        total,
+    };
+    serde_json::to_string(&resp).map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn get_queue_stats(
+    court_id: String,
+    user_id: Option<i64>,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let stats = crate::repo::queue::stats(pool, &court_id, user_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?;
+    serde_json::to_string(&stats).map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn claim_queue_item_fn(
+    court_id: String,
+    id: String,
+    user_id: i64,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let item = crate::repo::queue::claim(pool, &court_id, uuid, user_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Item not available for claiming".to_string()))?;
+    serde_json::to_string(&shared_types::QueueItemResponse::from(item))
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn release_queue_item_fn(
+    court_id: String,
+    id: String,
+    user_id: i64,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let item = crate::repo::queue::release(pool, &court_id, uuid, user_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Item not found or not assigned to user".to_string()))?;
+    serde_json::to_string(&shared_types::QueueItemResponse::from(item))
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn advance_queue_item_fn(
+    court_id: String,
+    id: String,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let current = crate::repo::queue::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Queue item not found".to_string()))?;
+
+    let (next, status, completed_at) = match shared_types::next_step(&current.queue_type, &current.current_step) {
+        Some(next) => {
+            if shared_types::next_step(&current.queue_type, next).is_none() {
+                (next, "completed", Some(chrono::Utc::now()))
+            } else {
+                (next, "processing", None)
+            }
+        }
+        None => ("completed", "completed", Some(chrono::Utc::now())),
+    };
+
+    let item = crate::repo::queue::advance(pool, &court_id, uuid, next, status, completed_at)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Queue item not found".to_string()))?;
+    serde_json::to_string(&shared_types::QueueItemResponse::from(item))
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn reject_queue_item_fn(
+    court_id: String,
+    id: String,
+    reason: String,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let item = crate::repo::queue::reject(pool, &court_id, uuid, &reason)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Queue item not found".to_string()))?;
+    serde_json::to_string(&shared_types::QueueItemResponse::from(item))
+        .map_err(|e| ServerFnError::new(e.to_string()))
 }
