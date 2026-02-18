@@ -1,5 +1,9 @@
 -- Down: remove realistic seed data
 -- Order matters: children first due to foreign key constraints
+DELETE FROM custody_transfers WHERE id::text LIKE 'd9ad%';
+DELETE FROM judicial_orders WHERE id::text LIKE 'd9ba%' OR id::text LIKE 'd12ba%';
+DELETE FROM evidence WHERE id::text LIKE 'd9ac%' OR id::text LIKE 'd12ac%';
+DELETE FROM motions WHERE id::text LIKE 'd9af%' OR id::text LIKE 'd12af%';
 DELETE FROM excludable_delays WHERE id::text LIKE 'd9ec%';
 DELETE FROM speedy_trial WHERE case_id::text LIKE 'd9c%' OR case_id::text LIKE 'd12c%';
 DELETE FROM deadlines WHERE id::text LIKE 'd9eb%' OR id::text LIKE 'd12eb%';

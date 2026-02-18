@@ -806,4 +806,283 @@ VALUES
  'Order dated ' || to_char(NOW() - INTERVAL '70 days', 'MM/DD/YYYY') || ' designating case as complex under Speedy Trial Act')
 ON CONFLICT (id) DO NOTHING;
 
+-- ============================================================
+-- MOTIONS (~20 motions)
+-- ============================================================
+
+INSERT INTO motions (id, court_id, case_id, motion_type, filed_by, description, filed_date, status, ruling_date, ruling_text)
+VALUES
+-- Case 3 (RICO Williams): Severance — Granted
+('d9af0001-0000-0000-0000-000000000001', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'Severance', 'Catherine L. Whitfield',
+ 'MOTION to Sever Defendant Derek Simmons from Joint Trial',
+ NOW() - INTERVAL '20 days', 'Granted', NOW() - INTERVAL '20 days',
+ 'Motion granted. Defendant Simmons has demonstrated sufficient prejudice arising from joinder to warrant separate trial. The jury may be unable to compartmentalize evidence admissible only against co-defendants Williams and Brooks. Severance is ordered as to Count 4.'),
+-- Case 3: Compel Discovery — Pending
+('d9af0002-0000-0000-0000-000000000002', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'Compel', 'Catherine L. Whitfield',
+ 'MOTION to Compel Production of Financial Records from Meridian Financial Corp',
+ NOW() - INTERVAL '5 days', 'Pending', NULL, NULL),
+-- Case 3: Limine #1 — Pending (exclude character evidence)
+('d9af0003-0000-0000-0000-000000000003', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'Limine', 'Catherine L. Whitfield',
+ 'MOTION in Limine to Exclude Character Evidence Regarding Prior Arrests Not Resulting in Conviction',
+ NOW() - INTERVAL '3 days', 'Pending', NULL, NULL),
+-- Case 3: Limine #2 — Denied (wiretap evidence)
+('d9af0004-0000-0000-0000-000000000004', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'Limine', 'David R. Okonkwo',
+ 'MOTION in Limine to Exclude Wiretap Evidence Obtained Under Title III Authorization',
+ NOW() - INTERVAL '15 days', 'Denied', NOW() - INTERVAL '15 days',
+ 'Motion denied. The Government has demonstrated compliance with all procedural requirements of Title III. The wiretap authorization was properly obtained, minimization protocols were followed, and the recordings are admissible.'),
+-- Case 4 (Petrov): Suppress — Denied
+('d9af0005-0000-0000-0000-000000000005', 'district9', 'd9c00004-0000-0000-0000-000000000004',
+ 'Suppress', 'Marcus J. Rivera',
+ 'MOTION to Suppress Evidence Obtained from Search of Cryptocurrency Exchange Records',
+ NOW() - INTERVAL '10 days', 'Denied', NOW() - INTERVAL '10 days',
+ 'Motion denied. Evidence obtained pursuant to valid warrant issued by Magistrate Judge. The affidavit supporting the warrant established probable cause based on corroborated informant testimony and independent financial analysis.'),
+-- Case 4: Dismiss — Pending
+('d9af0006-0000-0000-0000-000000000006', 'district9', 'd9c00004-0000-0000-0000-000000000004',
+ 'Dismiss', 'Marcus J. Rivera',
+ 'MOTION to Dismiss Counts 3 and 4 for Insufficient Evidence',
+ NOW() - INTERVAL '3 days', 'Pending', NULL, NULL),
+-- Case 5 (Jackson): Continuance — Denied
+('d9af0007-0000-0000-0000-000000000007', 'district9', 'd9c00005-0000-0000-0000-000000000005',
+ 'Continuance', 'David R. Okonkwo',
+ 'MOTION for Continuance of Trial Date to Retain Firearms Expert Witness',
+ NOW() - INTERVAL '14 days', 'Denied', NOW() - INTERVAL '14 days',
+ 'Motion denied. The Speedy Trial Act deadline is imminent. Defendant has not shown that the ends of justice would be served by further continuance. Defense has had adequate time to secure expert testimony.'),
+-- Case 5: Limine — Granted
+('d9af0008-0000-0000-0000-000000000008', 'district9', 'd9c00005-0000-0000-0000-000000000005',
+ 'Limine', 'Sarah K. Mitchell',
+ 'GOVERNMENT''S MOTION in Limine to Admit Expert Testimony on Firearms Modification',
+ NOW() - INTERVAL '7 days', 'Granted', NOW() - INTERVAL '7 days',
+ 'Motion granted. The Government''s firearms expert meets the qualifications standard under Daubert. Expert testimony regarding the modification of semi-automatic weapons to fully automatic capability is relevant and reliable.'),
+-- Case 8 (Reeves): New Trial — Denied
+('d9af0009-0000-0000-0000-000000000009', 'district9', 'd9c00008-0000-0000-0000-000000000008',
+ 'New Trial', 'Marcus J. Rivera',
+ 'MOTION for New Trial Pursuant to Federal Rule of Criminal Procedure 33',
+ NOW() - INTERVAL '30 days', 'Denied', NOW() - INTERVAL '30 days',
+ 'Motion denied. Defendant fails to demonstrate that the verdict was against the great weight of evidence. The jury''s credibility determinations are entitled to deference, and the evidence presented at trial was sufficient to support the conviction on all counts.'),
+-- Case 11 (Thompson): Dismiss — Granted
+('d12af001-0000-0000-0000-000000000001', 'district12', 'd12c0003-0000-0000-0000-000000000003',
+ 'Dismiss', 'Robert A. Blackwell',
+ 'MOTION to Dismiss for Violation of Fourth Amendment Rights',
+ NOW() - INTERVAL '60 days', 'Granted', NOW() - INTERVAL '60 days',
+ 'Motion granted. The Government has failed to establish sufficient evidence to proceed absent the suppressed evidence. The initial stop and subsequent search of defendant''s vehicle lacked reasonable suspicion. Case dismissed with prejudice.'),
+-- Case 12 (Volkov): Seal — Granted
+('d12af002-0000-0000-0000-000000000002', 'district12', 'd12c0004-0000-0000-0000-000000000004',
+ 'Other', 'Jennifer M. Huang',
+ 'MOTION to Seal Case and All Filings',
+ NOW() - INTERVAL '20 days', 'Granted', NOW() - INTERVAL '20 days',
+ 'Motion granted. All filings in this matter shall be maintained under seal due to the ongoing nature of the international investigation and the risk of flight by subjects not yet apprehended. Public disclosure would jeopardize law enforcement objectives.'),
+-- Case 13 (Davis): Extension #1 — Granted
+('d12af003-0000-0000-0000-000000000003', 'district12', 'd12c0005-0000-0000-0000-000000000005',
+ 'Other', 'Elena V. Petrossian',
+ 'MOTION for Extension of Time to File Response to Government Discovery',
+ NOW() - INTERVAL '45 days', 'Granted', NOW() - INTERVAL '45 days',
+ 'Motion granted. Defense counsel has shown good cause for the requested extension. Response deadline extended by 14 days.'),
+-- Case 13: Extension #2 — Granted
+('d12af004-0000-0000-0000-000000000004', 'district12', 'd12c0005-0000-0000-0000-000000000005',
+ 'Other', 'Elena V. Petrossian',
+ 'MOTION for Extension of Time to File Pretrial Motions',
+ NOW() - INTERVAL '30 days', 'Granted', NOW() - INTERVAL '30 days',
+ 'Motion granted. Given the volume of discovery materials and complexity of the alleged scheme, additional time is warranted. Pretrial motion deadline extended by 21 days.'),
+-- Case 13: Extension #3 — Granted
+('d12af005-0000-0000-0000-000000000005', 'district12', 'd12c0005-0000-0000-0000-000000000005',
+ 'Other', 'Elena V. Petrossian',
+ 'MOTION for Extension of Time to File Expert Witness Disclosures',
+ NOW() - INTERVAL '15 days', 'Granted', NOW() - INTERVAL '15 days',
+ 'Motion granted. Defense has retained a forensic accountant whose report is not yet complete. Expert disclosure deadline extended by 30 days.'),
+-- Case 9 (Gonzalez): Accept Plea — Pending
+('d12af006-0000-0000-0000-000000000006', 'district12', 'd12c0001-0000-0000-0000-000000000001',
+ 'Other', 'Robert A. Blackwell',
+ 'MOTION to Accept Plea Agreement',
+ NOW() - INTERVAL '5 days', 'Pending', NULL, NULL),
+-- Case 14 (Hernandez): Discovery — Pending
+('d12af007-0000-0000-0000-000000000007', 'district12', 'd12c0006-0000-0000-0000-000000000006',
+ 'Discovery', 'Thomas W. Nakamura',
+ 'MOTION to Compel Additional Discovery Responses Regarding Confidential Informant Communications',
+ NOW() - INTERVAL '5 days', 'Pending', NULL, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- EVIDENCE (~15 items)
+-- ============================================================
+
+INSERT INTO evidence (id, court_id, case_id, description, evidence_type, seized_date, seized_by, location, is_sealed)
+VALUES
+-- Case 3 (RICO): financial records
+('d9ac0001-0000-0000-0000-000000000001', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'Meridian Financial Corp transaction records 2023-2025, approximately 14,000 pages of wire transfer documentation and account statements',
+ 'Documentary', NOW() - INTERVAL '90 days', 'FBI Financial Crimes Unit', 'FBI Evidence Vault, Rm 310', false),
+-- Case 3: wiretap recordings
+('d9ac0002-0000-0000-0000-000000000002', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'Court-authorized Title III wiretap recordings from three phone lines over 45-day surveillance period, totaling approximately 312 hours',
+ 'Digital', NOW() - INTERVAL '75 days', 'FBI', 'FBI Digital Evidence Lab, Rm 215', false),
+-- Case 3: seized cash
+('d9ac0003-0000-0000-0000-000000000003', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'U.S. currency totaling $2,347,500.00 seized from safe deposit boxes at First National Bank and Chase Manhattan',
+ 'Physical', NOW() - INTERVAL '60 days', 'FBI Special Agent James Torres', 'Court Evidence Locker, Room B-12', false),
+-- Case 4 (Petrov): laptop
+('d9ac0004-0000-0000-0000-000000000004', 'district9', 'd9c00004-0000-0000-0000-000000000004',
+ 'Dell Latitude laptop (Model 5520) seized from defendant residence containing cryptocurrency wallet software and financial records',
+ 'Digital', NOW() - INTERVAL '85 days', 'DEA Task Force', 'DEA Regional Evidence Facility', false),
+-- Case 4: bank statements
+('d9ac0005-0000-0000-0000-000000000005', 'district9', 'd9c00004-0000-0000-0000-000000000004',
+ 'Bank of America account statements for accounts ending in 4477 and 8812 showing suspicious wire transfers totaling $3.2 million over 18 months',
+ 'Documentary', NOW() - INTERVAL '80 days', 'IRS Criminal Investigation', 'U.S. Attorney Evidence Room', false),
+-- Case 5 (Jackson): firearm
+('d9ac0006-0000-0000-0000-000000000006', 'district9', 'd9c00005-0000-0000-0000-000000000005',
+ 'Glock 19 9mm handgun, serial #GKP4472, with modified selector switch enabling fully automatic fire',
+ 'Physical', NOW() - INTERVAL '100 days', 'ATF', 'ATF National Firearms Repository', false),
+-- Case 5: surveillance video
+('d9ac0007-0000-0000-0000-000000000007', 'district9', 'd9c00005-0000-0000-0000-000000000005',
+ 'Security camera footage from First National Bank parking lot showing defendant transferring weapons from vehicle on three separate occasions',
+ 'Digital', NOW() - INTERVAL '95 days', 'ATF', 'ATF Digital Evidence Storage', false),
+-- Case 6 (Morrison, in_trial): 8 exhibits
+('d9ac0008-0000-0000-0000-000000000008', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'Replica of medical billing terminal used to demonstrate phantom billing methodology to jury',
+ 'Demonstrative', NULL, NULL, 'Courtroom 1A Evidence Cart', false),
+('d9ac0009-0000-0000-0000-000000000009', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'Medicare claim forms and Explanation of Benefits documents for 847 phantom patients, Exhibits 1-A through 1-H',
+ 'Documentary', NOW() - INTERVAL '180 days', 'HHS-OIG', 'U.S. Attorney Evidence Room', false),
+('d9ac000a-0000-0000-0000-00000000000a', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'Corporate financial records from Morrison Medical Group Inc. showing discrepancies between reported revenue and actual patient services',
+ 'Documentary', NOW() - INTERVAL '175 days', 'FBI White Collar Crime Unit', 'U.S. Attorney Evidence Room', false),
+('d9ac000b-0000-0000-0000-00000000000b', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'Email correspondence from defendant''s corporate email account discussing fabrication of patient records, 2,341 emails recovered',
+ 'Digital', NOW() - INTERVAL '170 days', 'FBI Cyber Division', 'FBI Digital Evidence Lab', false),
+('d9ac000c-0000-0000-0000-00000000000c', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'Cell phone records from Verizon showing communications between defendant and co-conspirators during key dates of the scheme',
+ 'Digital', NOW() - INTERVAL '165 days', 'FBI', 'FBI Evidence Vault, Rm 310', false),
+('d9ac000d-0000-0000-0000-00000000000d', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'DNA analysis report from latent samples recovered from falsified patient intake forms',
+ 'Forensic', NOW() - INTERVAL '140 days', 'FBI Laboratory Division', 'FBI Evidence Vault, Rm 310', false),
+('d9ac000e-0000-0000-0000-00000000000e', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'Fingerprint comparison report matching defendant''s prints to fabricated medical records',
+ 'Forensic', NOW() - INTERVAL '135 days', 'FBI Laboratory Division', 'FBI Evidence Vault, Rm 310', false),
+('d9ac000f-0000-0000-0000-00000000000f', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'Government Exhibit 50: Chronological timeline chart depicting the fraud scheme from inception through discovery, used during opening statement',
+ 'Demonstrative', NULL, NULL, 'Courtroom 1A Evidence Cart', false),
+-- Case 12 (Volkov, sealed): financial documentation
+('d12ac001-0000-0000-0000-000000000001', 'district12', 'd12c0004-0000-0000-0000-000000000004',
+ 'International wire transfer documentation from Volkov Holdings Ltd to offshore accounts in Cyprus and British Virgin Islands',
+ 'Documentary', NOW() - INTERVAL '70 days', 'FBI International Operations', 'Sealed Evidence Vault, Federal Courthouse', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- CUSTODY TRANSFERS (3 rows for Case 3 seized cash)
+-- ============================================================
+
+INSERT INTO custody_transfers (id, court_id, evidence_id, transferred_from, transferred_to, date, location, condition, notes)
+VALUES
+('d9ad0001-0000-0000-0000-000000000001', 'district9', 'd9ac0003-0000-0000-0000-000000000003',
+ 'FBI Special Agent James Torres', 'FBI Field Office Evidence Room',
+ NOW() - INTERVAL '60 days', 'FBI Los Angeles Field Office',
+ 'Sealed evidence bag, counted and verified',
+ 'Currency counted in presence of two agents and photographed. Total: $2,347,500.00 in mixed denominations.'),
+('d9ad0002-0000-0000-0000-000000000002', 'district9', 'd9ac0003-0000-0000-0000-000000000003',
+ 'FBI Evidence Custodian', 'U.S. Marshals Service',
+ NOW() - INTERVAL '45 days', 'Federal Courthouse Annex',
+ 'Sealed, chain intact',
+ 'Transferred for secure courthouse storage pending trial. Seal verified by receiving officer.'),
+('d9ad0003-0000-0000-0000-000000000003', 'district9', 'd9ac0003-0000-0000-0000-000000000003',
+ 'U.S. Marshal Deputy', 'Court Evidence Locker',
+ NOW() - INTERVAL '30 days', 'Federal Courthouse, Room B-12',
+ 'Secured in court evidence locker',
+ 'Placed in high-security evidence locker for trial availability. Locker sealed with tamper-evident tape.')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- JUDICIAL ORDERS (~15 orders)
+-- ============================================================
+
+INSERT INTO judicial_orders (id, court_id, case_id, judge_id, order_type, title, content, status, is_sealed, signer_name, signed_at, issued_at, effective_date, related_motions)
+VALUES
+-- Case 2 (Chen): Scheduling Order
+('d9ba0001-0000-0000-0000-000000000001', 'district9', 'd9c00002-0000-0000-0000-000000000002',
+ 'd9b00001-0000-0000-0000-000000000001', 'Scheduling', 'Scheduling Order',
+ 'IT IS HEREBY ORDERED that the following schedule shall govern pretrial proceedings in this matter: Discovery completion within 90 days; Pretrial motions due 30 days after close of discovery; Pretrial conference set for 14 days before trial. Counsel shall meet and confer regarding discovery within 10 business days of this Order.',
+ 'Filed', false, 'Hon. Ronnie Abrams',
+ NOW() - INTERVAL '18 days', NOW() - INTERVAL '18 days', NOW() - INTERVAL '18 days',
+ '{}'::UUID[]),
+-- Case 3 (RICO Williams): Scheduling Order
+('d9ba0002-0000-0000-0000-000000000002', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'd9b00001-0000-0000-0000-000000000001', 'Scheduling', 'Scheduling Order — Complex Case',
+ 'IT IS HEREBY ORDERED that given the complexity of this multi-defendant RICO prosecution, the following schedule shall apply: Government discovery production in rolling fashion over 120 days; Defense expert disclosures due 60 days before trial; Daubert motions due 45 days before trial. The Court designates this matter as complex under the Speedy Trial Act.',
+ 'Filed', false, 'Hon. Ronnie Abrams',
+ NOW() - INTERVAL '40 days', NOW() - INTERVAL '40 days', NOW() - INTERVAL '40 days',
+ '{}'::UUID[]),
+-- Case 3: Protective Order
+('d9ba0003-0000-0000-0000-000000000003', 'district9', 'd9c00003-0000-0000-0000-000000000003',
+ 'd9b00001-0000-0000-0000-000000000001', 'Protective', 'Protective Order Governing Discovery Materials',
+ 'IT IS HEREBY ORDERED that all discovery materials produced in this matter shall be subject to the following confidentiality restrictions: Materials designated CONFIDENTIAL may be disclosed only to counsel of record, retained experts, and court personnel. Financial records from Meridian Financial Corp shall be treated as HIGHLY CONFIDENTIAL and may not be copied or disseminated outside the defense team without prior court approval.',
+ 'Filed', false, 'Hon. Ronnie Abrams',
+ NOW() - INTERVAL '25 days', NOW() - INTERVAL '25 days', NOW() - INTERVAL '25 days',
+ '{}'::UUID[]),
+-- Case 4 (Petrov): Detention Order
+('d9ba0004-0000-0000-0000-000000000004', 'district9', 'd9c00004-0000-0000-0000-000000000004',
+ 'd9b00002-0000-0000-0000-000000000002', 'Detention', 'Order of Detention Pending Trial',
+ 'IT IS HEREBY ORDERED that defendant Aleksandr Petrov shall be detained pending trial. The Court finds by clear and convincing evidence that no condition or combination of conditions will reasonably assure the safety of the community and the appearance of the defendant. Defendant poses a significant flight risk given his foreign ties, access to substantial financial resources, and the severity of the charges carrying a maximum sentence of 20 years.',
+ 'Filed', false, 'Hon. Lance M. Africk',
+ NOW() - INTERVAL '65 days', NOW() - INTERVAL '65 days', NOW() - INTERVAL '65 days',
+ '{}'::UUID[]),
+-- Case 5 (Jackson): Scheduling Order
+('d9ba0005-0000-0000-0000-000000000005', 'district9', 'd9c00005-0000-0000-0000-000000000005',
+ 'd9b00001-0000-0000-0000-000000000001', 'Scheduling', 'Amended Scheduling Order',
+ 'IT IS HEREBY ORDERED that the trial in this matter shall proceed as scheduled. Discovery is closed. All pretrial motions have been resolved. The parties shall submit proposed jury instructions no later than 7 days before trial. Voir dire questionnaires shall be filed within 5 business days.',
+ 'Filed', false, 'Hon. Ronnie Abrams',
+ NOW() - INTERVAL '60 days', NOW() - INTERVAL '60 days', NOW() - INTERVAL '60 days',
+ '{}'::UUID[]),
+-- Case 6 (Morrison): Scheduling Order
+('d9ba0006-0000-0000-0000-000000000006', 'district9', 'd9c00006-0000-0000-0000-000000000006',
+ 'd9b00001-0000-0000-0000-000000000001', 'Scheduling', 'Trial Scheduling Order',
+ 'IT IS HEREBY ORDERED that trial in this matter shall commence on the date specified. The Government estimates a trial length of 3-4 weeks given the volume of financial evidence. Defense estimates 2 weeks for its case-in-chief. The Court shall sit Monday through Thursday, 9:00 AM to 4:30 PM, with a one-hour lunch recess.',
+ 'Filed', false, 'Hon. Ronnie Abrams',
+ NOW() - INTERVAL '90 days', NOW() - INTERVAL '90 days', NOW() - INTERVAL '90 days',
+ '{}'::UUID[]),
+-- Case 7 (Ahmed): Sentencing Judgment
+('d9ba0007-0000-0000-0000-000000000007', 'district9', 'd9c00007-0000-0000-0000-000000000007',
+ 'd9b00001-0000-0000-0000-000000000001', 'Sentencing', 'Judgment and Commitment Order',
+ 'IT IS THE JUDGMENT OF THE COURT that defendant Tariq Ahmed is hereby committed to the custody of the Bureau of Prisons for a term of 36 months, to be followed by 3 years of supervised release with standard and special conditions. Defendant shall pay restitution in the amount of $1,200,000.00 to the Internal Revenue Service. A fine of $50,000.00 is imposed. The Court has considered the factors set forth in 18 U.S.C. 3553(a) and the advisory Guidelines range.',
+ 'Filed', false, 'Hon. Ronnie Abrams',
+ NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days',
+ '{}'::UUID[]),
+-- Case 8 (Reeves): Order Denying New Trial
+('d9ba0008-0000-0000-0000-000000000008', 'district9', 'd9c00008-0000-0000-0000-000000000008',
+ 'd9b00004-0000-0000-0000-000000000004', 'Other', 'Order Denying Motion for New Trial',
+ 'IT IS HEREBY ORDERED that defendant''s Motion for New Trial pursuant to Fed. R. Crim. P. 33 is DENIED. The Court has carefully reviewed the trial record and finds the evidence sufficient to support the jury''s verdict. Defendant''s arguments regarding the weight of the evidence and alleged evidentiary errors do not meet the stringent standard for granting a new trial.',
+ 'Filed', false, 'Hon. Nancy G. Abudu',
+ NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days',
+ ARRAY['d9af0009-0000-0000-0000-000000000009']::UUID[]),
+-- Case 9 (Gonzalez): Release Order
+('d12ba001-0000-0000-0000-000000000001', 'district12', 'd12c0001-0000-0000-0000-000000000001',
+ 'd12b0002-0000-0000-0000-000000000002', 'Release', 'Order Setting Conditions of Release',
+ 'IT IS HEREBY ORDERED that defendant Maria Gonzalez shall be released on the following conditions: $25,000 unsecured bond; surrender of passport; electronic monitoring; residence restricted to the Northern District; report to Pretrial Services weekly; no contact with co-defendants or known associates involved in smuggling operations.',
+ 'Filed', false, 'Hon. Georgia N. Alexakis',
+ NOW() - INTERVAL '35 days', NOW() - INTERVAL '35 days', NOW() - INTERVAL '35 days',
+ '{}'::UUID[]),
+-- Case 11 (Thompson): Dismissal Order
+('d12ba002-0000-0000-0000-000000000002', 'district12', 'd12c0003-0000-0000-0000-000000000003',
+ 'd12b0001-0000-0000-0000-000000000001', 'Dismissal', 'Order of Dismissal With Prejudice',
+ 'IT IS HEREBY ORDERED that this case is DISMISSED WITH PREJUDICE. The Government''s remaining evidence is insufficient to sustain a conviction beyond a reasonable doubt. The Court having granted defendant''s motion to suppress the physical evidence obtained during the warrantless search, the Government concedes it cannot meet its burden. Defendant is discharged from all conditions of release.',
+ 'Filed', false, 'Hon. Amir H. Ali',
+ NOW() - INTERVAL '60 days', NOW() - INTERVAL '60 days', NOW() - INTERVAL '60 days',
+ ARRAY['d12af001-0000-0000-0000-000000000001']::UUID[]),
+-- Case 12 (Volkov): Sealing Order
+('d12ba003-0000-0000-0000-000000000003', 'district12', 'd12c0004-0000-0000-0000-000000000004',
+ 'd12b0001-0000-0000-0000-000000000001', 'Sealing', 'Order to Seal Case File',
+ 'IT IS HEREBY ORDERED that the entire case file, including all pleadings, motions, and exhibits, shall be maintained under seal. Public access to any filing is prohibited. The Government has demonstrated that unsealing would compromise an ongoing international investigation and endanger cooperating witnesses. This order shall remain in effect until further order of the Court.',
+ 'Filed', true, 'Hon. Amir H. Ali',
+ NOW() - INTERVAL '50 days', NOW() - INTERVAL '50 days', NOW() - INTERVAL '50 days',
+ ARRAY['d12af002-0000-0000-0000-000000000002']::UUID[]),
+-- Case 14 (Hernandez): Discovery Order
+('d12ba004-0000-0000-0000-000000000004', 'district12', 'd12c0006-0000-0000-0000-000000000006',
+ 'd12b0002-0000-0000-0000-000000000002', 'Discovery', 'Order Compelling Government Disclosure',
+ 'IT IS HEREBY ORDERED that the Government shall produce all communications with confidential informant CI-2025-1147, including but not limited to debriefing notes, payment records, and prior testimony in other proceedings, within 14 days of this Order. The Government shall also disclose any impeachment material related to the informant under Brady v. Maryland and Giglio v. United States.',
+ 'Filed', false, 'Hon. Georgia N. Alexakis',
+ NOW() - INTERVAL '25 days', NOW() - INTERVAL '25 days', NOW() - INTERVAL '25 days',
+ ARRAY['d12af007-0000-0000-0000-000000000007']::UUID[])
+ON CONFLICT (id) DO NOTHING;
+
 END $$;
