@@ -186,3 +186,6 @@ mod pdf_tests;
 
 #[cfg(test)]
 mod queue_create_tests;
+
+#[cfg(test)]
+mod queue_workflow_tests;
