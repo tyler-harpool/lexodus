@@ -1,5 +1,9 @@
 -- Down: remove realistic seed data
 -- Order matters: children first due to foreign key constraints
+DELETE FROM excludable_delays WHERE id::text LIKE 'd9ec%';
+DELETE FROM speedy_trial WHERE case_id::text LIKE 'd9c%' OR case_id::text LIKE 'd12c%';
+DELETE FROM deadlines WHERE id::text LIKE 'd9eb%' OR id::text LIKE 'd12eb%';
+DELETE FROM calendar_events WHERE id::text LIKE 'd9ea%' OR id::text LIKE 'd12ea%';
 DELETE FROM docket_entries WHERE id::text LIKE 'd9d0%' OR id::text LIKE 'd12d0%';
 DELETE FROM representations WHERE id::text LIKE 'd9ae%' OR id::text LIKE 'd12ae%';
 DELETE FROM parties WHERE id::text LIKE 'd9ab%' OR id::text LIKE 'd12ab%';

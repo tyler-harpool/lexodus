@@ -551,4 +551,259 @@ VALUES
 ('d12d0035-0000-0000-0000-000000000008', 'district12', 'd12c0007-0000-0000-0000-000000000007', 3, 'appearance', 'NOTICE OF ATTORNEY APPEARANCE by Robert A. Blackwell on behalf of Terrence Carter.', 'PD Robert A. Blackwell', false, false, NOW() - INTERVAL '7 days')
 ON CONFLICT (id) DO NOTHING;
 
+-- ============================================================
+-- CALENDAR EVENTS (~28 total)
+-- ============================================================
+
+-- Case 2: Chen (arraigned) — 3 events
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d9ea0001-0000-0000-0000-000000000001', 'district9', 'd9c00002-0000-0000-0000-000000000002', 'd9b00003-0000-0000-0000-000000000003', 'initial_appearance', NOW() - INTERVAL '25 days', 30, 'Courtroom 5C', 'Initial appearance of defendant Wei Chen on cybercrime charges.', '{"AUSA Mitchell","PD Rivera"}', true, 'completed', 'Defendant appeared via video. Bail set at $100,000 cash.'),
+('d9ea0002-0000-0000-0000-000000000002', 'district9', 'd9c00002-0000-0000-0000-000000000002', 'd9b00001-0000-0000-0000-000000000001', 'arraignment', NOW() - INTERVAL '20 days', 30, 'Courtroom 1A', 'Arraignment of Wei Chen. Plea entered.', '{"AUSA Mitchell","PD Rivera"}', true, 'completed', 'Defendant arraigned. Plea of not guilty entered.'),
+('d9ea0003-0000-0000-0000-000000000003', 'district9', 'd9c00002-0000-0000-0000-000000000002', 'd9b00001-0000-0000-0000-000000000001', 'status_conference', NOW() + INTERVAL '14 days', 30, 'Courtroom 1A', 'Status conference to discuss discovery progress and scheduling.', '{"AUSA Mitchell","PD Rivera"}', true, 'scheduled', '')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 3: Williams RICO (discovery) — 4 events
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d9ea0004-0000-0000-0000-000000000004', 'district9', 'd9c00003-0000-0000-0000-000000000003', 'd9b00001-0000-0000-0000-000000000001', 'status_conference', NOW() - INTERVAL '30 days', 60, 'Courtroom 1A', 'Status conference on RICO discovery issues. Multiple defense counsel present.', '{"AUSA Mitchell","Whitfield","PD Rivera","Okonkwo"}', true, 'completed', 'Discovery disputes discussed. Court ordered phased production schedule.'),
+('d9ea0005-0000-0000-0000-000000000005', 'district9', 'd9c00003-0000-0000-0000-000000000003', 'd9b00001-0000-0000-0000-000000000001', 'motion_hearing', NOW() - INTERVAL '15 days', 60, 'Courtroom 1A', 'Hearing on defense motion to compel additional discovery of wiretap materials.', '{"AUSA Mitchell","Whitfield","PD Rivera","Okonkwo"}', true, 'completed', 'Motion granted in part, denied in part. Government ordered to produce unredacted wiretap logs.'),
+('d9ea0006-0000-0000-0000-000000000006', 'district9', 'd9c00003-0000-0000-0000-000000000003', 'd9b00001-0000-0000-0000-000000000001', 'motion_hearing', NOW() + INTERVAL '7 days', 60, 'Courtroom 1A', 'Hearing on government motion for protective order regarding confidential informant identities.', '{"AUSA Mitchell","Whitfield","PD Rivera","Okonkwo"}', true, 'scheduled', ''),
+('d9ea0007-0000-0000-0000-000000000007', 'district9', 'd9c00003-0000-0000-0000-000000000003', 'd9b00001-0000-0000-0000-000000000001', 'pretrial_conference', NOW() + INTERVAL '30 days', 60, 'Courtroom 1A', 'Pretrial conference to set trial date and address remaining discovery issues.', '{"AUSA Mitchell","Whitfield","PD Rivera","Okonkwo"}', true, 'scheduled', '')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 4: Petrov (pretrial_motions) — 2 events
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d9ea0008-0000-0000-0000-000000000008', 'district9', 'd9c00004-0000-0000-0000-000000000004', 'd9b00002-0000-0000-0000-000000000002', 'motion_hearing', NOW() - INTERVAL '10 days', 60, 'Courtroom 3B', 'Hearing on defense motion to suppress evidence obtained from warrantless search of cryptocurrency exchange records.', '{"AUSA Mitchell","Whitfield"}', true, 'completed', 'Arguments heard. Court took matter under advisement.'),
+('d9ea0009-0000-0000-0000-000000000009', 'district9', 'd9c00004-0000-0000-0000-000000000004', 'd9b00002-0000-0000-0000-000000000002', 'evidentiary_hearing', NOW() + INTERVAL '14 days', 120, 'Courtroom 3B', 'Evidentiary hearing on suppression motion. Government to present testimony of lead investigator.', '{"AUSA Mitchell","Whitfield"}', true, 'scheduled', '')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 5: Jackson (trial_ready) — 2 events
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d9ea000a-0000-0000-0000-000000000001', 'district9', 'd9c00005-0000-0000-0000-000000000005', 'd9b00001-0000-0000-0000-000000000001', 'pretrial_conference', NOW() - INTERVAL '7 days', 60, 'Courtroom 1A', 'Final pretrial conference. Jury instructions, exhibit lists, and witness lists finalized.', '{"AUSA Mitchell","Whitfield"}', true, 'completed', 'Trial set to begin. Both sides ready. Estimated 5 trial days.'),
+('d9ea000b-0000-0000-0000-000000000002', 'district9', 'd9c00005-0000-0000-0000-000000000005', 'd9b00001-0000-0000-0000-000000000001', 'jury_trial', NOW() + INTERVAL '5 days', 480, 'Courtroom 1A', 'JURY TRIAL — United States v. Jackson. Jury selection and opening statements.', '{"AUSA Mitchell","Whitfield"}', true, 'scheduled', 'URGENT: Speedy Trial Act deadline approaching. 5 days remaining.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 6: Morrison (in_trial) — 5 events
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d9ea000c-0000-0000-0000-000000000003', 'district9', 'd9c00006-0000-0000-0000-000000000006', 'd9b00001-0000-0000-0000-000000000001', 'jury_trial', NOW() - INTERVAL '3 days', 480, 'Courtroom 1A', 'Trial Day 1 — Jury selection completed. Government opening statement delivered.', '{"AUSA Mitchell","Whitfield"}', true, 'completed', 'Jury of 12 plus 2 alternates seated. Government opening focused on fabricated billing records.'),
+('d9ea000d-0000-0000-0000-000000000004', 'district9', 'd9c00006-0000-0000-0000-000000000006', 'd9b00001-0000-0000-0000-000000000001', 'jury_trial', NOW() - INTERVAL '2 days', 480, 'Courtroom 1A', 'Trial Day 2 — Government witnesses: FBI Special Agent Thompson, forensic accountant Dr. Patel.', '{"AUSA Mitchell","Whitfield"}', true, 'completed', 'Government presented documentary evidence of phantom billing. Cross-examination ongoing.'),
+('d9ea000e-0000-0000-0000-000000000005', 'district9', 'd9c00006-0000-0000-0000-000000000006', 'd9b00001-0000-0000-0000-000000000001', 'jury_trial', NOW() - INTERVAL '1 day', 480, 'Courtroom 1A', 'Trial Day 3 — Government witnesses continued. Defense cross-examination of forensic accountant.', '{"AUSA Mitchell","Whitfield"}', true, 'completed', 'Heated cross-examination of Dr. Patel on methodology. Jury attentive.'),
+('d9ea000f-0000-0000-0000-000000000006', 'district9', 'd9c00006-0000-0000-0000-000000000006', 'd9b00001-0000-0000-0000-000000000001', 'jury_trial', NOW(), 480, 'Courtroom 1A', 'Trial Day 4 — Government rests. Defense to begin case-in-chief.', '{"AUSA Mitchell","Whitfield"}', true, 'in_progress', 'Government rested after presenting 8 witnesses. Defense opening statement expected this afternoon.'),
+('d9ea0010-0000-0000-0000-000000000007', 'district9', 'd9c00006-0000-0000-0000-000000000006', 'd9b00001-0000-0000-0000-000000000001', 'jury_trial', NOW() + INTERVAL '1 day', 480, 'Courtroom 1A', 'Trial Day 5 — Defense case-in-chief continues. Closing arguments if time permits.', '{"AUSA Mitchell","Whitfield"}', true, 'scheduled', '')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 7: Ahmed (sentenced) — 1 event
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d9ea0011-0000-0000-0000-000000000008', 'district9', 'd9c00007-0000-0000-0000-000000000007', 'd9b00001-0000-0000-0000-000000000001', 'sentencing', NOW() - INTERVAL '45 days', 120, 'Courtroom 1A', 'Sentencing hearing for Farooq Ahmed following guilty plea to tax evasion and filing false returns.', '{"AUSA Mitchell","PD Rivera"}', true, 'completed', 'Defendant sentenced to 36 months imprisonment, 3 years supervised release, restitution of $2.3M.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 8: Reeves (on_appeal) — 1 event
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d9ea0012-0000-0000-0000-000000000009', 'district9', 'd9c00008-0000-0000-0000-000000000008', 'd9b00004-0000-0000-0000-000000000004', 'motion_hearing', NOW() + INTERVAL '60 days', 60, 'Courtroom 1A', 'Oral argument on appeal. Defense challenges sufficiency of evidence and sentencing calculation.', '{"AUSA Mitchell","Whitfield"}', true, 'scheduled', 'Appellate panel to hear argument on two issues: sufficiency of evidence and guidelines calculation.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 9: Gonzalez (plea_negotiations) — 1 event
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d12ea001-0000-0000-0000-000000000001', 'district12', 'd12c0001-0000-0000-0000-000000000001', 'd12b0002-0000-0000-0000-000000000002', 'plea_hearing', NOW() + INTERVAL '10 days', 60, 'Courtroom 4B', 'Change of plea hearing. Defendant expected to enter guilty plea pursuant to plea agreement.', '{"AUSA Huang","PD Blackwell"}', true, 'scheduled', 'Plea agreement covers Count 1 only. Government to dismiss Count 2 at sentencing.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 10: Park (awaiting_sentencing) — 1 event
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d12ea002-0000-0000-0000-000000000002', 'district12', 'd12c0002-0000-0000-0000-000000000002', 'd12b0001-0000-0000-0000-000000000001', 'sentencing', NOW() + INTERVAL '21 days', 120, 'Courtroom 2A', 'Sentencing hearing for Sung-Ho Park following jury conviction on both counts.', '{"AUSA Huang","Petrossian"}', true, 'scheduled', 'PSR filed. Guidelines range 87-108 months. Government seeking upward departure based on national security harm.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 11: Thompson (dismissed) — 1 event
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d12ea003-0000-0000-0000-000000000003', 'district12', 'd12c0003-0000-0000-0000-000000000003', 'd12b0001-0000-0000-0000-000000000001', 'motion_hearing', NOW() - INTERVAL '60 days', 60, 'Courtroom 2A', 'Hearing on defense motion to suppress evidence. Case ultimately dismissed.', '{"AUSA Huang","Petrossian"}', true, 'completed', 'Court granted suppression motion. Government subsequently moved to dismiss all charges.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 12: Volkov & Sokolov (sealed pretrial) — 1 event
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d12ea004-0000-0000-0000-000000000004', 'district12', 'd12c0004-0000-0000-0000-000000000004', 'd12b0001-0000-0000-0000-000000000001', 'motion_hearing', NOW() + INTERVAL '14 days', 60, 'Courtroom 2A', 'SEALED hearing on defense motions for discovery and bail reconsideration.', '{"AUSA Huang","Nakamura","PD Blackwell"}', false, 'scheduled', 'Sealed proceeding. All filings under protective order.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 13: Davis (arraigned, pro se) — 1 event
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d12ea005-0000-0000-0000-000000000005', 'district12', 'd12c0005-0000-0000-0000-000000000005', 'd12b0002-0000-0000-0000-000000000002', 'status_conference', NOW() + INTERVAL '7 days', 30, 'Courtroom 4B', 'Status conference on pro se defendant discovery obligations and scheduling.', '{"AUSA Huang","Raymond Davis (pro se)"}', true, 'scheduled', 'Court to inquire into defendant ability to proceed pro se.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 14: Hernandez (discovery) — 2 events
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d12ea006-0000-0000-0000-000000000006', 'district12', 'd12c0006-0000-0000-0000-000000000006', 'd12b0002-0000-0000-0000-000000000002', 'status_conference', NOW() - INTERVAL '20 days', 30, 'Courtroom 4B', 'Status conference on discovery progress in drug distribution case.', '{"AUSA Huang","PD Blackwell"}', true, 'completed', 'Parties reported progress. Additional time granted for wiretap transcription review.'),
+('d12ea007-0000-0000-0000-000000000007', 'district12', 'd12c0006-0000-0000-0000-000000000006', 'd12b0002-0000-0000-0000-000000000002', 'scheduling_conference', NOW() + INTERVAL '10 days', 30, 'Courtroom 4B', 'Discovery conference to review wiretap evidence production and set motion deadline.', '{"AUSA Huang","PD Blackwell"}', true, 'scheduled', '')
+ON CONFLICT (id) DO NOTHING;
+
+-- Case 15: Carter (filed) — 1 event
+INSERT INTO calendar_events (id, court_id, case_id, judge_id, event_type, scheduled_date, duration_minutes, courtroom, description, participants, is_public, status, notes)
+VALUES
+('d12ea008-0000-0000-0000-000000000008', 'district12', 'd12c0007-0000-0000-0000-000000000007', 'd12b0003-0000-0000-0000-000000000003', 'initial_appearance', NOW() + INTERVAL '3 days', 30, 'Courtroom 6A', 'Initial appearance and arraignment of Terrence Carter on RICO charges.', '{"AUSA Huang","PD Blackwell"}', true, 'scheduled', '')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- DEADLINES (~22 total)
+-- ============================================================
+
+-- Case 2: Chen (arraigned) — 2 deadlines
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district9', 'd9eb0001-0000-0000-0000-000000000001', 'd9c00002-0000-0000-0000-000000000002', 'Government initial discovery production', 'Fed. R. Crim. P. 16(a)', NOW() + INTERVAL '7 days', 'open', 'Government must produce initial discovery materials including Jencks material.'),
+('district9', 'd9eb0002-0000-0000-0000-000000000002', 'd9c00002-0000-0000-0000-000000000002', 'Defense reciprocal discovery', 'Fed. R. Crim. P. 16(b)', NOW() + INTERVAL '21 days', 'open', 'Defense reciprocal discovery due 14 days after government production.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 3: Williams RICO (discovery) — 2 deadlines
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district9', 'd9eb0003-0000-0000-0000-000000000003', 'd9c00003-0000-0000-0000-000000000003', 'Government supplemental discovery production (RICO)', 'Fed. R. Crim. P. 16', NOW() - INTERVAL '5 days', 'expired', 'OVERDUE: Government was ordered to produce unredacted wiretap logs. Defendant Simmons counsel has filed motion to compel.'),
+('district9', 'd9eb0004-0000-0000-0000-000000000004', 'd9c00003-0000-0000-0000-000000000003', 'Pretrial motions filing deadline', 'Local Rule 12.1', NOW() + INTERVAL '21 days', 'open', 'All pretrial motions due. Includes motions in limine, Daubert challenges, and severance motions.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 4: Petrov (pretrial_motions) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district9', 'd9eb0005-0000-0000-0000-000000000005', 'd9c00004-0000-0000-0000-000000000004', 'Government response to suppression motion', 'Fed. R. Crim. P. 12(d)', NOW() - INTERVAL '12 days', 'met', 'Government filed response opposing motion to suppress cryptocurrency exchange records.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 5: Jackson (trial_ready) — 2 deadlines
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district9', 'd9eb0006-0000-0000-0000-000000000006', 'd9c00005-0000-0000-0000-000000000005', 'SPEEDY TRIAL DEADLINE — trial must commence', '18 U.S.C. 3161 - Speedy Trial Act', NOW() + INTERVAL '5 days', 'open', 'CRITICAL: Speedy Trial Act 70-day clock expires. Trial MUST begin by this date or case subject to dismissal.'),
+('district9', 'd9eb0007-0000-0000-0000-000000000007', 'd9c00005-0000-0000-0000-000000000005', 'Joint proposed jury instructions', 'Local Rule 51.1', NOW() + INTERVAL '3 days', 'open', 'Both parties to file jointly proposed jury instructions and verdict form.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 6: Morrison (in_trial) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district9', 'd9eb0008-0000-0000-0000-000000000008', 'd9c00006-0000-0000-0000-000000000006', 'Daily trial exhibit submissions', 'Standing Trial Order', NOW() - INTERVAL '1 day', 'met', 'Parties submitted exhibit lists and witness schedules for following trial day as required.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 7: Ahmed (sentenced) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district9', 'd9eb0009-0000-0000-0000-000000000009', 'd9c00007-0000-0000-0000-000000000007', 'Restitution payment schedule submission', 'Fed. R. Crim. P. 32', NOW() - INTERVAL '30 days', 'met', 'Defense filed proposed restitution payment schedule as ordered at sentencing.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 8: Reeves (on_appeal) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district9', 'd9eb000a-0000-0000-0000-000000000001', 'd9c00008-0000-0000-0000-000000000008', 'Appellant opening brief', 'Fed. R. App. P. 31', NOW() + INTERVAL '45 days', 'open', 'Defense appellate brief due. Challenging sufficiency of evidence and sentencing guidelines calculation.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 9: Gonzalez (plea_negotiations) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district12', 'd12eb001-0000-0000-0000-000000000001', 'd12c0001-0000-0000-0000-000000000001', 'Plea agreement submission', 'Fed. R. Crim. P. 11', NOW() + INTERVAL '7 days', 'open', 'Signed plea agreement to be filed with the court prior to change of plea hearing.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 10: Park (awaiting_sentencing) — 2 deadlines
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district12', 'd12eb002-0000-0000-0000-000000000002', 'd12c0002-0000-0000-0000-000000000002', 'PSR objection deadline', 'Fed. R. Crim. P. 32(f)', NOW() + INTERVAL '14 days', 'open', 'Parties to file objections to Presentence Investigation Report within 14 days of receipt.'),
+('district12', 'd12eb003-0000-0000-0000-000000000003', 'd12c0002-0000-0000-0000-000000000002', 'Sentencing memoranda filing deadline', 'Fed. R. Crim. P. 32', NOW() + INTERVAL '18 days', 'open', 'Both parties to file sentencing memoranda including guidelines calculations and departure arguments.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 12: Volkov & Sokolov (sealed pretrial) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district12', 'd12eb004-0000-0000-0000-000000000004', 'd12c0004-0000-0000-0000-000000000004', 'Defense motions filing deadline', 'Fed. R. Crim. P. 12(b)', NOW() + INTERVAL '21 days', 'open', 'All pretrial motions due including motions to dismiss, suppress, and for bill of particulars.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 13: Davis (arraigned, pro se) — 3 deadlines
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district12', 'd12eb005-0000-0000-0000-000000000005', 'd12c0005-0000-0000-0000-000000000005', 'Pro se discovery request filing', 'Fed. R. Crim. P. 16', NOW() - INTERVAL '30 days', 'extended', 'Extended from original deadline. Pro se defendant granted additional time to formulate discovery requests.'),
+('district12', 'd12eb006-0000-0000-0000-000000000006', 'd12c0005-0000-0000-0000-000000000005', 'Pro se discovery request filing (extended)', 'Fed. R. Crim. P. 16', NOW() - INTERVAL '15 days', 'extended', 'Second extension granted. Court expressed concern about repeated delays.'),
+('district12', 'd12eb007-0000-0000-0000-000000000007', 'd12c0005-0000-0000-0000-000000000005', 'Pro se discovery request filing (final extension)', 'Fed. R. Crim. P. 16', NOW() + INTERVAL '5 days', 'open', 'FINAL extension. Court warned no further extensions will be granted. Defendant Davis must file by this date.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 14: Hernandez (discovery) — 2 deadlines
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district12', 'd12eb008-0000-0000-0000-000000000008', 'd12c0006-0000-0000-0000-000000000006', 'Government discovery production (wiretap evidence)', 'Fed. R. Crim. P. 16', NOW() - INTERVAL '10 days', 'extended', 'Extended twice due to volume of wiretap recordings requiring transcription. New deadline set by court.'),
+('district12', 'd12eb009-0000-0000-0000-000000000009', 'd12c0006-0000-0000-0000-000000000006', 'Expert report deadline', 'Fed. R. Crim. P. 16(a)(1)(G)', NOW() + INTERVAL '28 days', 'open', 'Government expert reports on narcotics analysis and financial tracing due.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 15: Carter (filed) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district12', 'd12eb00a-0000-0000-0000-000000000001', 'd12c0007-0000-0000-0000-000000000007', 'Initial appearance deadline', '18 U.S.C. 3161(b)', NOW() + INTERVAL '3 days', 'open', 'Defendant must be brought before magistrate judge without unnecessary delay.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 1: Rodriguez (filed) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district9', 'd9eb000b-0000-0000-0000-000000000002', 'd9c00001-0000-0000-0000-000000000001', 'Arraignment scheduling deadline', 'Fed. R. Crim. P. 10', NOW() + INTERVAL '10 days', 'open', 'Defendant to be arraigned. Initial appearance completed; awaiting formal arraignment date.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- Case 11: Thompson (dismissed) — 1 deadline
+INSERT INTO deadlines (court_id, id, case_id, title, rule_code, due_at, status, notes)
+VALUES
+('district12', 'd12eb00b-0000-0000-0000-000000000002', 'd12c0003-0000-0000-0000-000000000003', 'Government response to suppression motion', 'Fed. R. Crim. P. 12(d)', NOW() - INTERVAL '75 days', 'met', 'Government filed opposition to motion to suppress. Motion was subsequently granted and case dismissed.')
+ON CONFLICT (court_id, id) DO NOTHING;
+
+-- ============================================================
+-- SPEEDY TRIAL CLOCKS (4 rows)
+-- ============================================================
+
+INSERT INTO speedy_trial (case_id, court_id, arrest_date, indictment_date, arraignment_date, trial_start_deadline, days_elapsed, days_remaining, is_tolled, waived)
+VALUES
+-- Case 2: Chen (arraigned) — early in timeline
+('d9c00002-0000-0000-0000-000000000002', 'district9',
+ NOW() - INTERVAL '45 days', NOW() - INTERVAL '40 days', NOW() - INTERVAL '30 days',
+ (NOW() - INTERVAL '30 days') + INTERVAL '70 days',
+ 15, 55, false, false),
+-- Case 4: Petrov (pretrial_motions) — tolled due to pending motion
+('d9c00004-0000-0000-0000-000000000004', 'district9',
+ NOW() - INTERVAL '90 days', NOW() - INTERVAL '85 days', NOW() - INTERVAL '70 days',
+ (NOW() - INTERVAL '70 days') + INTERVAL '70 days',
+ 42, 28, true, false),
+-- Case 5: Jackson (trial_ready) — CRITICAL: only 5 days remaining
+('d9c00005-0000-0000-0000-000000000005', 'district9',
+ NOW() - INTERVAL '95 days', NOW() - INTERVAL '90 days', NOW() - INTERVAL '80 days',
+ (NOW() - INTERVAL '80 days') + INTERVAL '70 days',
+ 65, 5, false, false),
+-- Case 14: Hernandez (discovery) — standard timeline
+('d12c0006-0000-0000-0000-000000000006', 'district12',
+ NOW() - INTERVAL '60 days', NOW() - INTERVAL '55 days', NOW() - INTERVAL '45 days',
+ (NOW() - INTERVAL '45 days') + INTERVAL '70 days',
+ 30, 40, false, false)
+ON CONFLICT (case_id) DO NOTHING;
+
+-- ============================================================
+-- EXCLUDABLE DELAYS (3 rows)
+-- ============================================================
+
+INSERT INTO excludable_delays (id, court_id, case_id, start_date, end_date, reason, statutory_reference, days_excluded, order_reference)
+VALUES
+-- Case 4: Petrov — pending suppression motion tolls clock
+('d9ec0001-0000-0000-0000-000000000001', 'district9', 'd9c00004-0000-0000-0000-000000000004',
+ NOW() - INTERVAL '70 days', NOW() - INTERVAL '42 days',
+ 'Pending motion to suppress evidence obtained from warrantless search of cryptocurrency exchange records',
+ '18 U.S.C. 3161(h)(1)(D)', 28,
+ 'Order dated ' || to_char(NOW() - INTERVAL '70 days', 'MM/DD/YYYY') || ' granting stay pending resolution of suppression motion'),
+-- Case 5: Jackson — defense continuance
+('d9ec0002-0000-0000-0000-000000000002', 'district9', 'd9c00005-0000-0000-0000-000000000005',
+ NOW() - INTERVAL '80 days', NOW() - INTERVAL '70 days',
+ 'Defense motion for continuance to prepare for trial and retain expert witness on firearms identification',
+ '18 U.S.C. 3161(h)(7)(A)', 10,
+ 'Order dated ' || to_char(NOW() - INTERVAL '80 days', 'MM/DD/YYYY') || ' granting defense continuance'),
+-- Case 5: Jackson — complex case designation
+('d9ec0003-0000-0000-0000-000000000003', 'district9', 'd9c00005-0000-0000-0000-000000000005',
+ NOW() - INTERVAL '70 days', NOW() - INTERVAL '55 days',
+ 'Complex case designation by court due to novel firearms identification issues and need for expert testimony',
+ '18 U.S.C. 3161(h)(7)(B)(ii)', 15,
+ 'Order dated ' || to_char(NOW() - INTERVAL '70 days', 'MM/DD/YYYY') || ' designating case as complex under Speedy Trial Act')
+ON CONFLICT (id) DO NOTHING;
+
 END $$;
