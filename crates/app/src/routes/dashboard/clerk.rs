@@ -1,474 +1,272 @@
-use crate::tier_gate::TierGate;
 use dioxus::prelude::*;
-use dioxus_free_icons::icons::ld_icons::{LdLock, LdLockOpen};
-use dioxus_free_icons::Icon;
-use server::api::{get_dashboard_stats, get_premium_analytics};
-use shared_types::UserTier;
-use shared_ui::{
-    AspectRatio, Avatar, AvatarFallback, Badge, BadgeVariant, Button, ButtonVariant, Card,
-    CardContent, CardDescription, CardHeader, CardTitle, ContentSide, HoverCard, HoverCardContent,
-    HoverCardTrigger, Progress, ProgressIndicator, Separator, Skeleton, Tooltip, TooltipContent,
-    TooltipTrigger,
+use shared_types::QueueItemResponse;
+use shared_ui::components::{
+    Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardDescription, CardHeader,
+    CardTitle, PageHeader, PageTitle, Separator, Skeleton,
 };
 
-/// Maximum value for progress bar display.
-const PROGRESS_MAX: f64 = 100.0;
+use crate::routes::Route;
+use crate::CourtContext;
 
-/// Number of skeleton placeholders shown while data is loading.
-const SKELETON_COUNT: usize = 4;
-
-/// Calculate a percentage from a numerator and denominator, capped at PROGRESS_MAX.
-fn calc_percentage(numerator: i64, denominator: i64) -> f64 {
-    if denominator == 0 {
-        return 0.0;
+/// Priority level to badge variant mapping.
+fn priority_badge(priority: i32) -> (BadgeVariant, &'static str) {
+    match priority {
+        1 => (BadgeVariant::Destructive, "Critical"),
+        2 => (BadgeVariant::Outline, "High"),
+        3 => (BadgeVariant::Secondary, "Normal"),
+        _ => (BadgeVariant::Primary, "Low"),
     }
-    let pct = (numerator as f64 / denominator as f64) * PROGRESS_MAX;
-    pct.min(PROGRESS_MAX)
 }
 
-/// Extract the first two characters of a display name, uppercased, for avatar initials.
-fn initials_from_name(name: &str) -> String {
-    name.chars().take(2).collect::<String>().to_uppercase()
+/// Human-readable label for a pipeline step.
+fn step_label(step: &str) -> &str {
+    match step {
+        "review" => "Review",
+        "docket" => "Docket",
+        "nef" => "NEF",
+        "route_judge" => "Route Judge",
+        "serve" => "Serve",
+        "completed" => "Completed",
+        _ => step,
+    }
 }
 
-/// Clerk/Admin dashboard displaying stats, progress bars, and recent user activity.
+/// Clerk dashboard displaying the filing work queue.
 #[component]
 pub fn ClerkDashboard() -> Element {
-    let mut stats_resource = use_server_future(get_dashboard_stats)?;
+    let ctx = use_context::<CourtContext>();
+    let court = ctx.court_id.read().clone();
 
-    let stats_result = stats_resource();
+    // Filter signals
+    let mut status_filter = use_signal(|| "pending".to_string());
+    let mut type_filter = use_signal(|| String::new());
+    let mut priority_filter = use_signal(|| None::<i32>);
+
+    let stats = use_resource(move || {
+        let court = court.clone();
+        async move {
+            server::api::get_queue_stats(court, None)
+                .await
+                .ok()
+                .and_then(|json| serde_json::from_str::<shared_types::QueueStats>(&json).ok())
+        }
+    });
+
+    let court_for_items = ctx.court_id.read().clone();
+    let items = use_resource(move || {
+        let court = court_for_items.clone();
+        let status = status_filter.read().clone();
+        let qtype = type_filter.read().clone();
+        let pri = *priority_filter.read();
+        async move {
+            let status_opt = if status.is_empty() { None } else { Some(status) };
+            let type_opt = if qtype.is_empty() { None } else { Some(qtype) };
+            server::api::search_queue(court, status_opt, type_opt, pri, None, None, None, Some(50))
+                .await
+                .ok()
+                .and_then(|json| {
+                    serde_json::from_str::<shared_types::QueueSearchResponse>(&json).ok()
+                })
+        }
+    });
 
     rsx! {
-        document::Link { rel: "stylesheet", href: asset!("./dashboard.css") }
+        document::Link { rel: "stylesheet", href: asset!("./clerk.css") }
+        PageHeader {
+            PageTitle { "Clerk Work Queue" }
+        }
 
-        div {
-            class: "dashboard-page",
-
-            h2 {
-                class: "dashboard-title",
-                "Dashboard"
-            }
-
-            match stats_result {
-                None => rsx! { LoadingSkeletons {} },
-
-                Some(Err(err)) => rsx! {
-                    Card {
-                        CardHeader {
-                            CardTitle { "Error" }
-                            CardDescription { "Failed to load dashboard data." }
-                        }
-                        CardContent {
-                            p {
-                                class: "dashboard-error-text",
-                                "{err}"
-                            }
-                            Button {
-                                variant: ButtonVariant::Primary,
-                                onclick: move |_| { stats_resource.restart(); },
-                                "Retry"
+        // Stats cards
+        match &*stats.read() {
+            Some(Some(s)) => rsx! {
+                div { class: "clerk-stats-grid",
+                    StatCard { label: "Pending", value: s.pending_count, variant: BadgeVariant::Destructive }
+                    StatCard { label: "My Items", value: s.my_count, variant: BadgeVariant::Primary }
+                    StatCard { label: "Today", value: s.today_count, variant: BadgeVariant::Secondary }
+                    StatCard { label: "Urgent", value: s.urgent_count, variant: BadgeVariant::Outline }
+                }
+            },
+            _ => rsx! {
+                div { class: "clerk-stats-grid",
+                    for _ in 0..4 {
+                        Card {
+                            CardContent {
+                                Skeleton { style: "height: 2.5rem; width: 100%;" }
                             }
                         }
                     }
-                },
+                }
+            },
+        }
 
-                Some(Ok(stats)) => rsx! {
-                    StatsGrid { stats: stats.clone() }
-                    ProgressSection { stats: stats.clone() }
-
-                    // Pro tier: analytics section
-                    TierGate {
-                        required: UserTier::Pro,
-                        fallback: rsx! { UpgradePrompt { tier_name: "Pro", feature: "Analytics" } },
-                        AnalyticsSection {}
+        // Filter bar
+        Card {
+            CardContent {
+                div { class: "clerk-filter-bar",
+                    div { class: "clerk-filter-group",
+                        label { class: "clerk-filter-label", "Status" }
+                        select {
+                            class: "input clerk-filter-select",
+                            value: "{status_filter}",
+                            onchange: move |e| status_filter.set(e.value()),
+                            option { value: "", "All" }
+                            option { value: "pending", "Pending" }
+                            option { value: "in_review", "In Review" }
+                            option { value: "processing", "Processing" }
+                            option { value: "completed", "Completed" }
+                            option { value: "rejected", "Rejected" }
+                        }
                     }
-
-                    RecentActivity { stats: stats.clone() }
-
-                    // Enterprise tier: admin panel
-                    TierGate {
-                        required: UserTier::Enterprise,
-                        fallback: rsx! { LockedSection { tier_name: "Enterprise", feature: "Admin Panel" } },
-                        AdminPanel { total_users: stats.total_users }
+                    div { class: "clerk-filter-group",
+                        label { class: "clerk-filter-label", "Type" }
+                        select {
+                            class: "input clerk-filter-select",
+                            value: "{type_filter}",
+                            onchange: move |e| type_filter.set(e.value()),
+                            option { value: "", "All" }
+                            option { value: "filing", "Filing" }
+                            option { value: "motion", "Motion" }
+                            option { value: "order", "Order" }
+                            option { value: "deadline_alert", "Deadline Alert" }
+                            option { value: "general", "General" }
+                        }
                     }
-                },
+                    div { class: "clerk-filter-group",
+                        label { class: "clerk-filter-label", "Priority" }
+                        select {
+                            class: "input clerk-filter-select",
+                            value: match *priority_filter.read() {
+                                Some(p) => format!("{p}"),
+                                None => String::new(),
+                            },
+                            onchange: move |e: Event<FormData>| {
+                                let val = e.value();
+                                if val.is_empty() {
+                                    priority_filter.set(None);
+                                } else if let Ok(p) = val.parse::<i32>() {
+                                    priority_filter.set(Some(p));
+                                }
+                            },
+                            option { value: "", "All" }
+                            option { value: "1", "Critical" }
+                            option { value: "2", "High" }
+                            option { value: "3", "Normal" }
+                            option { value: "4", "Low" }
+                        }
+                    }
+                }
             }
         }
-    }
-}
 
-/// Grid of skeleton placeholders shown during initial data load.
-#[component]
-fn LoadingSkeletons() -> Element {
-    rsx! {
-        div {
-            class: "skeleton-grid",
-            for _ in 0..SKELETON_COUNT {
+        // Queue items list
+        match &*items.read() {
+            Some(Some(data)) => rsx! {
                 Card {
                     CardHeader {
-                        Skeleton { style: "height: 1rem; width: 60%;" }
+                        CardTitle { "Queue Items" }
+                        CardDescription { "{data.total} items" }
                     }
                     CardContent {
-                        Skeleton { style: "height: 2rem; width: 40%;" }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// Row of four stat cards displayed in a responsive CSS grid.
-#[component]
-fn StatsGrid(stats: shared_types::DashboardStats) -> Element {
-    let growth_rate = calc_percentage(stats.active_products, stats.total_products);
-
-    rsx! {
-        div {
-            class: "stats-grid",
-
-            StatCard {
-                title: "Total Users",
-                value: "{stats.total_users}",
-                tooltip_text: "The total number of registered user accounts.",
-                badge_label: "live",
-            }
-
-            StatCard {
-                title: "Total Products",
-                value: "{stats.total_products}",
-                tooltip_text: "Total products across all categories and statuses.",
-            }
-
-            StatCard {
-                title: "Active Products",
-                value: "{stats.active_products}",
-                tooltip_text: "Products currently marked as active in the catalog.",
-            }
-
-            StatCard {
-                title: "Growth Rate",
-                value: "{growth_rate:.1}%",
-                tooltip_text: "Percentage of products that are currently active.",
-            }
-        }
-    }
-}
-
-/// A single stat card with an optional badge and a tooltip on an info icon.
-#[component]
-fn StatCard(
-    title: String,
-    value: String,
-    tooltip_text: String,
-    #[props(default)] badge_label: Option<String>,
-) -> Element {
-    rsx! {
-        Card {
-            CardHeader {
-                div {
-                    class: "stat-header-row",
-                    CardTitle { "{title}" }
-                    div {
-                        class: "stat-actions",
-                        if let Some(label) = &badge_label {
-                            Badge { variant: BadgeVariant::Primary, "{label}" }
-                        }
-                        Tooltip {
-                            TooltipTrigger {
-                                span {
-                                    class: "stat-info-icon",
-                                    "?"
-                                }
+                        if data.items.is_empty() {
+                            div { class: "clerk-empty-state",
+                                p { class: "clerk-empty-title", "No items in queue" }
+                                p { class: "clerk-empty-description", "New filings and motions will appear here automatically." }
                             }
-                            TooltipContent { side: ContentSide::Top, "{tooltip_text}" }
-                        }
-                    }
-                }
-            }
-            CardContent {
-                span {
-                    class: "stat-value",
-                    "{value}"
-                }
-            }
-        }
-    }
-}
-
-/// Section with two progress bars: inventory target and active products ratio.
-#[component]
-fn ProgressSection(stats: shared_types::DashboardStats) -> Element {
-    let inventory_pct = calc_percentage(stats.active_products, stats.total_products);
-    let active_ratio = calc_percentage(stats.active_products, stats.total_products);
-
-    rsx! {
-        Card {
-            CardHeader {
-                CardTitle { "Progress Overview" }
-                CardDescription { "Key inventory and product metrics at a glance." }
-            }
-            CardContent {
-                div {
-                    class: "progress-stack",
-
-                    div {
-                        class: "progress-row",
-                        div {
-                            class: "progress-label-row",
-                            span {
-                                class: "progress-label",
-                                "Inventory Target"
-                            }
-                            span {
-                                class: "progress-value",
-                                "{stats.active_products} / {stats.total_products}"
-                            }
-                        }
-                        Progress {
-                            value: Some(inventory_pct),
-                            ProgressIndicator {}
-                        }
-                    }
-
-                    Separator {}
-
-                    div {
-                        class: "progress-row",
-                        div {
-                            class: "progress-label-row",
-                            span {
-                                class: "progress-label",
-                                "Active Products Ratio"
-                            }
-                            span {
-                                class: "progress-value",
-                                "{active_ratio:.1}%"
-                            }
-                        }
-                        Progress {
-                            value: Some(active_ratio),
-                            ProgressIndicator {}
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// Card listing recent user activity in a scrollable area with hover cards.
-#[component]
-fn RecentActivity(stats: shared_types::DashboardStats) -> Element {
-    rsx! {
-        Card {
-            CardHeader {
-                CardTitle { "Recent Activity" }
-                CardDescription { "Newly registered users." }
-            }
-            CardContent {
-                div {
-                    for (idx, user) in stats.recent_users.iter().enumerate() {
-                        if idx > 0 {
-                            Separator {}
-                        }
-                        UserRow { user: user.clone() }
-                    }
-                    if stats.recent_users.is_empty() {
-                        p {
-                            class: "empty-text",
-                            "No recent users."
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// A single user row with avatar, hover card, and user details.
-#[component]
-fn UserRow(user: shared_types::User) -> Element {
-    let fallback_initials = initials_from_name(&user.display_name);
-
-    rsx! {
-        div {
-            class: "user-row",
-
-            Avatar {
-                AvatarFallback { "{fallback_initials}" }
-            }
-
-            HoverCard {
-                HoverCardTrigger {
-                    span {
-                        class: "user-name-link",
-                        "{user.display_name}"
-                    }
-                }
-                HoverCardContent {
-                    div {
-                        class: "hover-card-body",
-
-                        div {
-                            class: "hover-card-avatar-wrap",
-                            AspectRatio {
-                                ratio: 1.0,
-                                div {
-                                    class: "hover-card-avatar-placeholder",
-                                    "{fallback_initials}"
+                        } else {
+                            div { class: "clerk-queue-list",
+                                for item in data.items.iter() {
+                                    QueueItemRow { item: item.clone() }
                                 }
                             }
                         }
-
-                        div {
-                            class: "hover-card-details",
-                            span {
-                                class: "hover-card-name",
-                                "{user.display_name}"
-                            }
-                            span {
-                                class: "hover-card-username",
-                                "@{user.username}"
-                            }
-                            span {
-                                class: "hover-card-id",
-                                "ID: {user.id}"
-                            }
+                    }
+                }
+            },
+            Some(None) => rsx! {
+                Card {
+                    CardContent {
+                        p { class: "clerk-empty-title", "Failed to load queue items." }
+                    }
+                }
+            },
+            None => rsx! {
+                Card {
+                    CardContent {
+                        for _ in 0..5 {
+                            Skeleton { style: "height: 3rem; width: 100%; margin-bottom: 0.5rem;" }
                         }
                     }
                 }
-            }
-
-            div { class: "user-row-spacer" }
-
-            span {
-                class: "hide-mobile user-row-username",
-                "@{user.username}"
-            }
+            },
         }
     }
 }
 
-/// Premium analytics section — fetches tier-gated data from the server.
+/// A single stat card.
 #[component]
-fn AnalyticsSection() -> Element {
-    let analytics = use_server_future(get_premium_analytics)?;
-    let result = analytics();
-
+fn StatCard(label: String, value: i64, variant: BadgeVariant) -> Element {
     rsx! {
         Card {
-            CardHeader {
-                div {
-                    class: "stat-header-row",
-                    CardTitle { "Analytics" }
-                    Badge { variant: BadgeVariant::Secondary, "PRO" }
-                }
-                CardDescription { "Revenue and category breakdown for Pro users." }
-            }
             CardContent {
-                match result {
-                    None => rsx! {
-                        div { class: "analytics-loading",
-                            Skeleton { style: "height: 1.5rem; width: 50%;" }
-                            Skeleton { style: "height: 1rem; width: 70%; margin-top: 0.5rem;" }
-                        }
-                    },
-                    Some(Err(err)) => rsx! {
-                        p { class: "dashboard-error-text", "{err}" }
-                    },
-                    Some(Ok(data)) => rsx! {
-                        div { class: "analytics-grid",
-                            div { class: "analytics-metric",
-                                span { class: "analytics-metric-label", "Total Revenue" }
-                                span { class: "analytics-metric-value", "${data.total_revenue:.2}" }
-                            }
-                            div { class: "analytics-metric",
-                                span { class: "analytics-metric-label", "Avg Price" }
-                                span { class: "analytics-metric-value", "${data.avg_product_price:.2}" }
-                            }
-                            div { class: "analytics-metric",
-                                span { class: "analytics-metric-label", "New Users (30d)" }
-                                span { class: "analytics-metric-value", "{data.users_last_30_days}" }
-                            }
-                        }
-                        if !data.products_by_category.is_empty() {
-                            Separator {}
-                            div { class: "analytics-categories",
-                                span { class: "analytics-categories-title", "Products by Category" }
-                                for cat in data.products_by_category.iter() {
-                                    div { class: "analytics-category-row",
-                                        span { class: "analytics-category-name", "{cat.category}" }
-                                        Badge { variant: BadgeVariant::Primary, "{cat.count}" }
-                                    }
-                                }
-                            }
-                        }
-                    },
+                div { class: "clerk-stat-card",
+                    span { class: "clerk-stat-value", "{value}" }
+                    Badge { variant: variant, "{label}" }
                 }
             }
         }
     }
 }
 
-/// Elite admin panel — quick user count and navigation link.
+/// A single queue item row in the list.
 #[component]
-fn AdminPanel(total_users: i64) -> Element {
-    use crate::routes::Route;
+fn QueueItemRow(item: QueueItemResponse) -> Element {
+    let nav = use_navigator();
+    let (badge_variant, badge_label) = priority_badge(item.priority);
+    let step = step_label(&item.current_step);
+
+    let case_id = item.case_id.clone();
+    let _queue_id = item.id.clone();
 
     rsx! {
-        Card {
-            CardHeader {
-                div {
-                    class: "stat-header-row",
-                    CardTitle { "Admin Panel" }
-                    Badge { variant: BadgeVariant::Destructive, "ENTERPRISE" }
+        div { class: "clerk-queue-item",
+            div { class: "clerk-queue-item-main",
+                div { class: "clerk-queue-item-header",
+                    span { class: "clerk-queue-item-title", "{item.title}" }
+                    Badge { variant: badge_variant, "{badge_label}" }
+                    Badge { variant: BadgeVariant::Secondary, "{item.queue_type}" }
                 }
-                CardDescription { "System administration tools for Enterprise users." }
-            }
-            CardContent {
-                div { class: "admin-panel-content",
-                    div { class: "admin-stat-row",
-                        span { class: "admin-stat-label", "Registered Users" }
-                        span { class: "stat-value", "{total_users}" }
+                div { class: "clerk-queue-item-meta",
+                    span { class: "clerk-queue-item-step", "Step: {step}" }
+                    if let Some(ref cn) = item.case_number {
+                        Separator {}
+                        span { class: "clerk-queue-item-case", "Case: {cn}" }
                     }
                     Separator {}
-                    div { class: "admin-actions",
-                        Link { to: Route::Users {},
-                            Button { variant: ButtonVariant::Primary, "Manage Users" }
-                        }
-                        Link { to: Route::Products {},
-                            Button { variant: ButtonVariant::Secondary, "Manage Products" }
-                        }
-                    }
+                    span { class: "clerk-queue-item-status", "{item.status}" }
                 }
             }
-        }
-    }
-}
-
-/// Upgrade prompt shown to users below the required tier.
-#[component]
-fn UpgradePrompt(tier_name: String, feature: String) -> Element {
-    rsx! {
-        div { class: "tier-gate-card tier-gate-upgrade",
-            div { class: "tier-gate-icon", Icon::<LdLockOpen> { icon: LdLockOpen, width: 24, height: 24 } }
-            h3 { class: "tier-gate-title", "Unlock {feature}" }
-            p { class: "tier-gate-description",
-                "Upgrade to {tier_name} to access {feature} and more."
-            }
-        }
-    }
-}
-
-/// Locked section shown to users below the required tier.
-#[component]
-fn LockedSection(tier_name: String, feature: String) -> Element {
-    rsx! {
-        div { class: "tier-gate-card tier-gate-locked",
-            div { class: "tier-gate-icon", Icon::<LdLock> { icon: LdLock, width: 24, height: 24 } }
-            h3 { class: "tier-gate-title", "{feature}" }
-            p { class: "tier-gate-description",
-                "This feature requires {tier_name} tier access."
+            div { class: "clerk-queue-item-actions",
+                if item.status == "pending" {
+                    Button {
+                        variant: ButtonVariant::Primary,
+                        onclick: move |_| {
+                            if let Some(ref cid) = case_id {
+                                nav.push(Route::CaseDetail { id: cid.clone() });
+                            }
+                        },
+                        "Claim"
+                    }
+                } else if item.status == "in_review" || item.status == "processing" {
+                    Button {
+                        variant: ButtonVariant::Secondary,
+                        onclick: move |_| {
+                            if let Some(ref cid) = case_id {
+                                nav.push(Route::CaseDetail { id: cid.clone() });
+                            }
+                        },
+                        "Continue"
+                    }
+                }
             }
         }
     }
