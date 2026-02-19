@@ -122,7 +122,7 @@ pub struct JudicialOpinion {
 // ── JudicialOpinion API response ───────────────────────────────────
 
 /// API response shape for a judicial opinion.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct JudicialOpinionResponse {
     pub id: String,
@@ -247,7 +247,7 @@ pub struct OpinionVote {
 // ── OpinionVote API response ───────────────────────────────────────
 
 /// API response shape for an opinion vote.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OpinionVoteResponse {
     pub id: String,
@@ -305,7 +305,7 @@ pub struct OpinionCitation {
 // ── OpinionCitation API response ───────────────────────────────────
 
 /// API response shape for an opinion citation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OpinionCitationResponse {
     pub id: String,
@@ -369,7 +369,7 @@ pub struct Headnote {
 // ── Headnote API response ──────────────────────────────────────────
 
 /// API response shape for a headnote.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct HeadnoteResponse {
     pub id: String,
@@ -428,7 +428,7 @@ pub struct OpinionDraft {
 // ── OpinionDraft API response ──────────────────────────────────────
 
 /// API response shape for an opinion draft.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OpinionDraftResponse {
     pub id: String,

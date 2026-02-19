@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT (EXTRACT(EPOCH FROM AVG(completed_at - created_at)) / 60.0)::FLOAT8 as \"avg?\"\n        FROM clerk_queue\n        WHERE court_id = $1 AND status = 'completed' AND completed_at IS NOT NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "avg?",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "16fd261e25b0900792c2066abba9c02815e327fc8a7e45faadb333d76481ef62"
+}

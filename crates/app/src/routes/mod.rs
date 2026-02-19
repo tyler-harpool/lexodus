@@ -2,24 +2,32 @@ pub mod activate;
 pub mod attorneys;
 pub mod calendar;
 pub mod cases;
+pub mod command_palette;
+pub mod compliance;
 pub mod dashboard;
 pub mod deadlines;
 pub mod device_auth;
+pub mod district_picker;
 pub mod forgot_password;
+pub mod judges;
 pub mod login;
 pub mod not_found;
+pub mod opinions;
 pub mod privacy;
-pub mod products;
 pub mod register;
 pub mod reset_password;
+pub mod rules;
 pub mod settings;
 pub mod terms;
 pub mod users;
 
-use crate::auth::use_auth;
-use crate::ProfileState;
+use crate::auth::{use_auth, use_sidebar_visibility};
+use crate::{CourtContext, ProfileState};
 use dioxus::prelude::*;
-use dioxus_free_icons::icons::ld_icons::{LdLayoutDashboard, LdPackage, LdSettings, LdUsers};
+use dioxus_free_icons::icons::ld_icons::{
+    LdBell, LdBookOpen, LdBriefcase, LdCalendar, LdClock, LdLayoutDashboard, LdSearch,
+    LdSettings, LdShield, LdUsers,
+};
 use dioxus_free_icons::Icon;
 use shared_types::{FeatureFlags, UserTier};
 use shared_ui::{
@@ -37,7 +45,6 @@ use forgot_password::ForgotPassword;
 use login::Login;
 use not_found::NotFound;
 use privacy::Privacy;
-use products::Products;
 use register::Register;
 use reset_password::ResetPassword;
 use settings::Settings;
@@ -69,8 +76,6 @@ pub enum Route {
     Dashboard {},
     #[route("/users")]
     Users {},
-    #[route("/products")]
-    Products {},
     #[route("/settings/?:billing&:verified")]
     Settings {
         billing: Option<String>,
@@ -101,13 +106,31 @@ pub enum Route {
     DeadlineCreate {},
     #[route("/deadlines/:id")]
     DeadlineDetail { id: String },
+    // ── Opinions ──
+    #[route("/opinions")]
+    OpinionList {},
+    #[route("/opinions/:id")]
+    OpinionDetail { id: String },
+    // ── Judges ──
+    #[route("/judges")]
+    JudgeList {},
+    #[route("/judges/:id")]
+    JudgeDetail { id: String },
+    // ── Compliance ──
+    #[route("/compliance")]
+    ComplianceDashboard {},
+    // ── Rules ──
+    #[route("/rules")]
+    RuleList {},
+    #[route("/rules/:id")]
+    RuleDetail { id: String },
     #[end_layout]
     #[end_layout]
     #[route("/:..route")]
     NotFound { route: Vec<String> },
 }
 
-/// Auth guard layout — redirects to /login if not authenticated.
+/// Auth guard layout -- redirects to /login if not authenticated.
 ///
 /// Uses `use_server_future` with `?` to propagate suspension properly.
 /// During SSR the component suspends until the auth check completes, then
@@ -128,7 +151,15 @@ fn AuthGuard() -> Element {
     match result {
         Some(Ok(Some(user))) => {
             if !auth.is_authenticated() {
-                auth.set_user(user);
+                auth.set_user(user.clone());
+                // Auto-select an accessible district if the current one is not in the user's court_roles
+                let mut ctx = use_context::<CourtContext>();
+                let current = ctx.court_id.read().clone();
+                if user.role != "admin" && !user.court_roles.contains_key(&current) {
+                    if let Some(first_court) = user.court_roles.keys().next() {
+                        ctx.court_id.set(first_court.clone());
+                    }
+                }
             }
             rsx! { Outlet::<Route> {} }
         }
@@ -159,20 +190,26 @@ fn AppLayout() -> Element {
     let flags: FeatureFlags = use_context();
     let mut auth = use_auth();
 
+    let vis = use_sidebar_visibility();
+    let mut show_palette = use_signal(|| false);
+
     let mut theme_state = use_context_provider(|| shared_ui::theme::ThemeState {
         family: Signal::new("cyberpunk".to_string()),
         is_dark: Signal::new(true),
     });
 
     let page_title = match &route {
-        Route::Dashboard {} => "Dashboard",
+        Route::Dashboard {} => "Queue",
         Route::Users {} => "Users",
-        Route::Products {} => "Products",
         Route::Settings { .. } => "Settings",
         Route::AttorneyList {} | Route::AttorneyCreate {} | Route::AttorneyDetail { .. } => "Attorneys",
         Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. } => "Calendar",
         Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. } => "Cases",
         Route::DeadlineList {} | Route::DeadlineCreate {} | Route::DeadlineDetail { .. } => "Deadlines",
+        Route::OpinionList {} | Route::OpinionDetail { .. } => "Opinions",
+        Route::JudgeList {} | Route::JudgeDetail { .. } => "Judges",
+        Route::ComplianceDashboard {} => "Compliance",
+        Route::RuleList {} | Route::RuleDetail { .. } => "Rules",
         Route::Login { .. }
         | Route::Register {}
         | Route::ForgotPassword {}
@@ -186,7 +223,25 @@ fn AppLayout() -> Element {
     rsx! {
         document::Link { rel: "stylesheet", href: asset!("./layout.css") }
 
+        // Global keyboard listener: Cmd+K (Mac) / Ctrl+K (Win/Linux) toggles the palette.
+        // tabindex="0" ensures the wrapper div is focusable and receives key events.
+        div {
+            tabindex: 0,
+            style: "outline: none;",
+            onkeydown: move |e: KeyboardEvent| {
+                let key = e.key();
+                let mods = e.modifiers();
+                // Check for Cmd+K (Meta on Mac) or Ctrl+K (Control on Win/Linux)
+                let is_cmd_k = matches!(key, Key::Character(ref c) if c == "k")
+                    && (mods.contains(Modifiers::META) || mods.contains(Modifiers::CONTROL));
+                if is_cmd_k {
+                    e.prevent_default();
+                    show_palette.toggle();
+                }
+            },
+
         SidebarProvider { default_open: false,
+            command_palette::CommandPalette { show: show_palette }
             if flags.stripe {
                 crate::billing_listener::BillingListener {}
             }
@@ -199,82 +254,104 @@ fn AppLayout() -> Element {
                             "Lexodus"
                         }
                     }
+                    district_picker::DistrictPicker {}
                 }
 
                 SidebarSeparator {}
 
                 SidebarContent {
-                    SidebarGroup {
-                        SidebarGroupLabel { "Navigation" }
-                        SidebarGroupContent {
-                            SidebarMenu {
-                                SidebarMenuItem {
-                                    Link { to: Route::Dashboard {},
-                                        SidebarMenuButton { active: matches!(route, Route::Dashboard {}),
-                                            Icon::<LdLayoutDashboard> { icon: LdLayoutDashboard, width: 18, height: 18 }
-                                            "Dashboard"
-                                        }
-                                    }
-                                }
-                                SidebarMenuItem {
-                                    Link { to: Route::Users {},
-                                        SidebarMenuButton { active: matches!(route, Route::Users {}),
-                                            Icon::<LdUsers> { icon: LdUsers, width: 18, height: 18 }
-                                            "Users"
-                                        }
-                                    }
-                                }
-                                SidebarMenuItem {
-                                    Link { to: Route::Products {},
-                                        SidebarMenuButton { active: matches!(route, Route::Products {}),
-                                            Icon::<LdPackage> { icon: LdPackage, width: 18, height: 18 }
-                                            "Products"
-                                        }
-                                    }
-                                }
-                                SidebarMenuItem {
-                                    Link { to: Route::Settings { billing: None, verified: None },
-                                        SidebarMenuButton { active: matches!(route, Route::Settings { .. }),
-                                            Icon::<LdSettings> { icon: LdSettings, width: 18, height: 18 }
-                                            "Settings"
+                    // ── 1. My Work ──
+                    if vis.work {
+                        SidebarGroup {
+                            SidebarGroupLabel { "My Work" }
+                            SidebarGroupContent {
+                                SidebarMenu {
+                                    SidebarMenuItem {
+                                        Link { to: Route::Dashboard {},
+                                            SidebarMenuButton { active: matches!(route, Route::Dashboard {}),
+                                                Icon::<LdLayoutDashboard> { icon: LdLayoutDashboard, width: 18, height: 18 }
+                                                "Queue"
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
+                        SidebarSeparator {}
                     }
 
-                    SidebarSeparator {}
+                    // ── 2. Court ──
+                    if vis.court {
+                        SidebarGroup {
+                            SidebarGroupLabel { "Court" }
+                            SidebarGroupContent {
+                                SidebarMenu {
+                                    SidebarMenuItem {
+                                        Link { to: Route::CaseList {},
+                                            SidebarMenuButton { active: matches!(route, Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. }),
+                                                Icon::<LdBriefcase> { icon: LdBriefcase, width: 18, height: 18 }
+                                                "Cases"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::CalendarList {},
+                                            SidebarMenuButton { active: matches!(route, Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. }),
+                                                Icon::<LdCalendar> { icon: LdCalendar, width: 18, height: 18 }
+                                                "Schedule"
+                                            }
+                                        }
+                                    }
+                                    SidebarMenuItem {
+                                        Link { to: Route::DeadlineList {},
+                                            SidebarMenuButton { active: matches!(route, Route::DeadlineList {} | Route::DeadlineCreate {} | Route::DeadlineDetail { .. }),
+                                                Icon::<LdClock> { icon: LdClock, width: 18, height: 18 }
+                                                "Deadlines"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        SidebarSeparator {}
+                    }
 
-                    SidebarGroup {
-                        SidebarGroupLabel { "Court Management" }
-                        SidebarGroupContent {
-                            SidebarMenu {
-                                SidebarMenuItem {
-                                    Link { to: Route::AttorneyList {},
-                                        SidebarMenuButton { active: matches!(route, Route::AttorneyList {} | Route::AttorneyCreate {} | Route::AttorneyDetail { .. }),
-                                            "Attorneys"
+                    // ── 3. Admin ──
+                    if vis.admin {
+                        SidebarGroup {
+                            SidebarGroupLabel { "Admin" }
+                            SidebarGroupContent {
+                                SidebarMenu {
+                                    SidebarMenuItem {
+                                        Link { to: Route::ComplianceDashboard {},
+                                            SidebarMenuButton { active: matches!(route, Route::ComplianceDashboard {}),
+                                                Icon::<LdShield> { icon: LdShield, width: 18, height: 18 }
+                                                "Compliance"
+                                            }
                                         }
                                     }
-                                }
-                                SidebarMenuItem {
-                                    Link { to: Route::CaseList {},
-                                        SidebarMenuButton { active: matches!(route, Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. }),
-                                            "Cases"
+                                    SidebarMenuItem {
+                                        Link { to: Route::RuleList {},
+                                            SidebarMenuButton { active: matches!(route, Route::RuleList {} | Route::RuleDetail { .. }),
+                                                Icon::<LdBookOpen> { icon: LdBookOpen, width: 18, height: 18 }
+                                                "Rules"
+                                            }
                                         }
                                     }
-                                }
-                                SidebarMenuItem {
-                                    Link { to: Route::CalendarList {},
-                                        SidebarMenuButton { active: matches!(route, Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. }),
-                                            "Calendar"
+                                    SidebarMenuItem {
+                                        Link { to: Route::Users {},
+                                            SidebarMenuButton { active: matches!(route, Route::Users {}),
+                                                Icon::<LdUsers> { icon: LdUsers, width: 18, height: 18 }
+                                                "Users"
+                                            }
                                         }
                                     }
-                                }
-                                SidebarMenuItem {
-                                    Link { to: Route::DeadlineList {},
-                                        SidebarMenuButton { active: matches!(route, Route::DeadlineList {} | Route::DeadlineCreate {} | Route::DeadlineDetail { .. }),
-                                            "Deadlines"
+                                    SidebarMenuItem {
+                                        Link { to: Route::Settings { billing: None, verified: None },
+                                            SidebarMenuButton { active: matches!(route, Route::Settings { .. }),
+                                                Icon::<LdSettings> { icon: LdSettings, width: 18, height: 18 }
+                                                "Settings"
+                                            }
                                         }
                                     }
                                 }
@@ -324,6 +401,24 @@ fn AppLayout() -> Element {
 
                         // Spacer
                         div { class: "navbar-spacer" }
+
+                        // Search / command palette
+                        button {
+                            class: "navbar-notification-bell",
+                            title: "Search (Cmd+K)",
+                            onclick: move |_| show_palette.toggle(),
+                            Icon::<LdSearch> { icon: LdSearch, width: 20, height: 20 }
+                        }
+
+                        // Notification bell
+                        button {
+                            class: "navbar-notification-bell",
+                            title: "Notifications",
+                            onclick: move |_| {
+                                // TODO: Toggle notification panel
+                            },
+                            Icon::<LdBell> { icon: LdBell, width: 20, height: 20 }
+                        }
 
                         // User dropdown
                         DropdownMenu {
@@ -387,6 +482,7 @@ fn AppLayout() -> Element {
                 }
             }
         }
+        } // close global keyboard listener wrapper div
     }
 }
 
@@ -452,19 +548,48 @@ fn DeadlineDetail(id: String) -> Element {
     rsx! { deadlines::detail::DeadlineDetailPage { id: id } }
 }
 
-/// Displays the current user's tier as a badge in the sidebar footer.
+#[component]
+fn OpinionList() -> Element {
+    opinions::list::OpinionListPage()
+}
+
+#[component]
+fn OpinionDetail(id: String) -> Element {
+    rsx! { opinions::detail::OpinionDetailPage { id: id } }
+}
+
+#[component]
+fn JudgeList() -> Element {
+    judges::list::JudgeListPage()
+}
+
+#[component]
+fn JudgeDetail(id: String) -> Element {
+    rsx! { judges::detail::JudgeDetailPage { id: id } }
+}
+
+#[component]
+fn ComplianceDashboard() -> Element {
+    compliance::ComplianceDashboardPage()
+}
+
+#[component]
+fn RuleList() -> Element {
+    rules::list::RuleListPage()
+}
+
+#[component]
+fn RuleDetail(id: String) -> Element {
+    rsx! { rules::detail::RuleDetailPage { id: id } }
+}
+
+/// Displays the selected court's tier as a badge in the sidebar footer.
 #[component]
 fn TierBadge() -> Element {
-    let auth = use_auth();
-    let tier = use_memo(move || {
-        auth.current_user
-            .read()
-            .as_ref()
-            .map(|u| u.tier.clone())
-            .unwrap_or(UserTier::Free)
-    });
+    let ctx = use_context::<CourtContext>();
+    let tier = ctx.court_tier.read().clone();
 
-    let (variant, label) = match tier() {
+    let (variant, label) = match tier {
         UserTier::Free => (BadgeVariant::Secondary, "FREE"),
         UserTier::Pro => (BadgeVariant::Primary, "PRO"),
         UserTier::Enterprise => (BadgeVariant::Destructive, "ENTERPRISE"),
@@ -472,7 +597,7 @@ fn TierBadge() -> Element {
 
     rsx! {
         div { class: "sidebar-footer-row sidebar-tier-row",
-            span { class: "sidebar-footer-label", "Tier" }
+            span { class: "sidebar-footer-label", "Court Tier" }
             Badge { variant: variant, "{label}" }
         }
     }

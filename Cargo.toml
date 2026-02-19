@@ -49,3 +49,10 @@ hmac = "0.12"
 rand = { version = "0.8", features = ["std_rng"] }
 sha2 = "0.10"
 toml = "0.8"
+typst = "0.14"
+typst-pdf = "0.14"
+typst-library = "0.14"
+typst-assets = { version = "0.14", features = ["fonts"] }
+ecow = "0.2"
+comemo = "0.4"
+tantivy = "0.22"

@@ -86,7 +86,8 @@ async fn test_pool() -> Pool<Postgres> {
 /// Connects to the dedicated test database.
 pub async fn test_app() -> Router {
     let pool = test_pool().await;
-    let state = AppState { pool };
+    let search = std::sync::Arc::new(server::search::SearchIndex::new());
+    let state = AppState { pool, search };
 
     server::rest::rest_router()
         .route("/health", axum::routing::get(server::health::health_check))
@@ -98,7 +99,8 @@ pub async fn test_app() -> Router {
 /// Required for endpoints that use AuthRequired/TierRequired extractors.
 pub async fn test_app_with_auth() -> Router {
     let pool = test_pool().await;
-    let state = AppState { pool };
+    let search = std::sync::Arc::new(server::search::SearchIndex::new());
+    let state = AppState { pool, search };
 
     server::rest::rest_router()
         .route("/health", axum::routing::get(server::health::health_check))

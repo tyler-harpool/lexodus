@@ -1,0 +1,85 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_id, filing_type, filed_by, filed_date,\n               status, validation_errors, document_id, docket_entry_id, created_at\n        FROM filings\n        WHERE court_id = $1\n          AND ($2::TEXT IS NULL\n               OR LOWER(filing_type) LIKE $2\n               OR LOWER(filed_by) LIKE $2)\n        ORDER BY filed_date DESC\n        LIMIT $3 OFFSET $4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "filing_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "filed_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "filed_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "validation_errors",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "docket_entry_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "93c192af670c89f9bb9ccd83547a0230e93c7438a5b5844e6d70db58af39eac4"
+}

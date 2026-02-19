@@ -1,0 +1,25 @@
+{
+  "id": "lexodus-staging",
+  "name": "Lexodus Staging",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "https://staging.lexodus.app",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "district",
+      "value": "district9",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "admin_email",
+      "value": "admin@lexodus.app",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

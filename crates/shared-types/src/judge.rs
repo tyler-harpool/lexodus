@@ -52,7 +52,7 @@ pub fn is_valid_judge_status(s: &str) -> bool {
 // ── Judge API response ──────────────────────────────────────────────
 
 /// API response shape for a judge.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct JudgeResponse {
     pub id: String,
@@ -262,6 +262,8 @@ pub struct CaseAssignment {
     pub reason: Option<String>,
     pub previous_judge_id: Option<Uuid>,
     pub reassignment_reason: Option<String>,
+    /// Resolved judge name from LEFT JOIN judges.
+    pub judge_name: Option<String>,
 }
 
 /// API response shape for a case assignment.
@@ -271,6 +273,9 @@ pub struct CaseAssignmentResponse {
     pub id: String,
     pub case_id: String,
     pub judge_id: String,
+    /// Resolved judge name from the judges table.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub judge_name: Option<String>,
     pub assignment_type: String,
     pub assigned_date: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -287,6 +292,7 @@ impl From<CaseAssignment> for CaseAssignmentResponse {
             id: a.id.to_string(),
             case_id: a.case_id.to_string(),
             judge_id: a.judge_id.to_string(),
+            judge_name: a.judge_name,
             assignment_type: a.assignment_type,
             assigned_date: a.assigned_date.to_rfc3339(),
             reason: a.reason,

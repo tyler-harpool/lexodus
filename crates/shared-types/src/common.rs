@@ -66,7 +66,14 @@ pub struct Court {
     pub id: String,
     pub name: String,
     pub court_type: String,
+    /// Subscription tier for this court (free, pro, enterprise).
+    #[serde(default = "default_tier")]
+    pub tier: String,
     pub created_at: DateTime<Utc>,
+}
+
+fn default_tier() -> String {
+    "free".to_string()
 }
 
 /// Tenant statistics response.
@@ -116,6 +123,10 @@ pub struct CourtRoleRequestResponse {
     pub reviewed_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_email: Option<String>,
 }
 
 /// Request body for submitting a court role request.

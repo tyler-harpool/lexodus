@@ -15,6 +15,21 @@ pub struct CourtRoleRequest {
     pub notes: Option<String>,
 }
 
+/// A court role request row joined with user data (display_name, email).
+pub struct CourtRoleRequestWithUser {
+    pub id: Uuid,
+    pub user_id: i64,
+    pub court_id: String,
+    pub requested_role: String,
+    pub status: String,
+    pub requested_at: chrono::DateTime<chrono::Utc>,
+    pub reviewed_by: Option<i64>,
+    pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub notes: Option<String>,
+    pub user_display_name: Option<String>,
+    pub user_email: Option<String>,
+}
+
 /// Create a new pending court role request.
 pub async fn create_request(
     pool: &Pool<Postgres>,
@@ -125,15 +140,42 @@ pub async fn get_by_id(
     Ok(row)
 }
 
-/// List all pending court role requests.
-pub async fn list_pending(pool: &Pool<Postgres>) -> Result<Vec<CourtRoleRequest>, AppError> {
+/// List all pending court role requests with user data.
+pub async fn list_pending(pool: &Pool<Postgres>) -> Result<Vec<CourtRoleRequestWithUser>, AppError> {
     let rows = sqlx::query_as!(
-        CourtRoleRequest,
-        r#"SELECT id, user_id, court_id, requested_role, status,
-                  requested_at, reviewed_by, reviewed_at, notes
-           FROM court_role_requests
-           WHERE status = 'pending'
-           ORDER BY requested_at ASC"#,
+        CourtRoleRequestWithUser,
+        r#"SELECT crr.id, crr.user_id, crr.court_id, crr.requested_role, crr.status,
+                  crr.requested_at, crr.reviewed_by, crr.reviewed_at, crr.notes,
+                  u.display_name AS user_display_name,
+                  u.email AS user_email
+           FROM court_role_requests crr
+           LEFT JOIN users u ON u.id = crr.user_id
+           WHERE crr.status = 'pending'
+           ORDER BY crr.requested_at ASC"#,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| AppError::internal(e.to_string()))?;
+
+    Ok(rows)
+}
+
+/// List pending court role requests for a specific court, with user data.
+pub async fn list_pending_for_court(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+) -> Result<Vec<CourtRoleRequestWithUser>, AppError> {
+    let rows = sqlx::query_as!(
+        CourtRoleRequestWithUser,
+        r#"SELECT crr.id, crr.user_id, crr.court_id, crr.requested_role, crr.status,
+                  crr.requested_at, crr.reviewed_by, crr.reviewed_at, crr.notes,
+                  u.display_name AS user_display_name,
+                  u.email AS user_email
+           FROM court_role_requests crr
+           LEFT JOIN users u ON u.id = crr.user_id
+           WHERE crr.court_id = $1 AND crr.status = 'pending'
+           ORDER BY crr.requested_at ASC"#,
+        court_id,
     )
     .fetch_all(pool)
     .await
@@ -231,5 +273,24 @@ pub fn to_response(r: &CourtRoleRequest) -> shared_types::CourtRoleRequestRespon
         reviewed_by: r.reviewed_by,
         reviewed_at: r.reviewed_at.map(|t| t.to_rfc3339()),
         notes: r.notes.clone(),
+        user_display_name: None,
+        user_email: None,
+    }
+}
+
+/// Convert a joined DB row (with user data) to the API response type.
+pub fn to_response_with_user(r: &CourtRoleRequestWithUser) -> shared_types::CourtRoleRequestResponse {
+    shared_types::CourtRoleRequestResponse {
+        id: r.id.to_string(),
+        user_id: r.user_id,
+        court_id: r.court_id.clone(),
+        requested_role: r.requested_role.clone(),
+        status: r.status.clone(),
+        requested_at: r.requested_at.to_rfc3339(),
+        reviewed_by: r.reviewed_by,
+        reviewed_at: r.reviewed_at.map(|t| t.to_rfc3339()),
+        notes: r.notes.clone(),
+        user_display_name: r.user_display_name.clone(),
+        user_email: r.user_email.clone(),
     }
 }

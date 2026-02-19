@@ -318,6 +318,71 @@ pub async fn update(
     Ok(row)
 }
 
+/// List all sentencing records for a court with optional search and pagination.
+///
+/// The search term `q` is matched against the case number (via a JOIN to
+/// `criminal_cases`) using a case-insensitive LIKE pattern.
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<SentencingRecord>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!"
+        FROM sentencing s
+        LEFT JOIN criminal_cases c ON c.id = s.case_id
+        WHERE s.court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(c.case_number) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        SentencingRecord,
+        r#"
+        SELECT s.id, s.court_id, s.case_id, s.defendant_id, s.judge_id,
+               s.base_offense_level, s.specific_offense_level,
+               s.adjusted_offense_level, s.total_offense_level,
+               s.criminal_history_category, s.criminal_history_points,
+               s.guidelines_range_low_months, s.guidelines_range_high_months,
+               s.custody_months, s.probation_months,
+               s.fine_amount::FLOAT8 as "fine_amount: f64",
+               s.restitution_amount::FLOAT8 as "restitution_amount: f64",
+               s.forfeiture_amount::FLOAT8 as "forfeiture_amount: f64",
+               s.special_assessment::FLOAT8 as "special_assessment: f64",
+               s.departure_type, s.departure_reason,
+               s.variance_type, s.variance_justification,
+               s.supervised_release_months, s.appeal_waiver,
+               s.sentencing_date, s.judgment_date,
+               s.created_at, s.updated_at
+        FROM sentencing s
+        LEFT JOIN criminal_cases c ON c.id = s.case_id
+        WHERE s.court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(c.case_number) LIKE $2)
+        ORDER BY s.sentencing_date DESC NULLS LAST
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}
+
 /// Delete a sentencing record. Returns true if a row was deleted.
 pub async fn delete(
     pool: &Pool<Postgres>,

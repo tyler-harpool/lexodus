@@ -88,6 +88,53 @@ pub async fn list_by_case(
     Ok(rows)
 }
 
+/// List all victims for a court (across all cases) with optional search and pagination.
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<Victim>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!" FROM victims
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(name) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        Victim,
+        r#"
+        SELECT id, court_id, case_id, name, victim_type,
+               notification_email, notification_mail, notification_phone,
+               created_at, updated_at
+        FROM victims
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(name) LIKE $2)
+        ORDER BY name ASC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}
+
 /// Delete a victim record. Returns true if a row was deleted.
 pub async fn delete(
     pool: &Pool<Postgres>,

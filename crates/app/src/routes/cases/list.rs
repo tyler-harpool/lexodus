@@ -1,23 +1,22 @@
 use dioxus::prelude::*;
-use shared_types::{CaseResponse, CaseSearchResponse};
+use shared_types::{CaseResponse, CaseSearchResponse, CivilCaseSearchResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
-    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Form, FormSelect, Input,
-    PageActions, PageHeader, PageTitle, Pagination, SearchBar, Separator, Sheet, SheetClose,
-    SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetSide, SheetTitle, Skeleton,
-    Textarea,
+    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, FormSelect, Input, PageActions,
+    PageHeader, PageTitle, Pagination, SearchBar, Skeleton,
 };
-use shared_ui::{use_toast, HoverCard, HoverCardContent, HoverCardTrigger, ToastOptions};
+use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
+use super::form_sheet::{CaseFormSheet, FormMode};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn CaseListPage() -> Element {
     let ctx = use_context::<CourtContext>();
-    let toast = use_toast();
 
     let mut offset = use_signal(|| 0i64);
+    let mut case_type = use_signal(|| "criminal".to_string());
     let mut filter_status = use_signal(String::new);
     let mut filter_crime_type = use_signal(String::new);
     let mut search_query = use_signal(String::new);
@@ -25,52 +24,98 @@ pub fn CaseListPage() -> Element {
 
     // Sheet state for creating cases
     let mut show_sheet = use_signal(|| false);
-    let mut form_title = use_signal(String::new);
-    let mut form_description = use_signal(String::new);
-    let mut form_crime_type = use_signal(|| "fraud".to_string());
-    let mut form_priority = use_signal(|| "medium".to_string());
-    let mut form_district_code = use_signal(String::new);
-    let mut form_location = use_signal(String::new);
 
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
+        let ct = case_type.read().clone();
         let st = filter_status.read().clone();
-        let ct = filter_crime_type.read().clone();
+        let crime = filter_crime_type.read().clone();
         let q = search_query.read().clone();
         let off = *offset.read();
         async move {
-            let result = server::api::search_cases(
-                court,
-                if st.is_empty() { None } else { Some(st) },
-                if ct.is_empty() { None } else { Some(ct) },
-                None, // priority
-                if q.is_empty() { None } else { Some(q) },
-                Some(off),
-                Some(limit),
-            )
-            .await;
+            if ct == "civil" {
+                let result = server::api::search_civil_cases(
+                    court,
+                    if st.is_empty() { None } else { Some(st) },
+                    None, // nature_of_suit
+                    if crime.is_empty() { None } else { Some(crime) },
+                    None, // class_action
+                    None, // assigned_judge_id
+                    if q.is_empty() { None } else { Some(q) },
+                    Some(off),
+                    Some(limit),
+                )
+                .await;
 
-            match result {
-                Ok(json) => serde_json::from_str::<CaseSearchResponse>(&json).ok(),
-                Err(_) => None,
+                match result {
+                    Ok(json) => {
+                        if let Ok(civil_resp) =
+                            serde_json::from_str::<CivilCaseSearchResponse>(&json)
+                        {
+                            // Map civil cases into the unified CaseSearchResponse format
+                            // so the same table component can render both types
+                            let cases = civil_resp
+                                .cases
+                                .into_iter()
+                                .map(|c| CaseResponse {
+                                    id: c.id,
+                                    case_number: c.case_number,
+                                    title: c.title,
+                                    description: c.description,
+                                    case_type: "civil".to_string(),
+                                    crime_type: c.nature_of_suit,
+                                    status: c.status,
+                                    priority: c.priority,
+                                    assigned_judge_id: c.assigned_judge_id,
+                                    district_code: c.district_code,
+                                    location: c.location,
+                                    is_sealed: c.is_sealed,
+                                    sealed_by: c.sealed_by,
+                                    sealed_date: c.sealed_date,
+                                    seal_reason: c.seal_reason,
+                                    opened_at: c.opened_at,
+                                    updated_at: c.updated_at,
+                                    closed_at: c.closed_at,
+                                    jurisdiction_basis: Some(c.jurisdiction_basis),
+                                    jury_demand: Some(c.jury_demand),
+                                    class_action: Some(c.class_action),
+                                    amount_in_controversy: c.amount_in_controversy,
+                                    consent_to_magistrate: Some(c.consent_to_magistrate),
+                                    pro_se: Some(c.pro_se),
+                                })
+                                .collect();
+                            Some(CaseSearchResponse {
+                                cases,
+                                total: civil_resp.total,
+                            })
+                        } else {
+                            None
+                        }
+                    }
+                    Err(_) => None,
+                }
+            } else {
+                // Criminal case search (original behavior)
+                let result = server::api::search_cases(
+                    court,
+                    if st.is_empty() { None } else { Some(st) },
+                    if crime.is_empty() { None } else { Some(crime) },
+                    None, // priority
+                    if q.is_empty() { None } else { Some(q) },
+                    Some(off),
+                    Some(limit),
+                )
+                .await;
+
+                match result {
+                    Ok(json) => serde_json::from_str::<CaseSearchResponse>(&json).ok(),
+                    Err(_) => None,
+                }
             }
         }
     });
 
-    let mut reset_form = move || {
-        form_title.set(String::new());
-        form_description.set(String::new());
-        form_crime_type.set("fraud".to_string());
-        form_priority.set("medium".to_string());
-        form_district_code.set(String::new());
-        form_location.set(String::new());
-    };
-
-    let open_create = move |_| {
-        reset_form();
-        show_sheet.set(true);
-    };
-
+    // Clearing filters resets the type-specific filter and search, but preserves case_type
     let handle_clear = move |_| {
         filter_status.set(String::new());
         filter_crime_type.set(String::new());
@@ -82,45 +127,7 @@ pub fn CaseListPage() -> Element {
         || !filter_crime_type.read().is_empty()
         || !search_query.read().is_empty();
 
-    let handle_save = move |_: FormEvent| {
-        let court = ctx.court_id.read().clone();
-        let t = form_title.read().clone();
-        let d = form_description.read().clone();
-        let ct = form_crime_type.read().clone();
-        let p = form_priority.read().clone();
-        let dc = form_district_code.read().clone();
-        let loc = form_location.read().clone();
-
-        spawn(async move {
-            if t.trim().is_empty() {
-                toast.error("Title is required.".to_string(), ToastOptions::new());
-                return;
-            }
-
-            let body = serde_json::json!({
-                "title": t.trim(),
-                "description": d.trim(),
-                "crime_type": ct,
-                "priority": p,
-                "district_code": if dc.is_empty() { court.clone() } else { dc },
-                "location": loc.trim(),
-            });
-
-            match server::api::create_case(court, body.to_string()).await {
-                Ok(_) => {
-                    data.restart();
-                    show_sheet.set(false);
-                    toast.success(
-                        "Case created successfully".to_string(),
-                        ToastOptions::new(),
-                    );
-                }
-                Err(e) => {
-                    toast.error(format!("{}", e), ToastOptions::new());
-                }
-            }
-        });
-    };
+    let is_civil = *case_type.read() == "civil";
 
     rsx! {
         div { class: "container",
@@ -129,9 +136,33 @@ pub fn CaseListPage() -> Element {
                 PageActions {
                     Button {
                         variant: ButtonVariant::Primary,
-                        onclick: open_create,
-                        "New Case"
+                        onclick: move |_| show_sheet.set(true),
+                        if is_civil { "New Civil Case" } else { "New Case" }
                     }
+                }
+            }
+
+            // Case type toggle (criminal / civil)
+            div { class: "case-type-toggle",
+                Button {
+                    variant: if !is_civil { ButtonVariant::Primary } else { ButtonVariant::Secondary },
+                    onclick: move |_| {
+                        case_type.set("criminal".to_string());
+                        filter_status.set(String::new());
+                        filter_crime_type.set(String::new());
+                        offset.set(0);
+                    },
+                    "Criminal"
+                }
+                Button {
+                    variant: if is_civil { ButtonVariant::Primary } else { ButtonVariant::Secondary },
+                    onclick: move |_| {
+                        case_type.set("civil".to_string());
+                        filter_status.set(String::new());
+                        filter_crime_type.set(String::new());
+                        offset.set(0);
+                    },
+                    "Civil"
                 }
             }
 
@@ -145,42 +176,85 @@ pub fn CaseListPage() -> Element {
                         offset.set(0);
                     },
                 }
-                FormSelect {
-                    value: "{filter_status}",
-                    onchange: move |evt: Event<FormData>| {
-                        filter_status.set(evt.value().to_string());
-                        offset.set(0);
-                    },
-                    option { value: "", "All Statuses" }
-                    option { value: "filed", "Filed" }
-                    option { value: "arraigned", "Arraigned" }
-                    option { value: "discovery", "Discovery" }
-                    option { value: "pretrial_motions", "Pretrial Motions" }
-                    option { value: "plea_negotiations", "Plea Negotiations" }
-                    option { value: "trial_ready", "Trial Ready" }
-                    option { value: "in_trial", "In Trial" }
-                    option { value: "awaiting_sentencing", "Awaiting Sentencing" }
-                    option { value: "sentenced", "Sentenced" }
-                    option { value: "dismissed", "Dismissed" }
-                    option { value: "on_appeal", "On Appeal" }
+
+                // Status filter: different options for criminal vs civil
+                if is_civil {
+                    FormSelect {
+                        value: "{filter_status}",
+                        onchange: move |evt: Event<FormData>| {
+                            filter_status.set(evt.value().to_string());
+                            offset.set(0);
+                        },
+                        option { value: "", "All Statuses" }
+                        option { value: "filed", "Filed" }
+                        option { value: "pending", "Pending" }
+                        option { value: "discovery", "Discovery" }
+                        option { value: "pretrial", "Pretrial" }
+                        option { value: "trial_ready", "Trial Ready" }
+                        option { value: "in_trial", "In Trial" }
+                        option { value: "settled", "Settled" }
+                        option { value: "judgment_entered", "Judgment Entered" }
+                        option { value: "on_appeal", "On Appeal" }
+                        option { value: "closed", "Closed" }
+                        option { value: "dismissed", "Dismissed" }
+                        option { value: "transferred", "Transferred" }
+                    }
+                } else {
+                    FormSelect {
+                        value: "{filter_status}",
+                        onchange: move |evt: Event<FormData>| {
+                            filter_status.set(evt.value().to_string());
+                            offset.set(0);
+                        },
+                        option { value: "", "All Statuses" }
+                        option { value: "filed", "Filed" }
+                        option { value: "arraigned", "Arraigned" }
+                        option { value: "discovery", "Discovery" }
+                        option { value: "pretrial_motions", "Pretrial Motions" }
+                        option { value: "plea_negotiations", "Plea Negotiations" }
+                        option { value: "trial_ready", "Trial Ready" }
+                        option { value: "in_trial", "In Trial" }
+                        option { value: "awaiting_sentencing", "Awaiting Sentencing" }
+                        option { value: "sentenced", "Sentenced" }
+                        option { value: "dismissed", "Dismissed" }
+                        option { value: "on_appeal", "On Appeal" }
+                    }
                 }
-                FormSelect {
-                    value: "{filter_crime_type}",
-                    onchange: move |evt: Event<FormData>| {
-                        filter_crime_type.set(evt.value().to_string());
-                        offset.set(0);
-                    },
-                    option { value: "", "All Crime Types" }
-                    option { value: "fraud", "Fraud" }
-                    option { value: "drug_offense", "Drug Offense" }
-                    option { value: "racketeering", "Racketeering" }
-                    option { value: "cybercrime", "Cybercrime" }
-                    option { value: "tax_offense", "Tax Offense" }
-                    option { value: "money_laundering", "Money Laundering" }
-                    option { value: "immigration", "Immigration" }
-                    option { value: "firearms", "Firearms" }
-                    option { value: "other", "Other" }
+
+                // Type-specific secondary filter: crime type for criminal, jurisdiction for civil
+                if is_civil {
+                    FormSelect {
+                        value: "{filter_crime_type}",
+                        onchange: move |evt: Event<FormData>| {
+                            filter_crime_type.set(evt.value().to_string());
+                            offset.set(0);
+                        },
+                        option { value: "", "All Jurisdictions" }
+                        option { value: "federal_question", "Federal Question" }
+                        option { value: "diversity", "Diversity" }
+                        option { value: "us_government_plaintiff", "US Gov. Plaintiff" }
+                        option { value: "us_government_defendant", "US Gov. Defendant" }
+                    }
+                } else {
+                    FormSelect {
+                        value: "{filter_crime_type}",
+                        onchange: move |evt: Event<FormData>| {
+                            filter_crime_type.set(evt.value().to_string());
+                            offset.set(0);
+                        },
+                        option { value: "", "All Crime Types" }
+                        option { value: "fraud", "Fraud" }
+                        option { value: "drug_offense", "Drug Offense" }
+                        option { value: "racketeering", "Racketeering" }
+                        option { value: "cybercrime", "Cybercrime" }
+                        option { value: "tax_offense", "Tax Offense" }
+                        option { value: "money_laundering", "Money Laundering" }
+                        option { value: "immigration", "Immigration" }
+                        option { value: "firearms", "Firearms" }
+                        option { value: "other", "Other" }
+                    }
                 }
+
                 if has_filters {
                     Button {
                         variant: ButtonVariant::Secondary,
@@ -192,7 +266,7 @@ pub fn CaseListPage() -> Element {
 
             match &*data.read() {
                 Some(Some(resp)) => rsx! {
-                    CaseTable { cases: resp.cases.clone() }
+                    CaseTable { cases: resp.cases.clone(), is_civil: is_civil }
                     Pagination {
                         total: resp.total,
                         offset: offset,
@@ -215,101 +289,19 @@ pub fn CaseListPage() -> Element {
                 },
             }
 
-            // Create case Sheet
-            Sheet {
+            CaseFormSheet {
+                mode: FormMode::Create,
+                initial: None,
                 open: show_sheet(),
                 on_close: move |_| show_sheet.set(false),
-                side: SheetSide::Right,
-                SheetContent {
-                    SheetHeader {
-                        SheetTitle { "New Case" }
-                        SheetDescription {
-                            "Fill in the details to file a new case."
-                        }
-                        SheetClose { on_close: move |_| show_sheet.set(false) }
-                    }
-
-                    Form {
-                        onsubmit: handle_save,
-
-                        div {
-                            class: "sheet-form",
-
-                            Input {
-                                label: "Title *",
-                                value: form_title.read().clone(),
-                                on_input: move |e: FormEvent| form_title.set(e.value().to_string()),
-                                placeholder: "e.g., United States v. Smith",
-                            }
-
-                            Textarea {
-                                label: "Description",
-                                value: form_description.read().clone(),
-                                on_input: move |e: FormEvent| form_description.set(e.value().to_string()),
-                                placeholder: "Case description...",
-                            }
-
-                            FormSelect {
-                                label: "Crime Type *",
-                                value: "{form_crime_type}",
-                                onchange: move |evt: Event<FormData>| form_crime_type.set(evt.value().to_string()),
-                                option { value: "fraud", "Fraud" }
-                                option { value: "drug_offense", "Drug Offense" }
-                                option { value: "racketeering", "Racketeering" }
-                                option { value: "cybercrime", "Cybercrime" }
-                                option { value: "tax_offense", "Tax Offense" }
-                                option { value: "money_laundering", "Money Laundering" }
-                                option { value: "immigration", "Immigration" }
-                                option { value: "firearms", "Firearms" }
-                                option { value: "other", "Other" }
-                            }
-
-                            FormSelect {
-                                label: "Priority",
-                                value: "{form_priority}",
-                                onchange: move |evt: Event<FormData>| form_priority.set(evt.value().to_string()),
-                                option { value: "low", "Low" }
-                                option { value: "medium", "Medium" }
-                                option { value: "high", "High" }
-                                option { value: "critical", "Critical" }
-                            }
-
-                            Input {
-                                label: "District Code",
-                                value: form_district_code.read().clone(),
-                                on_input: move |e: FormEvent| form_district_code.set(e.value().to_string()),
-                                placeholder: "Defaults to current court",
-                            }
-
-                            Input {
-                                label: "Location",
-                                value: form_location.read().clone(),
-                                on_input: move |e: FormEvent| form_location.set(e.value().to_string()),
-                                placeholder: "e.g., Federal Courthouse Room 301",
-                            }
-                        }
-
-                        Separator {}
-
-                        SheetFooter {
-                            div {
-                                class: "sheet-footer-actions",
-                                SheetClose { on_close: move |_| show_sheet.set(false) }
-                                Button {
-                                    variant: ButtonVariant::Primary,
-                                    "File Case"
-                                }
-                            }
-                        }
-                    }
-                }
+                on_saved: move |_| data.restart(),
             }
         }
     }
 }
 
 #[component]
-fn CaseTable(cases: Vec<CaseResponse>) -> Element {
+fn CaseTable(cases: Vec<CaseResponse>, is_civil: bool) -> Element {
     if cases.is_empty() {
         return rsx! {
             Card {
@@ -320,12 +312,15 @@ fn CaseTable(cases: Vec<CaseResponse>) -> Element {
         };
     }
 
+    // The "Type" column label changes based on case type
+    let type_label = if is_civil { "Nature of Suit" } else { "Crime Type" };
+
     rsx! {
         DataTable {
             DataTableHeader {
                 DataTableColumn { "Case Number" }
                 DataTableColumn { "Title" }
-                DataTableColumn { "Type" }
+                DataTableColumn { "{type_label}" }
                 DataTableColumn { "Status" }
                 DataTableColumn { "Priority" }
                 DataTableColumn { "Opened" }
@@ -403,6 +398,7 @@ fn CaseRow(case_item: CaseResponse) -> Element {
 
 fn status_badge_variant(status: &str) -> BadgeVariant {
     match status {
+        // Criminal statuses
         "filed" => BadgeVariant::Primary,
         "arraigned" | "discovery" | "pretrial_motions" | "plea_negotiations" => {
             BadgeVariant::Secondary
@@ -410,6 +406,10 @@ fn status_badge_variant(status: &str) -> BadgeVariant {
         "trial_ready" | "in_trial" => BadgeVariant::Outline,
         "awaiting_sentencing" | "sentenced" => BadgeVariant::Secondary,
         "dismissed" | "on_appeal" => BadgeVariant::Destructive,
+        // Civil statuses
+        "pending" | "pretrial" => BadgeVariant::Secondary,
+        "settled" | "judgment_entered" | "closed" => BadgeVariant::Outline,
+        "transferred" => BadgeVariant::Destructive,
         _ => BadgeVariant::Secondary,
     }
 }

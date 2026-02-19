@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, username, display_name, email, password_hash, role, tier, avatar_url,\n                  email_verified, phone_number, phone_verified,\n                  email_notifications_enabled, push_notifications_enabled, weekly_digest_enabled,\n                  court_roles, preferred_court_id\n           FROM users WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "password_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "role",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "tier",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "avatar_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "email_verified",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "phone_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "phone_verified",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "email_notifications_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "push_notifications_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "weekly_digest_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "court_roles",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 15,
+        "name": "preferred_court_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7fb0076dd299fa49dda0ab393d154e9081d1a0e2920f72e59711b0036617e32d"
+}

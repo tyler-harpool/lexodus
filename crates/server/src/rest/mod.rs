@@ -2,6 +2,7 @@ pub mod attorney;
 pub mod attachment;
 pub mod calendar;
 pub mod case;
+pub mod civil_case;
 pub mod charge;
 pub mod deadline;
 pub mod defendant;
@@ -37,6 +38,7 @@ pub mod compliance;
 pub mod reminder;
 pub mod federal_rule;
 pub mod victim;
+pub mod queue;
 
 use axum::{routing::{get, post, put, delete, patch}, Router};
 use crate::db::AppState;
@@ -81,6 +83,12 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/cases/{id}/seal", post(case::seal_case))
         .route("/api/cases/{id}/unseal", post(case::unseal_case))
         .route("/api/cases/{case_id}/filing-stats", get(case::get_filing_stats))
+        // Civil Cases
+        .route("/api/civil-cases/statistics", get(civil_case::civil_case_statistics))
+        .route("/api/civil-cases/by-judge/{judge_id}", get(civil_case::list_civil_cases_by_judge))
+        .route("/api/civil-cases", get(civil_case::search_civil_cases).post(civil_case::create_civil_case))
+        .route("/api/civil-cases/{id}", get(civil_case::get_civil_case).delete(civil_case::delete_civil_case))
+        .route("/api/civil-cases/{id}/status", patch(civil_case::update_civil_case_status))
         // Victims
         .route("/api/cases/{id}/victims", get(victim::list_victims).post(victim::add_victim))
         .route("/api/cases/{id}/victims/{victim_id}/notifications", post(victim::send_notification))
@@ -209,6 +217,8 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/service-records/party/{party_id}", get(service_record::list_by_party))
         .route("/api/service-records/bulk/{document_id}", post(service_record::bulk_create))
         .route("/api/service-records/{id}/complete", post(service_record::complete_service_record))
+        // Courts (public)
+        .route("/api/courts", get(admin::list_courts))
         // Admin
         .route("/api/admin/tenants/init", post(admin::init_tenant))
         .route("/api/admin/tenants/stats", get(admin::tenant_stats))
@@ -336,20 +346,18 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/conflict-checks/check", post(conflict_check::run_conflict_check))
         .route("/api/conflict-checks/{id}/clear", post(conflict_check::clear_conflict))
         // PDF Generation
-        .route("/api/pdf/rule16b/{format}", post(pdf::generate_rule16b_fmt))
         .route("/api/pdf/rule16b", post(pdf::generate_rule16b))
-        .route("/api/pdf/signed/rule16b/{format}", post(pdf::generate_signed_rule16b_fmt))
         .route("/api/pdf/signed/rule16b", post(pdf::generate_signed_rule16b))
-        .route("/api/pdf/court-order/{format}", post(pdf::generate_court_order_fmt))
         .route("/api/pdf/court-order", post(pdf::generate_court_order))
-        .route("/api/pdf/minute-entry/{format}", post(pdf::generate_minute_entry_fmt))
         .route("/api/pdf/minute-entry", post(pdf::generate_minute_entry))
-        .route("/api/pdf/waiver-indictment/{format}", post(pdf::generate_waiver_fmt))
         .route("/api/pdf/waiver-indictment", post(pdf::generate_waiver))
-        .route("/api/pdf/conditions-release/{format}", post(pdf::generate_conditions_fmt))
         .route("/api/pdf/conditions-release", post(pdf::generate_conditions))
-        .route("/api/pdf/criminal-judgment/{format}", post(pdf::generate_judgment_fmt))
         .route("/api/pdf/criminal-judgment", post(pdf::generate_judgment))
+        // Civil PDF Generation
+        .route("/api/pdf/js44-cover-sheet", post(pdf::generate_js44_cover_sheet))
+        .route("/api/pdf/civil-summons", post(pdf::generate_civil_summons))
+        .route("/api/pdf/civil-scheduling-order", post(pdf::generate_civil_scheduling_order))
+        .route("/api/pdf/civil-judgment", post(pdf::generate_civil_judgment))
         .route("/api/pdf/batch", post(pdf::batch_generate))
         // Signatures
         .route("/api/signatures", post(signature::upload_signature))
@@ -399,6 +407,14 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/attorneys/{id}/win-rate", get(attorney::get_win_rate))
         .route("/api/attorneys/{id}/case-count", get(attorney::get_case_count))
         .route("/api/attorneys/top-performers", get(attorney::list_top_performers))
+        // Queue
+        .route("/api/queue", get(queue::list_queue).post(queue::create_queue_item))
+        .route("/api/queue/stats", get(queue::queue_stats))
+        .route("/api/queue/{id}", get(queue::get_queue_item))
+        .route("/api/queue/{id}/claim", post(queue::claim_queue_item))
+        .route("/api/queue/{id}/release", post(queue::release_queue_item))
+        .route("/api/queue/{id}/advance", post(queue::advance_queue_item))
+        .route("/api/queue/{id}/reject", post(queue::reject_queue_item))
         // Template SaaS routes (users, products, auth, billing)
         .merge(template_crud::rest_router())
 }

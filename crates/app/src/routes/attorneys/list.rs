@@ -2,40 +2,22 @@ use dioxus::prelude::*;
 use shared_types::{AttorneyResponse, PaginatedResponse, PaginationMeta};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
-    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Form, Input, PageActions,
-    PageHeader, PageTitle, SearchBar, Separator, Sheet, SheetClose, SheetContent, SheetDescription,
-    SheetFooter, SheetHeader, SheetSide, SheetTitle, Skeleton,
+    DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Input, PageActions, PageHeader,
+    PageTitle, SearchBar, Skeleton,
 };
-use shared_ui::{use_toast, HoverCard, HoverCardContent, HoverCardTrigger, ToastOptions};
+use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
+use super::form_sheet::{AttorneyFormSheet, FormMode};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn AttorneyListPage() -> Element {
     let ctx = use_context::<CourtContext>();
-    let toast = use_toast();
-
     let mut page = use_signal(|| 1i64);
     let mut search_query = use_signal(String::new);
     let mut search_input = use_signal(String::new);
-
-    // Sheet state for creating attorneys
     let mut show_sheet = use_signal(|| false);
-    let mut form_bar_number = use_signal(String::new);
-    let mut form_first_name = use_signal(String::new);
-    let mut form_last_name = use_signal(String::new);
-    let mut form_middle_name = use_signal(String::new);
-    let mut form_email = use_signal(String::new);
-    let mut form_phone = use_signal(String::new);
-    let mut form_firm_name = use_signal(String::new);
-    let mut form_fax = use_signal(String::new);
-    let mut form_street1 = use_signal(String::new);
-    let mut form_street2 = use_signal(String::new);
-    let mut form_city = use_signal(String::new);
-    let mut form_state = use_signal(String::new);
-    let mut form_zip_code = use_signal(String::new);
-    let mut form_country = use_signal(|| "US".to_string());
 
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
@@ -57,28 +39,6 @@ pub fn AttorneyListPage() -> Element {
         }
     });
 
-    let mut reset_form = move || {
-        form_bar_number.set(String::new());
-        form_first_name.set(String::new());
-        form_last_name.set(String::new());
-        form_middle_name.set(String::new());
-        form_email.set(String::new());
-        form_phone.set(String::new());
-        form_firm_name.set(String::new());
-        form_fax.set(String::new());
-        form_street1.set(String::new());
-        form_street2.set(String::new());
-        form_city.set(String::new());
-        form_state.set(String::new());
-        form_zip_code.set(String::new());
-        form_country.set("US".to_string());
-    };
-
-    let open_create = move |_| {
-        reset_form();
-        show_sheet.set(true);
-    };
-
     let handle_search = move |_| {
         search_query.set(search_input.read().clone());
         page.set(1);
@@ -90,45 +50,6 @@ pub fn AttorneyListPage() -> Element {
         page.set(1);
     };
 
-    let handle_save = move |_: FormEvent| {
-        let court = ctx.court_id.read().clone();
-
-        let body = serde_json::json!({
-            "bar_number": form_bar_number.read().clone(),
-            "first_name": form_first_name.read().clone(),
-            "last_name": form_last_name.read().clone(),
-            "middle_name": opt_str(&form_middle_name.read()),
-            "firm_name": opt_str(&form_firm_name.read()),
-            "email": form_email.read().clone(),
-            "phone": form_phone.read().clone(),
-            "fax": opt_str(&form_fax.read()),
-            "address": {
-                "street1": form_street1.read().clone(),
-                "street2": opt_str(&form_street2.read()),
-                "city": form_city.read().clone(),
-                "state": form_state.read().clone(),
-                "zip_code": form_zip_code.read().clone(),
-                "country": form_country.read().clone(),
-            }
-        });
-
-        spawn(async move {
-            match server::api::create_attorney(court, body.to_string()).await {
-                Ok(_) => {
-                    data.restart();
-                    show_sheet.set(false);
-                    toast.success(
-                        "Attorney created successfully".to_string(),
-                        ToastOptions::new(),
-                    );
-                }
-                Err(e) => {
-                    toast.error(format!("{}", e), ToastOptions::new());
-                }
-            }
-        });
-    };
-
     rsx! {
         div { class: "container",
             PageHeader {
@@ -136,7 +57,7 @@ pub fn AttorneyListPage() -> Element {
                 PageActions {
                     Button {
                         variant: ButtonVariant::Primary,
-                        onclick: open_create,
+                        onclick: move |_| show_sheet.set(true),
                         "New Attorney"
                     }
                 }
@@ -180,131 +101,12 @@ pub fn AttorneyListPage() -> Element {
                 },
             }
 
-            // Create attorney Sheet
-            Sheet {
+            AttorneyFormSheet {
+                mode: FormMode::Create,
+                initial: None,
                 open: show_sheet(),
                 on_close: move |_| show_sheet.set(false),
-                side: SheetSide::Right,
-                SheetContent {
-                    SheetHeader {
-                        SheetTitle { "New Attorney" }
-                        SheetDescription {
-                            "Register a new attorney in the court system."
-                        }
-                        SheetClose { on_close: move |_| show_sheet.set(false) }
-                    }
-
-                    Form {
-                        onsubmit: handle_save,
-
-                        div {
-                            class: "sheet-form",
-
-                            Input {
-                                label: "Bar Number *",
-                                value: form_bar_number.read().clone(),
-                                on_input: move |e: FormEvent| form_bar_number.set(e.value().to_string()),
-                                placeholder: "e.g., NY12345",
-                            }
-
-                            Input {
-                                label: "First Name *",
-                                value: form_first_name.read().clone(),
-                                on_input: move |e: FormEvent| form_first_name.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Last Name *",
-                                value: form_last_name.read().clone(),
-                                on_input: move |e: FormEvent| form_last_name.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Middle Name",
-                                value: form_middle_name.read().clone(),
-                                on_input: move |e: FormEvent| form_middle_name.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Email *",
-                                input_type: "email",
-                                value: form_email.read().clone(),
-                                on_input: move |e: FormEvent| form_email.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Phone *",
-                                input_type: "tel",
-                                value: form_phone.read().clone(),
-                                on_input: move |e: FormEvent| form_phone.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Firm Name",
-                                value: form_firm_name.read().clone(),
-                                on_input: move |e: FormEvent| form_firm_name.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Fax",
-                                input_type: "tel",
-                                value: form_fax.read().clone(),
-                                on_input: move |e: FormEvent| form_fax.set(e.value().to_string()),
-                            }
-
-                            Separator {}
-
-                            Input {
-                                label: "Street Address *",
-                                value: form_street1.read().clone(),
-                                on_input: move |e: FormEvent| form_street1.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Street Address 2",
-                                value: form_street2.read().clone(),
-                                on_input: move |e: FormEvent| form_street2.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "City *",
-                                value: form_city.read().clone(),
-                                on_input: move |e: FormEvent| form_city.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "State *",
-                                value: form_state.read().clone(),
-                                on_input: move |e: FormEvent| form_state.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "ZIP Code *",
-                                value: form_zip_code.read().clone(),
-                                on_input: move |e: FormEvent| form_zip_code.set(e.value().to_string()),
-                            }
-
-                            Input {
-                                label: "Country *",
-                                value: form_country.read().clone(),
-                                on_input: move |e: FormEvent| form_country.set(e.value().to_string()),
-                            }
-                        }
-
-                        Separator {}
-
-                        SheetFooter {
-                            div {
-                                class: "sheet-footer-actions",
-                                SheetClose { on_close: move |_| show_sheet.set(false) }
-                                Button {
-                                    variant: ButtonVariant::Primary,
-                                    "Create Attorney"
-                                }
-                            }
-                        }
-                    }
-                }
+                on_saved: move |_| data.restart(),
             }
         }
     }
@@ -432,13 +234,5 @@ fn status_badge_variant(status: &str) -> BadgeVariant {
         "Suspended" => BadgeVariant::Destructive,
         "Retired" => BadgeVariant::Outline,
         _ => BadgeVariant::Secondary,
-    }
-}
-
-fn opt_str(s: &str) -> serde_json::Value {
-    if s.trim().is_empty() {
-        serde_json::Value::Null
-    } else {
-        serde_json::Value::String(s.to_string())
     }
 }

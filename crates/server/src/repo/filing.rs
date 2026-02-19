@@ -9,6 +9,83 @@ use uuid::Uuid;
 use crate::error_convert::SqlxErrorExt;
 
 // ---------------------------------------------------------------------------
+// Filing queries (list + detail)
+// ---------------------------------------------------------------------------
+
+/// Find a single filing by its ID within a court.
+pub async fn find_by_id(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    id: Uuid,
+) -> Result<Option<Filing>, AppError> {
+    sqlx::query_as!(
+        Filing,
+        r#"
+        SELECT id, court_id, case_id, filing_type, filed_by, filed_date,
+               status, validation_errors, document_id, docket_entry_id, created_at
+        FROM filings
+        WHERE id = $1 AND court_id = $2
+        "#,
+        id,
+        court_id,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)
+}
+
+/// List all filings for a court with optional search and pagination.
+/// Search matches against filing_type or filed_by (case-insensitive).
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<Filing>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!" FROM filings
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL
+               OR LOWER(filing_type) LIKE $2
+               OR LOWER(filed_by) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        Filing,
+        r#"
+        SELECT id, court_id, case_id, filing_type, filed_by, filed_date,
+               status, validation_errors, document_id, docket_entry_id, created_at
+        FROM filings
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL
+               OR LOWER(filing_type) LIKE $2
+               OR LOWER(filed_by) LIKE $2)
+        ORDER BY filed_date DESC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}
+
+// ---------------------------------------------------------------------------
 // Document-type → docket entry-type mapping
 // ---------------------------------------------------------------------------
 

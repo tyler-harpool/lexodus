@@ -74,6 +74,24 @@ pub async fn submit_filing(
     let (filing, _doc, docket_entry, case_number, _nef) =
         crate::repo::filing::submit(&pool, &court.0, &body).await?;
 
+    // Auto-create queue item for clerk processing
+    let _ = crate::repo::queue::create(
+        &pool,
+        &court.0,
+        "filing",
+        3,
+        &format!("{} - {}", body.document_type, body.title),
+        Some("New filing requires clerk review"),
+        "filing",
+        filing.id,
+        Some(filing.case_id),
+        Some(&case_number),
+        None,
+        None,
+        shared_types::pipeline_steps("filing").first().copied().unwrap_or("review"),
+    )
+    .await;
+
     let response = FilingResponse {
         filing_id: filing.id.to_string(),
         document_id: filing.document_id.map(|u| u.to_string()).unwrap_or_default(),

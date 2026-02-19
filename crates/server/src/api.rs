@@ -64,7 +64,7 @@ pub async fn get_feature_flags() -> Result<FeatureFlags, ServerFnError> {
     Ok(crate::config::feature_flags().clone())
 }
 
-/// Get premium analytics data. Requires Premium tier or above.
+/// Get premium analytics data. Requires Pro tier or above on any court the user belongs to.
 #[cfg_attr(feature = "server", tracing::instrument)]
 #[server]
 pub async fn get_premium_analytics() -> Result<shared_types::PremiumAnalytics, ServerFnError> {
@@ -73,15 +73,24 @@ pub async fn get_premium_analytics() -> Result<shared_types::PremiumAnalytics, S
     let claims = require_auth()?;
     let db = get_db().await;
 
-    // Read tier from DB (not JWT) — tier can change mid-session via Stripe webhook
-    let db_tier = sqlx::query_scalar!("SELECT tier FROM users WHERE id = $1", claims.sub)
-        .fetch_optional(db)
+    // Check court tier — user has access if ANY of their courts is Pro+
+    let court_ids: Vec<&str> = claims.court_roles.keys().map(|s| s.as_str()).collect();
+    let has_pro_court = if !court_ids.is_empty() {
+        let tiers: Vec<String> = sqlx::query_scalar!(
+            "SELECT tier FROM courts WHERE id = ANY($1)",
+            &court_ids as &[&str]
+        )
+        .fetch_all(db)
         .await
-        .map_err(|e| e.into_app_error().into_server_fn_error())?
-        .unwrap_or_else(|| "free".to_string());
+        .map_err(|e| e.into_app_error().into_server_fn_error())?;
+        tiers
+            .iter()
+            .any(|t| UserTier::from_str_or_default(t).has_access(&UserTier::Pro))
+    } else {
+        false
+    };
 
-    let user_tier = UserTier::from_str_or_default(&db_tier);
-    if !user_tier.has_access(&UserTier::Pro) {
+    if !has_pro_court {
         return Err(AppError::forbidden("Pro tier required for analytics").into_server_fn_error());
     }
 
@@ -238,6 +247,7 @@ pub async fn delete_user(user_id: i64) -> Result<(), ServerFnError> {
 }
 
 /// Update a user's tier. Requires admin role.
+/// NOTE: Vestigial — tier is now per-court. Prefer `update_court_tier`.
 #[cfg_attr(feature = "server", tracing::instrument)]
 #[server]
 pub async fn update_user_tier(user_id: i64, tier: String) -> Result<User, ServerFnError> {
@@ -265,6 +275,46 @@ pub async fn update_user_tier(user_id: i64, tier: String) -> Result<User, Server
     .map_err(|e| e.into_app_error().into_server_fn_error())?;
 
     Ok(user)
+}
+
+/// Update a court's subscription tier. Requires admin or clerk of that court.
+#[cfg_attr(feature = "server", tracing::instrument)]
+#[server]
+pub async fn update_court_tier(court_id: String, tier: String) -> Result<MessageResponse, ServerFnError> {
+    use shared_types::AppError;
+
+    let claims = require_auth()?;
+
+    // Check admin or clerk of the target court
+    let is_admin = claims.role == "admin";
+    let is_clerk = claims.court_roles.get(&court_id).map(|r| r.as_str()) == Some("clerk");
+    if !is_admin && !is_clerk {
+        return Err(
+            AppError::forbidden("Admin or court clerk required").into_server_fn_error(),
+        );
+    }
+
+    let valid_tiers = ["free", "pro", "enterprise"];
+    let tier_lower = tier.to_lowercase();
+    if !valid_tiers.contains(&tier_lower.as_str()) {
+        return Err(
+            AppError::validation("Invalid tier value", Default::default()).into_server_fn_error(),
+        );
+    }
+
+    let db = get_db().await;
+    sqlx::query!(
+        "UPDATE courts SET tier = $2 WHERE id = $1",
+        court_id,
+        tier_lower
+    )
+    .execute(db)
+    .await
+    .map_err(|e| e.into_app_error().into_server_fn_error())?;
+
+    Ok(MessageResponse {
+        message: format!("Court tier updated to {}", tier_lower),
+    })
 }
 
 /// List all products.
@@ -564,6 +614,8 @@ pub async fn register(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: true,
         court_roles,
+        court_tiers: Default::default(),
+        preferred_court_id: None,
     })
 }
 
@@ -685,6 +737,8 @@ pub async fn login(email: String, password: String) -> Result<AuthUser, ServerFn
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: true,
         court_roles,
+        court_tiers: Default::default(),
+        preferred_court_id: None,
     })
 }
 
@@ -768,7 +822,7 @@ async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, ServerFnError
         r#"SELECT id, username, display_name, email, password_hash, role, tier, avatar_url,
                   email_verified, phone_number, phone_verified,
                   email_notifications_enabled, push_notifications_enabled, weekly_digest_enabled,
-                  court_roles
+                  court_roles, preferred_court_id
            FROM users WHERE id = $1"#,
         user_id
     )
@@ -780,6 +834,23 @@ async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, ServerFnError
         Some(u) => {
             let court_roles: std::collections::HashMap<String, String> =
                 serde_json::from_value(u.court_roles).unwrap_or_default();
+
+            // Load per-court tiers for all courts the user belongs to
+            let court_tiers: std::collections::HashMap<String, String> = if !court_roles.is_empty()
+            {
+                let court_ids: Vec<&str> = court_roles.keys().map(|s| s.as_str()).collect();
+                let rows = sqlx::query!(
+                    "SELECT id, tier FROM courts WHERE id = ANY($1)",
+                    &court_ids as &[&str]
+                )
+                .fetch_all(db)
+                .await
+                .unwrap_or_default();
+                rows.into_iter().map(|r| (r.id, r.tier)).collect()
+            } else {
+                std::collections::HashMap::new()
+            };
+
             Ok(Some(AuthUser {
                 id: u.id,
                 username: u.username,
@@ -796,6 +867,8 @@ async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, ServerFnError
                 weekly_digest_enabled: u.weekly_digest_enabled,
                 has_password: u.password_hash.is_some(),
                 court_roles,
+                court_tiers,
+                preferred_court_id: u.preferred_court_id,
             }))
         }
         None => {
@@ -855,7 +928,7 @@ fn parse_uscourts_court(email: &str) -> Option<String> {
 /// If the user's email matches *@{court_id}.uscourts.gov, auto-approve immediately.
 #[cfg_attr(feature = "server", tracing::instrument)]
 #[server]
-pub async fn request_court_admission(court_id: String, role: String) -> Result<String, ServerFnError> {
+pub async fn request_court_admission(court_id: String, role: String, notes: Option<String>) -> Result<String, ServerFnError> {
     use shared_types::AppError;
 
     let claims = require_auth()?;
@@ -919,11 +992,12 @@ pub async fn request_court_admission(court_id: String, role: String) -> Result<S
     } else {
         // Create pending request
         sqlx::query!(
-            r#"INSERT INTO court_role_requests (user_id, court_id, requested_role, status)
-               VALUES ($1, $2, $3, 'pending')"#,
+            r#"INSERT INTO court_role_requests (user_id, court_id, requested_role, status, notes)
+               VALUES ($1, $2, $3, 'pending', $4)"#,
             claims.sub,
             court_id,
             role,
+            notes.as_deref(),
         )
         .execute(db)
         .await
@@ -931,6 +1005,90 @@ pub async fn request_court_admission(court_id: String, role: String) -> Result<S
 
         Ok("pending".to_string())
     }
+}
+
+/// List pending court role requests for a specific court.
+/// Requires admin or clerk role in the target court.
+#[cfg_attr(feature = "server", tracing::instrument)]
+#[server]
+pub async fn list_pending_court_requests(
+    court_id: String,
+) -> Result<Vec<shared_types::CourtRoleRequestResponse>, ServerFnError> {
+    let claims = require_auth()?;
+    let db = get_db().await;
+    let header_court = extract_court_header_sfn();
+
+    require_membership_access_sfn(&claims, header_court.as_deref(), &court_id)?;
+
+    let rows = crate::repo::court_role_request::list_pending_for_court(db, &court_id)
+        .await
+        .map_err(|e| e.into_server_fn_error())?;
+
+    Ok(rows
+        .iter()
+        .map(crate::repo::court_role_request::to_response_with_user)
+        .collect())
+}
+
+/// Approve a pending court role request.
+/// Requires admin or clerk role.
+#[cfg_attr(feature = "server", tracing::instrument)]
+#[server]
+pub async fn approve_court_request(request_id: String) -> Result<(), ServerFnError> {
+    use shared_types::AppError;
+
+    let claims = require_auth()?;
+    let db = get_db().await;
+    let header_court = extract_court_header_sfn();
+
+    let req_uuid = uuid::Uuid::parse_str(&request_id)
+        .map_err(|_| AppError::bad_request("Invalid request ID").into_server_fn_error())?;
+
+    // Fetch the request to determine its court_id for access control
+    let request = crate::repo::court_role_request::get_by_id(db, req_uuid)
+        .await
+        .map_err(|e| e.into_server_fn_error())?
+        .ok_or_else(|| AppError::not_found("Request not found").into_server_fn_error())?;
+
+    require_membership_access_sfn(&claims, header_court.as_deref(), &request.court_id)?;
+
+    crate::repo::court_role_request::approve(db, req_uuid, claims.sub)
+        .await
+        .map_err(|e| e.into_server_fn_error())?;
+
+    Ok(())
+}
+
+/// Deny a pending court role request with optional notes.
+/// Requires admin or clerk role.
+#[cfg_attr(feature = "server", tracing::instrument)]
+#[server]
+pub async fn deny_court_request(
+    request_id: String,
+    notes: Option<String>,
+) -> Result<(), ServerFnError> {
+    use shared_types::AppError;
+
+    let claims = require_auth()?;
+    let db = get_db().await;
+    let header_court = extract_court_header_sfn();
+
+    let req_uuid = uuid::Uuid::parse_str(&request_id)
+        .map_err(|_| AppError::bad_request("Invalid request ID").into_server_fn_error())?;
+
+    // Fetch the request to determine its court_id for access control
+    let request = crate::repo::court_role_request::get_by_id(db, req_uuid)
+        .await
+        .map_err(|e| e.into_server_fn_error())?
+        .ok_or_else(|| AppError::not_found("Request not found").into_server_fn_error())?;
+
+    require_membership_access_sfn(&claims, header_court.as_deref(), &request.court_id)?;
+
+    crate::repo::court_role_request::deny(db, req_uuid, claims.sub, notes.as_deref())
+        .await
+        .map_err(|e| e.into_server_fn_error())?;
+
+    Ok(())
 }
 
 /// Update the current user's profile (display name and email). Requires authentication.
@@ -982,6 +1140,8 @@ pub async fn update_profile(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: user.password_hash.is_some(),
         court_roles: claims.court_roles.clone(),
+        court_tiers: Default::default(),
+        preferred_court_id: None,
     })
 }
 
@@ -1058,6 +1218,8 @@ pub async fn upload_user_avatar(
         weekly_digest_enabled: user.weekly_digest_enabled,
         has_password: user.password_hash.is_some(),
         court_roles: claims.court_roles.clone(),
+        court_tiers: Default::default(),
+        preferred_court_id: None,
     })
 }
 
@@ -1099,6 +1261,7 @@ pub async fn oauth_authorize_url(
 // ── Billing Server Functions ─────────────────────────
 
 /// Create a Stripe checkout session for a subscription or one-time payment.
+/// For subscriptions, `court_id` identifies the court whose tier will be updated.
 #[cfg_attr(feature = "server", tracing::instrument)]
 #[server]
 pub async fn create_billing_checkout(
@@ -1107,6 +1270,7 @@ pub async fn create_billing_checkout(
     price_cents: Option<i64>,
     product_name: Option<String>,
     product_description: Option<String>,
+    court_id: Option<String>,
 ) -> Result<CheckoutResponse, ServerFnError> {
     use shared_types::AppError;
 
@@ -1126,11 +1290,13 @@ pub async fn create_billing_checkout(
                 AppError::validation("Tier is required for subscriptions", Default::default())
                     .into_server_fn_error()
             })?;
+            let cid = court_id.as_deref().unwrap_or("");
             crate::stripe::checkout::create_subscription_checkout(
                 db,
                 claims.sub,
                 &claims.email,
                 &tier,
+                cid,
             )
             .await
             .map_err(|e| AppError::internal(e).into_server_fn_error())?
@@ -1855,6 +2021,8 @@ pub async fn poll_device_auth(
                 weekly_digest_enabled: user.weekly_digest_enabled,
                 has_password: user.password_hash.is_some(),
                 court_roles,
+                court_tiers: Default::default(),
+                preferred_court_id: None,
             };
 
             Ok(DeviceFlowPollResponse {
@@ -2202,6 +2370,25 @@ pub async fn delete_calendar_event(court_id: String, id: String) -> Result<(), S
     }
 }
 
+/// List all calendar events for a specific case.
+#[server]
+pub async fn list_calendar_by_case(court_id: String, case_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::calendar;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid = Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+
+    let rows = calendar::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let response: Vec<shared_types::CalendarEntryResponse> =
+        rows.into_iter().map(shared_types::CalendarEntryResponse::from).collect();
+    Ok(serde_json::to_string(&response).unwrap_or_default())
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Deadline server functions
 // ═══════════════════════════════════════════════════════════════
@@ -2381,20 +2568,58 @@ pub async fn search_cases(
     Ok(serde_json::to_string(&response).unwrap_or_default())
 }
 
-/// Get a single case by ID.
+/// Get a single case by ID. Checks criminal_cases first, then civil_cases.
 #[server]
 pub async fn get_case(court_id: String, id: String) -> Result<String, ServerFnError> {
     use crate::db::get_db;
-    use crate::repo::case;
+    use crate::repo::{case, civil_case};
     use uuid::Uuid;
 
     let pool = get_db().await;
     let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
-    let c = case::find_by_id(pool, &court_id, uuid).await
+
+    // Try criminal first
+    if let Some(c) = case::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+    {
+        return Ok(serde_json::to_string(&shared_types::CaseResponse::from(c)).unwrap_or_default());
+    }
+
+    // Fall back to civil
+    let c = civil_case::find_by_id(pool, &court_id, uuid)
+        .await
         .map_err(|e| ServerFnError::new(e.to_string()))?
         .ok_or_else(|| ServerFnError::new("Case not found"))?;
 
-    Ok(serde_json::to_string(&shared_types::CaseResponse::from(c)).unwrap_or_default())
+    let resp = shared_types::CaseResponse {
+        id: c.id.to_string(),
+        case_number: c.case_number,
+        title: c.title,
+        description: c.description,
+        case_type: "civil".to_string(),
+        crime_type: c.nature_of_suit,
+        status: c.status,
+        priority: c.priority,
+        district_code: c.district_code,
+        location: c.location,
+        opened_at: c.opened_at.to_rfc3339(),
+        updated_at: c.updated_at.to_rfc3339(),
+        closed_at: c.closed_at.map(|d| d.to_rfc3339()),
+        assigned_judge_id: c.assigned_judge_id.map(|u| u.to_string()),
+        is_sealed: c.is_sealed,
+        sealed_by: c.sealed_by,
+        sealed_date: c.sealed_date.map(|d| d.to_rfc3339()),
+        seal_reason: c.seal_reason,
+        jurisdiction_basis: Some(c.jurisdiction_basis),
+        jury_demand: Some(c.jury_demand),
+        class_action: Some(c.class_action),
+        amount_in_controversy: c.amount_in_controversy,
+        consent_to_magistrate: Some(c.consent_to_magistrate),
+        pro_se: Some(c.pro_se),
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
 }
 
 /// Create a new criminal case.
@@ -2477,6 +2702,104 @@ pub async fn update_case(
         .ok_or_else(|| ServerFnError::new("Case not found"))?;
 
     Ok(serde_json::to_string(&shared_types::CaseResponse::from(c)).unwrap_or_default())
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Civil Case server functions
+// ═══════════════════════════════════════════════════════════════
+
+/// Search civil cases with filters.
+#[server]
+pub async fn search_civil_cases(
+    court_id: String,
+    status: Option<String>,
+    nature_of_suit: Option<String>,
+    jurisdiction_basis: Option<String>,
+    class_action: Option<bool>,
+    assigned_judge_id: Option<String>,
+    q: Option<String>,
+    offset: Option<i64>,
+    limit: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::civil_case;
+
+    let pool = get_db().await;
+    let offset = offset.unwrap_or(0).max(0);
+    let limit = limit.unwrap_or(20).clamp(1, 100);
+
+    let (cases, total) = civil_case::search(
+        pool, &court_id,
+        status.as_deref().filter(|s| !s.is_empty()),
+        nature_of_suit.as_deref().filter(|s| !s.is_empty()),
+        jurisdiction_basis.as_deref().filter(|s| !s.is_empty()),
+        class_action,
+        assigned_judge_id.as_deref().filter(|s| !s.is_empty()),
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset, limit,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let response = shared_types::CivilCaseSearchResponse {
+        cases: cases.into_iter().map(shared_types::CivilCaseResponse::from).collect(),
+        total,
+    };
+    Ok(serde_json::to_string(&response).unwrap_or_default())
+}
+
+/// Get a single civil case by ID.
+#[server]
+pub async fn get_civil_case(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::civil_case;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let c = civil_case::find_by_id(pool, &court_id, uuid).await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Civil case not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::CivilCaseResponse::from(c)).unwrap_or_default())
+}
+
+/// Create a new civil case.
+#[server]
+pub async fn create_civil_case(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::civil_case;
+    use shared_types::CreateCivilCaseRequest;
+
+    let pool = get_db().await;
+    let req: CreateCivilCaseRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+
+    let c = civil_case::create(pool, &court_id, req).await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    Ok(serde_json::to_string(&shared_types::CivilCaseResponse::from(c)).unwrap_or_default())
+}
+
+/// Update the status of a civil case.
+#[server]
+pub async fn update_civil_case_status(
+    court_id: String,
+    id: String,
+    status: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::civil_case;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+
+    let c = civil_case::update_status(pool, &court_id, uuid, &status).await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Civil case not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::CivilCaseResponse::from(c)).unwrap_or_default())
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2894,6 +3217,75 @@ pub async fn create_service_record(
         .unwrap_or_default())
 }
 
+/// List all service records for a court with optional search and pagination.
+#[server]
+pub async fn list_all_service_records(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::service_record;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = service_record::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::ServiceRecordResponse> =
+        rows.into_iter().map(Into::into).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// Get a single service record by ID.
+#[server]
+pub async fn get_service_record(
+    court_id: String,
+    id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::service_record;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+
+    let record = service_record::find_by_id_with_party(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Service record not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::ServiceRecordResponse::from(record))
+        .unwrap_or_default())
+}
+
 /// Link an existing document to a docket entry.
 #[server]
 pub async fn link_document_to_entry(
@@ -3231,6 +3623,72 @@ pub async fn get_nef_by_docket_entry(
     Ok(maybe_nef.map(|n| serde_json::to_string(&shared_types::NefResponse::from(n)).unwrap_or_default()))
 }
 
+// ── Filing list / detail server functions ─────────────
+
+/// List all filings for a court with optional search and pagination.
+#[server]
+pub async fn list_all_filings(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::filing;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = filing::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::FilingListItem> =
+        rows.into_iter().map(shared_types::FilingListItem::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// Get a single filing by ID.
+#[server]
+pub async fn get_filing_by_id(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::filing;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = filing::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Filing not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::FilingListItem::from(row)).unwrap_or_default())
+}
+
 // ── Court Membership Server Functions ──────────────────
 
 /// A DB row shape for the list_users_with_memberships query.
@@ -3243,6 +3701,8 @@ struct UserRow {
     display_name: String,
     role: String,
     tier: String,
+    email: Option<String>,
+    phone_number: Option<String>,
     court_roles: serde_json::Value,
 }
 
@@ -3283,7 +3743,7 @@ pub async fn list_users_with_memberships(
 
     let rows = sqlx::query_as!(
         UserRow,
-        "SELECT id, username, display_name, role, tier, court_roles FROM users"
+        "SELECT id, username, display_name, role, tier, email, phone_number, court_roles FROM users"
     )
     .fetch_all(db)
     .await
@@ -3298,13 +3758,20 @@ pub async fn list_users_with_memberships(
                 .unwrap_or("")
                 .to_string();
 
+            // Parse full court_roles JSONB into HashMap
+            let all_court_roles: std::collections::HashMap<String, String> =
+                serde_json::from_value(row.court_roles).unwrap_or_default();
+
             UserWithMembership {
                 id: row.id,
                 username: row.username,
                 display_name: row.display_name,
                 role: row.role,
                 tier: row.tier,
+                email: row.email.unwrap_or_default(),
+                phone_number: row.phone_number,
                 court_role,
+                all_court_roles,
             }
         })
         .collect();
@@ -3682,6 +4149,74 @@ pub async fn list_document_events_action(
     Ok(serde_json::to_string(&response).unwrap_or_default())
 }
 
+/// List all documents for a court with optional title search and pagination.
+#[server]
+pub async fn list_all_documents(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::document;
+    use shared_types::DocumentResponse;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = document::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<DocumentResponse> =
+        rows.into_iter().map(DocumentResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// Get a single document by ID.
+#[server]
+pub async fn get_document_by_id(
+    court_id: String,
+    id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::document;
+    use shared_types::DocumentResponse;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let doc = document::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Document not found"))?;
+    Ok(serde_json::to_string(&DocumentResponse::from(doc)).unwrap_or_default())
+}
+
 // ── Unified Event Composer Server Functions ────────────────────
 
 /// Submit a unified docket event (text entry, filing, or promote attachment).
@@ -3810,4 +4345,3189 @@ pub async fn get_case_timeline(
         total,
     })
     .unwrap_or_default())
+}
+
+// ── Defendant Server Functions ─────────────────────────
+
+#[server]
+pub async fn list_defendants(court_id: String, case_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::defendant;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = defendant::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+/// List all defendants for a court (across all cases) with optional search and pagination.
+#[server]
+pub async fn list_all_defendants(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::defendant;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = defendant::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::DefendantResponse> =
+        rows.into_iter().map(shared_types::DefendantResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_defendant(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::defendant;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = defendant::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_defendant(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::defendant;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateDefendantRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = defendant::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_defendant(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::defendant;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateDefendantRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = defendant::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_defendant(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::defendant;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    defendant::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Party Server Functions ─────────────────────────────
+
+#[server]
+pub async fn create_party(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+
+    let pool = get_db().await;
+    let req: shared_types::CreatePartyRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = party::create(pool, &court_id, &req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_party(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = party::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_party(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdatePartyRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = party::update(pool, &court_id, uuid, &req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_party(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    party::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+#[server]
+pub async fn list_parties_by_case(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = party::list_full_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_unrepresented_parties(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+
+    let pool = get_db().await;
+    let rows = party::list_unrepresented(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_parties_by_attorney(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid =
+        Uuid::parse_str(&attorney_id).map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = party::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+/// List all parties for a court (across all cases) with optional search and pagination.
+#[server]
+pub async fn list_all_parties(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::party;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = party::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::PartyResponse> =
+        rows.into_iter().map(shared_types::PartyResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// List all representations for a specific party.
+#[server]
+pub async fn list_representations_by_party(
+    court_id: String,
+    party_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::representation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let party_uuid =
+        Uuid::parse_str(&party_id).map_err(|_| ServerFnError::new("Invalid party_id UUID"))?;
+    let rows = representation::list_by_party(pool, &court_id, party_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    let responses: Vec<shared_types::RepresentationResponse> =
+        rows.into_iter().map(shared_types::RepresentationResponse::from).collect();
+    Ok(serde_json::to_string(&responses).unwrap_or_default())
+}
+
+// ── Evidence Server Functions ──────────────────────────
+
+/// List all evidence for a court (across all cases) with optional search and pagination.
+#[server]
+pub async fn list_all_evidence(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::evidence;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = evidence::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::EvidenceResponse> =
+        rows.into_iter().map(shared_types::EvidenceResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_evidence_by_case(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::evidence;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = evidence::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_evidence(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::evidence;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = evidence::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_evidence(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::evidence;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateEvidenceRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = evidence::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_evidence(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::evidence;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateEvidenceRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = evidence::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_evidence(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::evidence;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    evidence::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Custody Transfer Server Functions ──────────────────
+
+#[server]
+pub async fn list_custody_transfers(
+    court_id: String,
+    evidence_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::custody_transfer;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let ev_uuid =
+        Uuid::parse_str(&evidence_id).map_err(|_| ServerFnError::new("Invalid evidence_id UUID"))?;
+    let rows = custody_transfer::list_by_evidence(pool, &court_id, ev_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_custody_transfer(
+    court_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::custody_transfer;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateCustodyTransferRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = custody_transfer::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Order Server Functions ─────────────────────────────
+
+/// List all orders for a court (across all cases) with optional search and pagination.
+#[server]
+pub async fn list_all_orders(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = order::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::JudicialOrderResponse> =
+        rows.into_iter().map(shared_types::JudicialOrderResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+/// Sign an order, updating its status to "Signed".
+#[server]
+pub async fn sign_order_action(
+    court_id: String,
+    id: String,
+    signed_by: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+
+    let order = sqlx::query_as!(
+        shared_types::JudicialOrder,
+        r#"
+        WITH upd AS (
+            UPDATE judicial_orders SET
+                status = 'Signed',
+                signer_name = $3,
+                signed_at = NOW(),
+                signature_hash = md5($3 || id::text),
+                updated_at = NOW()
+            WHERE id = $1 AND court_id = $2
+            RETURNING id, court_id, case_id, judge_id, order_type, title, content,
+                      status, is_sealed, signer_name, signed_at, signature_hash,
+                      issued_at, effective_date, expiration_date, related_motions,
+                      created_at, updated_at
+        )
+        SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
+               j.name as judge_name,
+               upd.order_type, upd.title, upd.content,
+               upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
+               upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
+               upd.created_at, upd.updated_at
+        FROM upd
+        LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
+        "#,
+        uuid,
+        &court_id,
+        signed_by,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?
+    .ok_or_else(|| ServerFnError::new("Order not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::JudicialOrderResponse::from(order)).unwrap_or_default())
+}
+
+/// Issue an order, updating its status to "Filed".
+#[server]
+pub async fn issue_order_action(
+    court_id: String,
+    id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+
+    let order = sqlx::query_as!(
+        shared_types::JudicialOrder,
+        r#"
+        WITH upd AS (
+            UPDATE judicial_orders SET
+                status = 'Filed',
+                issued_at = NOW(),
+                updated_at = NOW()
+            WHERE id = $1 AND court_id = $2
+            RETURNING id, court_id, case_id, judge_id, order_type, title, content,
+                      status, is_sealed, signer_name, signed_at, signature_hash,
+                      issued_at, effective_date, expiration_date, related_motions,
+                      created_at, updated_at
+        )
+        SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
+               j.name as judge_name,
+               upd.order_type, upd.title, upd.content,
+               upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
+               upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
+               upd.created_at, upd.updated_at
+        FROM upd
+        LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
+        "#,
+        uuid,
+        &court_id,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?
+    .ok_or_else(|| ServerFnError::new("Order not found"))?;
+
+    Ok(serde_json::to_string(&shared_types::JudicialOrderResponse::from(order)).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_orders_by_case(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = order::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_orders_by_judge(
+    court_id: String,
+    judge_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let judge_uuid =
+        Uuid::parse_str(&judge_id).map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let rows = order::list_by_judge(pool, &court_id, judge_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_order(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = order::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_order(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateJudicialOrderRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = order::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_order(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateJudicialOrderRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = order::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_order(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    order::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Order Template Server Functions ────────────────────
+
+#[server]
+pub async fn list_order_templates(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order_template;
+
+    let pool = get_db().await;
+    let rows = order_template::list_all(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_active_order_templates(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order_template;
+
+    let pool = get_db().await;
+    let rows = order_template::list_active(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_order_template(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order_template;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = order_template::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_order_template(
+    court_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order_template;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateOrderTemplateRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = order_template::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_order_template(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order_template;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateOrderTemplateRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = order_template::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_order_template(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::order_template;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    order_template::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Sentencing Server Functions ────────────────────────
+
+#[server]
+pub async fn list_sentencing_by_case(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = sentencing::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_sentencing_by_defendant(
+    court_id: String,
+    defendant_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let def_uuid = Uuid::parse_str(&defendant_id)
+        .map_err(|_| ServerFnError::new("Invalid defendant_id UUID"))?;
+    let rows = sentencing::list_by_defendant(pool, &court_id, def_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_sentencing(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = sentencing::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_sentencing(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateSentencingRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = sentencing::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_sentencing(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateSentencingRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = sentencing::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_sentencing(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    sentencing::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Sentencing Condition Server Functions ───────────────
+
+#[server]
+pub async fn list_sentencing_conditions(
+    court_id: String,
+    sentencing_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing_condition;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let s_uuid = Uuid::parse_str(&sentencing_id)
+        .map_err(|_| ServerFnError::new("Invalid sentencing_id UUID"))?;
+    let rows = sentencing_condition::list_by_sentencing(pool, &court_id, s_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_sentencing_condition(
+    court_id: String,
+    sentencing_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing_condition;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let s_uuid = Uuid::parse_str(&sentencing_id)
+        .map_err(|_| ServerFnError::new("Invalid sentencing_id UUID"))?;
+    let req: shared_types::CreateSpecialConditionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = sentencing_condition::create(pool, &court_id, s_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Sentencing List-All + BOP + Prior Sentence Server Functions ──
+
+#[server]
+pub async fn list_all_sentencing(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::sentencing;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = sentencing::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::SentencingResponse> =
+        rows.into_iter().map(shared_types::SentencingResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_bop_designations(
+    court_id: String,
+    sentencing_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::bop_designation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let s_uuid = Uuid::parse_str(&sentencing_id)
+        .map_err(|_| ServerFnError::new("Invalid sentencing_id UUID"))?;
+    let rows = bop_designation::list_by_sentencing(pool, &court_id, s_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_prior_sentences(
+    court_id: String,
+    sentencing_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::prior_sentence;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let s_uuid = Uuid::parse_str(&sentencing_id)
+        .map_err(|_| ServerFnError::new("Invalid sentencing_id UUID"))?;
+    let rows = prior_sentence::list_by_sentencing(pool, &court_id, s_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+// ── Speedy Trial Server Functions ──────────────────────
+
+#[server]
+pub async fn get_speedy_trial(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::speedy_trial;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let row = speedy_trial::find_by_case_id(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("No speedy trial clock found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn start_speedy_trial(
+    court_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::speedy_trial;
+
+    let pool = get_db().await;
+    let req: shared_types::StartSpeedyTrialRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = speedy_trial::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_speedy_trial(
+    court_id: String,
+    case_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::speedy_trial;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let req: shared_types::UpdateSpeedyTrialClockRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = speedy_trial::update(pool, &court_id, case_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_speedy_trial_delays(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::speedy_trial;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = speedy_trial::list_delays_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_speedy_trial_delay(
+    court_id: String,
+    case_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::speedy_trial;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let req: shared_types::CreateExcludableDelayRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = speedy_trial::create_delay(pool, &court_id, case_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_speedy_trial_delay(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::speedy_trial;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    speedy_trial::delete_delay(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Extension Request Server Functions ─────────────────
+
+#[server]
+pub async fn list_extensions_by_deadline(
+    court_id: String,
+    deadline_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::extension_request;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let dl_uuid = Uuid::parse_str(&deadline_id)
+        .map_err(|_| ServerFnError::new("Invalid deadline_id UUID"))?;
+    let rows = extension_request::list_by_deadline(pool, &court_id, dl_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_extension(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::extension_request;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = extension_request::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_extension_request_fn(
+    court_id: String,
+    deadline_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::extension_request;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let dl_uuid = Uuid::parse_str(&deadline_id)
+        .map_err(|_| ServerFnError::new("Invalid deadline_id UUID"))?;
+    let req: shared_types::CreateExtensionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = extension_request::create(pool, &court_id, dl_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_pending_extensions(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::extension_request;
+
+    let pool = get_db().await;
+    let rows = extension_request::list_pending(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn rule_on_extension(
+    court_id: String,
+    id: String,
+    status: String,
+    ruling_by: String,
+    new_deadline_date: Option<String>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::extension_request;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let new_date = new_deadline_date
+        .map(|d| {
+            chrono::DateTime::parse_from_rfc3339(&d)
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .map_err(|_| ServerFnError::new("Invalid date format"))
+        })
+        .transpose()?;
+    let row = extension_request::update_ruling(pool, &court_id, uuid, &status, &ruling_by, new_date)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Deadline Reminder Server Functions ──────────────────
+
+#[server]
+pub async fn list_reminders_by_deadline(
+    court_id: String,
+    deadline_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::deadline_reminder;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let dl_uuid = Uuid::parse_str(&deadline_id)
+        .map_err(|_| ServerFnError::new("Invalid deadline_id UUID"))?;
+    let rows = deadline_reminder::list_by_deadline(pool, &court_id, dl_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_pending_reminders(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::deadline_reminder;
+
+    let pool = get_db().await;
+    let rows = deadline_reminder::list_pending(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn send_reminder(
+    court_id: String,
+    deadline_id: String,
+    recipient: String,
+    reminder_type: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::deadline_reminder;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let dl_uuid = Uuid::parse_str(&deadline_id)
+        .map_err(|_| ServerFnError::new("Invalid deadline_id UUID"))?;
+    let row = deadline_reminder::send(pool, &court_id, dl_uuid, &recipient, &reminder_type)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn acknowledge_reminder(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::deadline_reminder;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = deadline_reminder::acknowledge(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Judge Server Functions ─────────────────────────────
+
+#[server]
+pub async fn list_judges(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge;
+
+    let pool = get_db().await;
+    let rows = judge::list_by_court(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn search_judges(court_id: String, query: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge;
+
+    let pool = get_db().await;
+    let rows = judge::search(pool, &court_id, &query)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_judge(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = judge::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_judge(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateJudgeRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = judge::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_judge(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateJudgeRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = judge::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_judge(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    judge::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Judge Conflict Server Functions ────────────────────
+
+#[server]
+pub async fn list_judge_conflicts(
+    court_id: String,
+    judge_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge_conflict;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let j_uuid =
+        Uuid::parse_str(&judge_id).map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let rows = judge_conflict::list_by_judge(pool, &court_id, j_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_judge_conflict(
+    court_id: String,
+    judge_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge_conflict;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let j_uuid =
+        Uuid::parse_str(&judge_id).map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let req: shared_types::CreateJudgeConflictRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = judge_conflict::create(pool, &court_id, j_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_judge_conflict(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::judge_conflict;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    judge_conflict::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Case Assignment Server Functions ───────────────────
+
+#[server]
+pub async fn list_case_assignments(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_assignment;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = case_assignment::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_case_assignment(
+    court_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_assignment;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateCaseAssignmentRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = case_assignment::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_case_assignment(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_assignment;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    case_assignment::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Recusal Motion Server Functions ────────────────────
+
+#[server]
+pub async fn create_recusal(
+    court_id: String,
+    judge_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::recusal_motion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let j_uuid =
+        Uuid::parse_str(&judge_id).map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let req: shared_types::CreateRecusalMotionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = recusal_motion::create(pool, &court_id, j_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_pending_recusals(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::recusal_motion;
+
+    let pool = get_db().await;
+    let rows = recusal_motion::list_pending(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn rule_on_recusal(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::recusal_motion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateRecusalRulingRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = recusal_motion::update_ruling(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Opinion Server Functions ───────────────────────────
+
+#[server]
+pub async fn list_all_opinions(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = opinion::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::JudicialOpinionResponse> =
+        rows.into_iter().map(shared_types::JudicialOpinionResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let resp = shared_types::PaginatedResponse {
+        data: responses,
+        meta,
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_opinions_by_case(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = opinion::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_opinions_by_judge(
+    court_id: String,
+    judge_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let j_uuid =
+        Uuid::parse_str(&judge_id).map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let rows = opinion::list_by_judge(pool, &court_id, j_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn search_opinions(
+    court_id: String,
+    query: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+
+    let pool = get_db().await;
+    let rows = opinion::search(pool, &court_id, &query)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_opinion(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = opinion::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_opinion(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateJudicialOpinionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = opinion::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_opinion(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateJudicialOpinionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = opinion::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_opinion(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    opinion::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Opinion Draft Server Functions ─────────────────────
+
+#[server]
+pub async fn list_opinion_drafts(
+    court_id: String,
+    opinion_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion_draft;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let rows = opinion_draft::list_by_opinion(pool, &court_id, op_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_opinion_draft(
+    court_id: String,
+    opinion_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion_draft;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let req: shared_types::CreateOpinionDraftRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = opinion_draft::create(pool, &court_id, op_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_current_opinion_draft(
+    court_id: String,
+    opinion_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion_draft;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let row = opinion_draft::find_current(pool, &court_id, op_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("No current draft found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Opinion Vote Server Functions ──────────────────────
+
+#[server]
+pub async fn list_opinion_votes(
+    court_id: String,
+    opinion_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion_vote;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let rows = opinion_vote::list_by_opinion(pool, &court_id, op_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_opinion_vote(
+    court_id: String,
+    opinion_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion_vote;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let req: shared_types::CreateOpinionVoteRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = opinion_vote::create(pool, &court_id, op_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Headnote Server Functions ──────────────────────────
+
+#[server]
+pub async fn list_headnotes(
+    court_id: String,
+    opinion_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::headnote;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let rows = headnote::list_by_opinion(pool, &court_id, op_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_headnote(
+    court_id: String,
+    opinion_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::headnote;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let req: shared_types::CreateHeadnoteRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = headnote::create(pool, &court_id, op_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Opinion Citation Server Functions ───────────────────
+
+#[server]
+pub async fn list_opinion_citations(
+    court_id: String,
+    opinion_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::opinion_citation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let op_uuid =
+        Uuid::parse_str(&opinion_id).map_err(|_| ServerFnError::new("Invalid opinion_id UUID"))?;
+    let rows = opinion_citation::list_by_opinion(pool, &court_id, op_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+// ── Victim Server Functions ────────────────────────────
+
+#[server]
+pub async fn list_victims_by_case(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::victim;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = victim::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_victim(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::victim;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateVictimRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = victim::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_victim(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::victim;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = victim::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_victim(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::victim;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    victim::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+/// List all victims for a court (across all cases) with optional search and pagination.
+#[server]
+pub async fn list_all_victims(
+    court_id: String,
+    q: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::victim;
+
+    let pool = get_db().await;
+    let per_page = per_page.unwrap_or(20).clamp(1, 100);
+    let page = page.unwrap_or(1).max(1);
+    let offset = (page - 1) * per_page;
+
+    let (rows, total) = victim::list_all(
+        pool,
+        &court_id,
+        q.as_deref().filter(|s| !s.is_empty()),
+        offset,
+        per_page,
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let responses: Vec<shared_types::VictimResponse> =
+        rows.into_iter().map(shared_types::VictimResponse::from).collect();
+
+    let total_pages = if per_page > 0 { (total + per_page - 1) / per_page } else { 0 };
+    let meta = shared_types::PaginationMeta {
+        total,
+        page,
+        limit: per_page,
+        total_pages,
+        has_next: page < total_pages,
+        has_prev: page > 1,
+    };
+
+    let body = shared_types::PaginatedResponse { data: responses, meta };
+    Ok(serde_json::to_string(&body).unwrap_or_default())
+}
+
+/// List notifications for a specific victim.
+#[server]
+pub async fn list_victim_notifications(
+    court_id: String,
+    victim_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::victim_notification;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&victim_id).map_err(|_| ServerFnError::new("Invalid victim_id UUID"))?;
+    let rows = victim_notification::list_by_victim(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    let responses: Vec<shared_types::VictimNotificationResponse> =
+        rows.into_iter().map(shared_types::VictimNotificationResponse::from).collect();
+    Ok(serde_json::to_string(&responses).unwrap_or_default())
+}
+
+// ── Representation Server Functions ────────────────────
+
+#[server]
+pub async fn list_representations_by_case(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::representation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = representation::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_active_representations(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::representation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = representation::list_active_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_representation(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::representation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = representation::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_representation(
+    court_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::representation;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateRepresentationRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = representation::create(pool, &court_id, &req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn end_representation(
+    court_id: String,
+    id: String,
+    reason: Option<String>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::representation;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = representation::end_representation(pool, &court_id, uuid, reason.as_deref())
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Charge Server Functions ────────────────────────────
+
+#[server]
+pub async fn list_charges_by_defendant(
+    court_id: String,
+    defendant_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::charge;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let def_uuid = Uuid::parse_str(&defendant_id)
+        .map_err(|_| ServerFnError::new("Invalid defendant_id UUID"))?;
+    let rows = charge::list_by_defendant(pool, &court_id, def_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_charge(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::charge;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = charge::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_charge(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::charge;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateChargeRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = charge::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_charge(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::charge;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateChargeRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = charge::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_charge(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::charge;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    charge::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Motion Server Functions ────────────────────────────
+
+#[server]
+pub async fn list_motions_by_case(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::motion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = motion::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_motion(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::motion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = motion::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_motion(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::motion;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateMotionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = motion::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_motion(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::motion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateMotionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = motion::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_motion(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::motion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    motion::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Case Note Server Functions ─────────────────────────
+
+#[server]
+pub async fn list_case_notes(
+    court_id: String,
+    case_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_note;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let case_uuid =
+        Uuid::parse_str(&case_id).map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let rows = case_note::list_by_case(pool, &court_id, case_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_case_note(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_note;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = case_note::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_case_note(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_note;
+
+    let pool = get_db().await;
+    let req: shared_types::CreateCaseNoteRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = case_note::create(pool, &court_id, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_case_note(
+    court_id: String,
+    id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_note;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let req: shared_types::UpdateCaseNoteRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = case_note::update(pool, &court_id, uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_case_note(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_note;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    case_note::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Rule Server Functions ──────────────────────────────
+
+#[server]
+pub async fn list_rules(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::rule;
+
+    let pool = get_db().await;
+    let rows = rule::list_all(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn get_rule(court_id: String, id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::rule;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    let row = rule::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("Not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_rule(court_id: String, body: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::rule;
+
+    let pool = get_db().await;
+    let v: serde_json::Value = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = rule::create(
+        pool,
+        &court_id,
+        v["name"].as_str().unwrap_or_default(),
+        v["description"].as_str().unwrap_or_default(),
+        v["source"].as_str().unwrap_or_default(),
+        v["category"].as_str().unwrap_or_default(),
+        v["priority"].as_i64().unwrap_or(0) as i32,
+        v["status"].as_str().unwrap_or("active"),
+        v["jurisdiction"].as_str(),
+        v["citation"].as_str(),
+        None,
+        v.get("conditions").unwrap_or(&serde_json::json!({})),
+        v.get("actions").unwrap_or(&serde_json::json!({})),
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_rule(court_id: String, id: String) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::rule;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+    rule::delete(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Conflict Check Server Functions ────────────────────
+
+#[server]
+pub async fn run_conflict_check(
+    court_id: String,
+    attorney_id: String,
+    party_names: Vec<String>,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::conflict_check;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = conflict_check::run_check(pool, &court_id, att_uuid, &party_names)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_conflicts_by_attorney(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::conflict_check;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = conflict_check::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+// ── Bar Admissions ──────────────────────────────────────────
+
+#[server]
+pub async fn list_bar_admissions(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::bar_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = bar_admission::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_bar_admission(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::bar_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateBarAdmissionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = bar_admission::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_bar_admission(
+    court_id: String,
+    attorney_id: String,
+    state: String,
+) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::bar_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    bar_admission::delete_by_state(pool, &court_id, att_uuid, &state)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Federal Admissions ──────────────────────────────────────
+
+#[server]
+pub async fn list_federal_admissions(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::federal_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = federal_admission::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_federal_admission(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::federal_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateFederalAdmissionRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = federal_admission::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn delete_federal_admission(
+    court_id: String,
+    attorney_id: String,
+    court_name: String,
+) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::federal_admission;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    federal_admission::delete_by_court_name(pool, &court_id, att_uuid, &court_name)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── CJA Appointments ────────────────────────────────────────
+
+#[server]
+pub async fn list_cja_appointments(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::cja_appointment;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = cja_appointment::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_cja_appointment(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::cja_appointment;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateCjaAppointmentRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = cja_appointment::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_pending_cja_vouchers(court_id: String) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::cja_appointment;
+
+    let pool = get_db().await;
+    let rows = cja_appointment::list_pending_vouchers(pool, &court_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+// ── Pro Hac Vice ────────────────────────────────────────────
+
+#[server]
+pub async fn list_pro_hac_vice(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::pro_hac_vice;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = pro_hac_vice::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_pro_hac_vice(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::pro_hac_vice;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateProHacViceRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = pro_hac_vice::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn update_pro_hac_vice_status(
+    court_id: String,
+    attorney_id: String,
+    case_id: String,
+    new_status: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::pro_hac_vice;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let case_uuid = Uuid::parse_str(&case_id)
+        .map_err(|_| ServerFnError::new("Invalid case_id UUID"))?;
+    let row = pro_hac_vice::update_status(pool, &court_id, att_uuid, case_uuid, &new_status)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .ok_or_else(|| ServerFnError::new("PHV record not found"))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Discipline Records ──────────────────────────────────────
+
+#[server]
+pub async fn list_discipline_records(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::discipline;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = discipline::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn create_discipline_record(
+    court_id: String,
+    attorney_id: String,
+    body: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::discipline;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let req: shared_types::CreateDisciplineRecordRequest = serde_json::from_str(&body)
+        .map_err(|e| ServerFnError::new(format!("Invalid request: {}", e)))?;
+    let row = discipline::create(pool, &court_id, att_uuid, req)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+// ── Practice Areas ──────────────────────────────────────────
+
+#[server]
+pub async fn list_practice_areas(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::practice_area;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let rows = practice_area::list_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn add_practice_area(
+    court_id: String,
+    attorney_id: String,
+    area: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::practice_area;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let row = practice_area::add(pool, &court_id, att_uuid, &area)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn remove_practice_area(
+    court_id: String,
+    attorney_id: String,
+    area: String,
+) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::practice_area;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    practice_area::remove(pool, &court_id, att_uuid, &area)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── ECF Registration ────────────────────────────────────────
+
+#[server]
+pub async fn get_ecf_registration(
+    court_id: String,
+    attorney_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::ecf_registration;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let row = ecf_registration::find_by_attorney(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn upsert_ecf_registration(
+    court_id: String,
+    attorney_id: String,
+    status: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::ecf_registration;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    let row = ecf_registration::upsert(pool, &court_id, att_uuid, &status)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&row).unwrap_or_default())
+}
+
+#[server]
+pub async fn revoke_ecf_registration(
+    court_id: String,
+    attorney_id: String,
+) -> Result<(), ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::ecf_registration;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let att_uuid = Uuid::parse_str(&attorney_id)
+        .map_err(|_| ServerFnError::new("Invalid attorney_id UUID"))?;
+    ecf_registration::revoke(pool, &court_id, att_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
+// ── Judge Sub-Domain ────────────────────────────────────────
+
+#[server]
+pub async fn list_assignments_by_judge(
+    court_id: String,
+    judge_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::case_assignment;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let j_uuid = Uuid::parse_str(&judge_id)
+        .map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let rows = case_assignment::list_by_judge(pool, &court_id, j_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+#[server]
+pub async fn list_recusals_by_judge(
+    court_id: String,
+    judge_id: String,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use crate::repo::recusal_motion;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let j_uuid = Uuid::parse_str(&judge_id)
+        .map_err(|_| ServerFnError::new("Invalid judge_id UUID"))?;
+    let rows = recusal_motion::list_by_judge(pool, &court_id, j_uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+// ── Court Server Functions ────────────────────────────────
+
+#[server]
+pub async fn list_courts() -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+
+    let pool = get_db().await;
+    let rows = sqlx::query_as!(
+        shared_types::Court,
+        r#"SELECT id, name, court_type, tier, created_at FROM courts ORDER BY name"#,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(serde_json::to_string(&rows).unwrap_or_default())
+}
+
+/// Persist the user's preferred court selection to the database.
+#[server]
+pub async fn set_preferred_court(court_id: String) -> Result<(), ServerFnError> {
+    use crate::auth::{cookies, jwt};
+    use crate::db::get_db;
+
+    let ctx = dioxus::fullstack::FullstackContext::current()
+        .ok_or_else(|| ServerFnError::new("No fullstack context"))?;
+    let headers = ctx.parts_mut().headers.clone();
+    let token = cookies::extract_access_token(&headers)
+        .ok_or_else(|| ServerFnError::new("Not authenticated"))?;
+    let claims = jwt::validate_access_token(&token)
+        .map_err(|_| ServerFnError::new("Invalid token"))?;
+
+    let db = get_db().await;
+    sqlx::query!(
+        "UPDATE users SET preferred_court_id = $1 WHERE id = $2",
+        court_id,
+        claims.sub
+    )
+    .execute(db)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    Ok(())
+}
+
+/// Generate court order PDF via Typst compilation. Returns base64-encoded PDF bytes.
+#[server]
+pub async fn generate_order_pdf(
+    court_id: String,
+    order_id: String,
+    signed: bool,
+) -> Result<String, ServerFnError> {
+    use crate::db::get_db;
+    use base64::Engine;
+    use uuid::Uuid;
+
+    let pool = get_db().await;
+    let uuid = Uuid::parse_str(&order_id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
+
+    let order = sqlx::query_as!(
+        shared_types::JudicialOrder,
+        r#"
+        SELECT o.id, o.court_id, o.case_id, o.judge_id,
+               j.name as judge_name,
+               o.order_type, o.title, o.content,
+               o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
+               o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
+               o.created_at, o.updated_at
+        FROM judicial_orders o
+        LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        WHERE o.id = $1 AND o.court_id = $2
+        "#,
+        uuid,
+        &court_id,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?
+    .ok_or_else(|| ServerFnError::new("Order not found"))?;
+
+    let signer_name = order
+        .signer_name
+        .as_deref()
+        .unwrap_or("N/A")
+        .to_string();
+    let signed_date = order
+        .signed_at
+        .map(|d| d.format("%Y-%m-%d %H:%M UTC").to_string())
+        .unwrap_or_else(|| "Not yet signed".to_string());
+    let order_date = order.created_at.format("%B %d, %Y").to_string();
+
+    use crate::typst::escape_typst;
+
+    // Build the data bindings that precede the court-order template
+    let data_bindings = format!(
+        r##"#let court_name = "{court_name}"
+#let case_id = "{case_id}"
+#let order_type = "{order_type}"
+#let title = "{title}"
+#let status = "{status}"
+#let content_body = "{content}"
+#let show_signature = {show_sig}
+#let signer_name = "{signer_name}"
+#let signed_date = "{signed_date}"
+#let order_date = "{order_date}"
+
+"##,
+        court_name = escape_typst(&court_id),
+        case_id = escape_typst(&order.case_id.to_string()),
+        order_type = escape_typst(&order.order_type),
+        title = escape_typst(&order.title),
+        status = escape_typst(&order.status),
+        content = escape_typst(&order.content),
+        show_sig = signed,
+        signer_name = escape_typst(&signer_name),
+        signed_date = escape_typst(&signed_date),
+        order_date = escape_typst(&order_date),
+    );
+
+    // Read the template file and prepend data bindings
+    let template = include_str!("../../../templates/court-order.typ");
+    let full_source = format!("{data_bindings}{template}");
+
+    // Compile via shared typst module
+    let pdf_bytes = crate::typst::compile_typst(&full_source)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    // Return base64-encoded PDF bytes
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&pdf_bytes);
+    Ok(b64)
+}
+
+// ── Queue Server Functions ─────────────────────────────
+
+#[server]
+pub async fn search_queue(
+    court_id: String,
+    status: Option<String>,
+    queue_type: Option<String>,
+    priority: Option<i32>,
+    assigned_to: Option<i64>,
+    case_id: Option<String>,
+    offset: Option<i64>,
+    limit: Option<i64>,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let case_uuid = case_id.as_deref()
+        .map(|s| uuid::Uuid::parse_str(s))
+        .transpose()
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let (items, total) = crate::repo::queue::search(
+        pool,
+        &court_id,
+        status.as_deref(),
+        queue_type.as_deref(),
+        priority,
+        assigned_to,
+        case_uuid,
+        offset.unwrap_or(0),
+        limit.unwrap_or(20).clamp(1, 100),
+    )
+    .await
+    .map_err(|e| ServerFnError::new(e.message))?;
+
+    let resp = shared_types::QueueSearchResponse {
+        items: items.into_iter().map(shared_types::QueueItemResponse::from).collect(),
+        total,
+    };
+    serde_json::to_string(&resp).map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn get_queue_stats(
+    court_id: String,
+    user_id: Option<i64>,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let stats = crate::repo::queue::stats(pool, &court_id, user_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?;
+    serde_json::to_string(&stats).map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn claim_queue_item_fn(
+    court_id: String,
+    id: String,
+    user_id: i64,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let item = crate::repo::queue::claim(pool, &court_id, uuid, user_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Item not available for claiming".to_string()))?;
+    serde_json::to_string(&shared_types::QueueItemResponse::from(item))
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn release_queue_item_fn(
+    court_id: String,
+    id: String,
+    user_id: i64,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let item = crate::repo::queue::release(pool, &court_id, uuid, user_id)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Item not found or not assigned to user".to_string()))?;
+    serde_json::to_string(&shared_types::QueueItemResponse::from(item))
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn advance_queue_item_fn(
+    court_id: String,
+    id: String,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let current = crate::repo::queue::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Queue item not found".to_string()))?;
+
+    let (next, status, completed_at) = match shared_types::next_step(&current.queue_type, &current.current_step) {
+        Some(next) => {
+            if shared_types::next_step(&current.queue_type, next).is_none() {
+                (next, "completed", Some(chrono::Utc::now()))
+            } else {
+                (next, "processing", None)
+            }
+        }
+        None => ("completed", "completed", Some(chrono::Utc::now())),
+    };
+
+    let item = crate::repo::queue::advance(pool, &court_id, uuid, next, status, completed_at)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Queue item not found".to_string()))?;
+    serde_json::to_string(&shared_types::QueueItemResponse::from(item))
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+#[server]
+pub async fn reject_queue_item_fn(
+    court_id: String,
+    id: String,
+    reason: String,
+) -> Result<String, ServerFnError> {
+    let pool = get_db().await;
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| ServerFnError::new(e.to_string()))?;
+    let item = crate::repo::queue::reject(pool, &court_id, uuid, &reason)
+        .await
+        .map_err(|e| ServerFnError::new(e.message))?
+        .ok_or_else(|| ServerFnError::new("Queue item not found".to_string()))?;
+    serde_json::to_string(&shared_types::QueueItemResponse::from(item))
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
+// ── Global Search ──────────────────────────────────────────────────
+
+/// Full-text search across all court entities (cases, attorneys, judges, etc.).
+/// Returns JSON array of SearchResult objects matching the query within the given court.
+#[server]
+pub async fn global_search(
+    court_id: String,
+    query: String,
+    limit: Option<usize>,
+) -> Result<String, ServerFnError> {
+    // Ensure DB + search index are initialized.
+    let _pool = get_db().await;
+    let search = crate::search::get_search();
+    let max_results = limit.unwrap_or(20);
+
+    let results = search.search(&query, &court_id, max_results);
+    serde_json::to_string(&results).map_err(|e| ServerFnError::new(e.to_string()))
 }

@@ -51,6 +51,8 @@ pub struct JudicialOrder {
     pub court_id: String,
     pub case_id: Uuid,
     pub judge_id: Uuid,
+    /// Resolved judge name from LEFT JOIN judges.
+    pub judge_name: Option<String>,
     /// OrderType enum stored as text (e.g. "Scheduling", "Protective", "Warrant").
     pub order_type: String,
     pub title: String,
@@ -72,12 +74,15 @@ pub struct JudicialOrder {
 // ── JudicialOrder API response ──────────────────────────────────────
 
 /// API response shape for a judicial order.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct JudicialOrderResponse {
     pub id: String,
     pub case_id: String,
     pub judge_id: String,
+    /// Resolved judge name from the judges table.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub judge_name: Option<String>,
     pub order_type: String,
     pub title: String,
     pub content: String,
@@ -106,6 +111,7 @@ impl From<JudicialOrder> for JudicialOrderResponse {
             id: o.id.to_string(),
             case_id: o.case_id.to_string(),
             judge_id: o.judge_id.to_string(),
+            judge_name: o.judge_name,
             order_type: o.order_type,
             title: o.title,
             content: o.content,
@@ -188,7 +194,7 @@ pub struct OrderTemplate {
 // ── OrderTemplate API response ──────────────────────────────────────
 
 /// API response shape for an order template.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OrderTemplateResponse {
     pub id: String,
@@ -286,6 +292,7 @@ pub struct OrderStatistics {
 pub struct CreateFromTemplateRequest {
     pub template_id: Uuid,
     pub case_id: Uuid,
+    pub judge_id: Option<Uuid>,
     pub variables: serde_json::Value,
 }
 

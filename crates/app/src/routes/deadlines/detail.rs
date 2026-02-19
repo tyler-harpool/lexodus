@@ -7,6 +7,8 @@ use shared_ui::components::{
     DetailList, PageActions, PageHeader, PageTitle, Skeleton,
 };
 
+use super::form_sheet::{DeadlineFormSheet, FormMode};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -15,8 +17,10 @@ pub fn DeadlineDetailPage(id: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let court_id = ctx.court_id.read().clone();
     let dl_id = id.clone();
+    let role = use_user_role();
+    let mut show_edit = use_signal(|| false);
 
-    let data = use_resource(move || {
+    let mut data = use_resource(move || {
         let court = court_id.clone();
         let deadline_id = dl_id.clone();
         async move {
@@ -31,7 +35,20 @@ pub fn DeadlineDetailPage(id: String) -> Element {
         div { class: "container",
             match &*data.read() {
                 Some(Some(dl)) => rsx! {
-                    DeadlineDetailView { deadline: dl.clone(), id: id.clone() }
+                    DeadlineDetailView {
+                        deadline: dl.clone(),
+                        id: id.clone(),
+                        role: role.clone(),
+                        show_edit: show_edit,
+                    }
+
+                    DeadlineFormSheet {
+                        mode: FormMode::Edit,
+                        initial: Some(dl.clone()),
+                        open: show_edit(),
+                        on_close: move |_| show_edit.set(false),
+                        on_saved: move |_| data.restart(),
+                    }
                 },
                 Some(None) => rsx! {
                     PageHeader {
@@ -60,7 +77,12 @@ pub fn DeadlineDetailPage(id: String) -> Element {
 }
 
 #[component]
-fn DeadlineDetailView(deadline: DeadlineResponse, id: String) -> Element {
+fn DeadlineDetailView(
+    deadline: DeadlineResponse,
+    id: String,
+    role: shared_types::UserRole,
+    show_edit: Signal<bool>,
+) -> Element {
     let ctx = use_context::<CourtContext>();
 
     let mut show_delete_confirm = use_signal(|| false);
@@ -105,10 +127,19 @@ fn DeadlineDetailView(deadline: DeadlineResponse, id: String) -> Element {
                 Link { to: Route::DeadlineList {},
                     Button { variant: ButtonVariant::Secondary, "Back to List" }
                 }
-                Button {
-                    variant: ButtonVariant::Destructive,
-                    onclick: move |_| show_delete_confirm.set(true),
-                    "Delete"
+                if can(&role, Action::Edit) {
+                    Button {
+                        variant: ButtonVariant::Primary,
+                        onclick: move |_| show_edit.set(true),
+                        "Edit"
+                    }
+                }
+                if can(&role, Action::Delete) {
+                    Button {
+                        variant: ButtonVariant::Destructive,
+                        onclick: move |_| show_delete_confirm.set(true),
+                        "Delete"
+                    }
                 }
             }
         }

@@ -1,0 +1,117 @@
+.workflow-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.workflow-steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: var(--space-md) 0;
+    overflow-x: auto;
+}
+
+.workflow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 80px;
+}
+
+.workflow-step-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    background: var(--color-surface-raised);
+    border: 2px solid var(--color-border);
+    color: var(--color-on-surface-muted);
+}
+
+.workflow-step-active .workflow-step-dot {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+}
+
+.workflow-step-done .workflow-step-dot {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+    opacity: 0.7;
+}
+
+.workflow-step-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-on-surface-muted);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.workflow-step-active .workflow-step-label {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.workflow-step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--color-border);
+    min-width: 24px;
+    margin-bottom: var(--space-lg);
+}
+
+.workflow-step-line-done {
+    background: var(--color-primary);
+    opacity: 0.7;
+}
+
+.workflow-current {
+    padding: var(--space-md) 0;
+}
+
+.workflow-step-info {
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+}
+
+.workflow-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+}
+
+.workflow-reject-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.workflow-reject-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+}
+
+.workflow-complete {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) 0;
+}
+
+.workflow-complete-text {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.workflow-complete-text.workflow-rejected {
+    color: var(--color-destructive);
+}

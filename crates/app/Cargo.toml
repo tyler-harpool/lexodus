@@ -10,6 +10,7 @@ shared-ui = { path = "../shared-ui" }
 server = { path = "../server" }
 serde = { workspace = true }
 serde_json = { workspace = true }
+tracing = { workspace = true }
 base64 = { workspace = true }
 dioxus-free-icons = { version = "0.10", features = ["lucide"] }
 dioxus-sdk-notification = { version = "0.7", optional = true }

@@ -5,6 +5,8 @@ pub mod calendar;
 #[cfg(feature = "server")]
 pub mod case;
 #[cfg(feature = "server")]
+pub mod civil_case;
+#[cfg(feature = "server")]
 pub mod deadline;
 #[cfg(feature = "server")]
 pub mod docket;
@@ -108,3 +110,5 @@ pub mod todo;
 pub mod signature;
 #[cfg(feature = "server")]
 pub mod practice_area;
+#[cfg(feature = "server")]
+pub mod queue;

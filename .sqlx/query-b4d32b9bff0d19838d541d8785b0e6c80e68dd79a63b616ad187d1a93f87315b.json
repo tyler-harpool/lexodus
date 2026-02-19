@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT user_id, stripe_price_id, court_id FROM subscriptions WHERE stripe_subscription_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "stripe_price_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "court_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "b4d32b9bff0d19838d541d8785b0e6c80e68dd79a63b616ad187d1a93f87315b"
+}

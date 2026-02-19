@@ -126,6 +126,7 @@ use utoipa_scalar::{Scalar, Servable};
 use crate::db::AppState;
 use crate::health;
 use crate::rest;
+use crate::rest::pdf::{PdfGenerateRequest, BatchPdfRequest, BatchPdfItem, BatchPdfResponseItem};
 
 /// OpenAPI documentation for the API.
 #[derive(OpenApi)]
@@ -552,19 +553,12 @@ use crate::rest;
         rest::signature::get_signature,
         // PDF Generation
         rest::pdf::generate_rule16b,
-        rest::pdf::generate_rule16b_fmt,
         rest::pdf::generate_signed_rule16b,
-        rest::pdf::generate_signed_rule16b_fmt,
         rest::pdf::generate_court_order,
-        rest::pdf::generate_court_order_fmt,
         rest::pdf::generate_minute_entry,
-        rest::pdf::generate_minute_entry_fmt,
         rest::pdf::generate_waiver,
-        rest::pdf::generate_waiver_fmt,
         rest::pdf::generate_conditions,
-        rest::pdf::generate_conditions_fmt,
         rest::pdf::generate_judgment,
-        rest::pdf::generate_judgment_fmt,
         rest::pdf::batch_generate,
         // Admin
         rest::admin::init_tenant,
@@ -692,6 +686,8 @@ use crate::rest;
         // Victim schemas
         VictimResponse, CreateVictimRequest,
         VictimNotificationResponse, SendVictimNotificationRequest,
+        // PDF schemas
+        PdfGenerateRequest, BatchPdfRequest, BatchPdfItem, BatchPdfResponseItem,
         health::HealthResponse,
     )),
     tags(
@@ -757,7 +753,8 @@ pub struct ApiDoc;
 /// Build an Axum router that serves the API docs at `/docs`
 /// and the REST API at `/api/*`.
 pub fn api_router(pool: Pool<Postgres>) -> Router {
-    let state = AppState { pool };
+    let search = std::sync::Arc::new(crate::search::SearchIndex::new());
+    let state = AppState { pool, search };
     let flags = crate::config::feature_flags();
 
     let mut router = Router::new()

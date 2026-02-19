@@ -110,6 +110,57 @@ pub async fn list_by_case(
     Ok(rows)
 }
 
+/// List all defendants for a court (across all cases), ordered by name.
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<Defendant>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!" FROM defendants
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(name) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        Defendant,
+        r#"
+        SELECT id, court_id, case_id, name, aliases, usm_number, fbi_number,
+               date_of_birth,
+               COALESCE(citizenship_status, 'Unknown') as "citizenship_status!",
+               custody_status, bail_type,
+               bail_amount as "bail_amount: f64",
+               bond_conditions, bond_posted_date, surety_name,
+               created_at, updated_at
+        FROM defendants
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(name) LIKE $2)
+        ORDER BY name ASC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}
+
 /// Update a defendant with only the provided fields.
 pub async fn update(
     pool: &Pool<Postgres>,

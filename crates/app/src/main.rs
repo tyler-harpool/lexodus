@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::FeatureFlags;
+use shared_types::{FeatureFlags, UserTier};
 
 mod auth;
 pub mod billing_listener;
@@ -22,6 +22,8 @@ pub struct ProfileState {
 #[derive(Clone, Copy)]
 pub struct CourtContext {
     pub court_id: Signal<String>,
+    /// The subscription tier for the currently selected court.
+    pub court_tier: Signal<UserTier>,
 }
 
 
@@ -76,7 +78,9 @@ fn main() {
             }
         });
 
-        let state = server::db::AppState { pool: pool.clone() };
+        let search = std::sync::Arc::new(server::search::SearchIndex::new());
+        server::search::build_index(&pool, &search).await;
+        let state = server::db::AppState { pool: pool.clone(), search };
 
         let mut router = dioxus::server::router(App).merge(server::openapi::api_router(pool));
 
@@ -152,10 +156,53 @@ fn App() -> Element {
     // Provide court context for court domain pages
     use_context_provider(|| CourtContext {
         court_id: Signal::new("district9".to_string()),
+        court_tier: Signal::new(UserTier::Free),
     });
 
     // Auth state used by the profile memos below
     let auth = use_auth();
+    let mut ctx = use_context::<CourtContext>();
+
+    // Restore last selected court from user preferences on login
+    {
+        let auth_for_restore = auth.clone();
+        use_effect(move || {
+            if let Some(user) = auth_for_restore.current_user.read().as_ref() {
+                if let Some(pref) = &user.preferred_court_id {
+                    if !pref.is_empty() {
+                        ctx.court_id.set(pref.clone());
+                    }
+                }
+            }
+        });
+    }
+
+    // Persist court selection to server whenever it changes (if logged in)
+    {
+        let auth_for_save = auth.clone();
+        use_effect(move || {
+            let court = ctx.court_id.read().clone();
+            let has_user = auth_for_save.current_user.read().is_some();
+            if has_user {
+                spawn(async move {
+                    let _ = server::api::set_preferred_court(court).await;
+                });
+            }
+        });
+    }
+
+    // Sync court_tier from auth.current_user.court_tiers whenever user or court changes
+    use_effect(move || {
+        let court = ctx.court_id.read().clone();
+        let tier = auth
+            .current_user
+            .read()
+            .as_ref()
+            .and_then(|u| u.court_tiers.get(&court).cloned())
+            .map(|t| UserTier::from_str_or_default(&t))
+            .unwrap_or(UserTier::Free);
+        ctx.court_tier.set(tier);
+    });
 
     // Derive profile state from auth — updates when user logs in/out
     let display_name = use_memo(move || {

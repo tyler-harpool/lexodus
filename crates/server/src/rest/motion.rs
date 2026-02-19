@@ -59,6 +59,25 @@ pub async fn create_motion(
     }
 
     let motion = crate::repo::motion::create(&pool, &court.0, body).await?;
+
+    // Auto-create queue item for clerk processing (motions are higher priority)
+    let _ = crate::repo::queue::create(
+        &pool,
+        &court.0,
+        "motion",
+        2,
+        &format!("{} - {}", motion.motion_type, motion.description),
+        Some("Motion requires clerk review"),
+        "motion",
+        motion.id,
+        Some(motion.case_id),
+        None,
+        None,
+        None,
+        shared_types::pipeline_steps("motion").first().copied().unwrap_or("review"),
+    )
+    .await;
+
     Ok((StatusCode::CREATED, Json(MotionResponse::from(motion))))
 }
 

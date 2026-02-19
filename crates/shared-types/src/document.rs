@@ -86,7 +86,7 @@ pub struct Document {
 }
 
 /// An electronic filing submitted to the court.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct Filing {
@@ -103,6 +103,53 @@ pub struct Filing {
     pub docket_entry_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
+
+/// Lightweight response shape for filing list views (avoids raw JSON fields).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct FilingListItem {
+    pub id: String,
+    pub court_id: String,
+    pub case_id: String,
+    pub filing_type: String,
+    pub filed_by: String,
+    pub filed_date: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub docket_entry_id: Option<String>,
+    pub created_at: String,
+}
+
+impl From<Filing> for FilingListItem {
+    fn from(f: Filing) -> Self {
+        Self {
+            id: f.id.to_string(),
+            court_id: f.court_id,
+            case_id: f.case_id.to_string(),
+            filing_type: f.filing_type,
+            filed_by: f.filed_by,
+            filed_date: f.filed_date.to_rfc3339(),
+            status: f.status,
+            document_id: f.document_id.map(|u| u.to_string()),
+            docket_entry_id: f.docket_entry_id.map(|u| u.to_string()),
+            created_at: f.created_at.to_rfc3339(),
+        }
+    }
+}
+
+/// Valid filing types matching the DB CHECK constraint.
+pub const VALID_FILING_TYPES: &[&str] = &[
+    "Initial", "Response", "Reply", "Motion", "Notice",
+    "Stipulation", "Supplement", "Amendment", "Exhibit",
+    "Certificate", "Other",
+];
+
+/// Valid filing statuses matching the DB CHECK constraint.
+pub const FILING_STATUSES: &[&str] = &[
+    "Pending", "Accepted", "Rejected", "Under Review", "Returned", "Filed",
+];
 
 // ---------------------------------------------------------------------------
 // Document validation constants
@@ -141,7 +188,7 @@ pub struct ValidateFilingRequest {
 }
 
 /// A single validation error or warning for a filing.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FilingValidationError {
     pub field: String,
@@ -151,7 +198,7 @@ pub struct FilingValidationError {
 }
 
 /// Response from filing validation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ValidateFilingResponse {
     pub valid: bool,
@@ -163,7 +210,7 @@ pub struct ValidateFilingResponse {
 pub type SubmitFilingRequest = ValidateFilingRequest;
 
 /// Response from a successful filing submission.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FilingResponse {
     pub filing_id: String,
@@ -176,7 +223,7 @@ pub struct FilingResponse {
 }
 
 /// Notice of Electronic Filing summary.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct NefSummary {
     pub case_number: String,
@@ -216,7 +263,7 @@ pub struct Nef {
 }
 
 /// API response shape for a NEF.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct NefResponse {
     pub id: String,
@@ -379,7 +426,7 @@ pub struct DocumentEvent {
 }
 
 /// API response shape for a document event.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DocumentEventResponse {
     pub id: String,

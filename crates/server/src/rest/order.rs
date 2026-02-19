@@ -95,17 +95,20 @@ pub async fn list_orders(
     let rows = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        SELECT id, court_id, case_id, judge_id, order_type, title, content,
-               status, is_sealed, signer_name, signed_at, signature_hash,
-               issued_at, effective_date, expiration_date, related_motions,
-               created_at, updated_at
-        FROM judicial_orders
-        WHERE court_id = $1
-          AND ($2::UUID IS NULL OR case_id = $2)
-          AND ($3::UUID IS NULL OR judge_id = $3)
-          AND ($4::TEXT IS NULL OR status = $4)
-          AND ($5::BOOL IS NULL OR is_sealed = $5)
-        ORDER BY created_at DESC
+        SELECT o.id, o.court_id, o.case_id, o.judge_id,
+               j.name as judge_name,
+               o.order_type, o.title, o.content,
+               o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
+               o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
+               o.created_at, o.updated_at
+        FROM judicial_orders o
+        LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        WHERE o.court_id = $1
+          AND ($2::UUID IS NULL OR o.case_id = $2)
+          AND ($3::UUID IS NULL OR o.judge_id = $3)
+          AND ($4::TEXT IS NULL OR o.status = $4)
+          AND ($5::BOOL IS NULL OR o.is_sealed = $5)
+        ORDER BY o.created_at DESC
         LIMIT $6 OFFSET $7
         "#,
         &court.0,
@@ -493,17 +496,27 @@ pub async fn sign_order(
     let order = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        UPDATE judicial_orders SET
-            status = 'Signed',
-            signer_name = $3,
-            signed_at = NOW(),
-            signature_hash = md5($3 || id::text),
-            updated_at = NOW()
-        WHERE id = $1 AND court_id = $2
-        RETURNING id, court_id, case_id, judge_id, order_type, title, content,
-                  status, is_sealed, signer_name, signed_at, signature_hash,
-                  issued_at, effective_date, expiration_date, related_motions,
-                  created_at, updated_at
+        WITH upd AS (
+            UPDATE judicial_orders SET
+                status = 'Signed',
+                signer_name = $3,
+                signed_at = NOW(),
+                signature_hash = md5($3 || id::text),
+                updated_at = NOW()
+            WHERE id = $1 AND court_id = $2
+            RETURNING id, court_id, case_id, judge_id, order_type, title, content,
+                      status, is_sealed, signer_name, signed_at, signature_hash,
+                      issued_at, effective_date, expiration_date, related_motions,
+                      created_at, updated_at
+        )
+        SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
+               j.name as judge_name,
+               upd.order_type, upd.title, upd.content,
+               upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
+               upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
+               upd.created_at, upd.updated_at
+        FROM upd
+        LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
         "#,
         uuid,
         &court.0,
@@ -549,15 +562,25 @@ pub async fn issue_order(
     let order = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        UPDATE judicial_orders SET
-            status = 'Filed',
-            issued_at = NOW(),
-            updated_at = NOW()
-        WHERE id = $1 AND court_id = $2
-        RETURNING id, court_id, case_id, judge_id, order_type, title, content,
-                  status, is_sealed, signer_name, signed_at, signature_hash,
-                  issued_at, effective_date, expiration_date, related_motions,
-                  created_at, updated_at
+        WITH upd AS (
+            UPDATE judicial_orders SET
+                status = 'Filed',
+                issued_at = NOW(),
+                updated_at = NOW()
+            WHERE id = $1 AND court_id = $2
+            RETURNING id, court_id, case_id, judge_id, order_type, title, content,
+                      status, is_sealed, signer_name, signed_at, signature_hash,
+                      issued_at, effective_date, expiration_date, related_motions,
+                      created_at, updated_at
+        )
+        SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
+               j.name as judge_name,
+               upd.order_type, upd.title, upd.content,
+               upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
+               upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
+               upd.created_at, upd.updated_at
+        FROM upd
+        LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
         "#,
         uuid,
         &court.0,
@@ -623,13 +646,16 @@ pub async fn check_expired(
     let orders = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        SELECT id, court_id, case_id, judge_id, order_type, title, content,
-               status, is_sealed, signer_name, signed_at, signature_hash,
-               issued_at, effective_date, expiration_date, related_motions,
-               created_at, updated_at
-        FROM judicial_orders
-        WHERE court_id = $1 AND expiration_date < NOW() AND status NOT IN ('Vacated', 'Superseded')
-        ORDER BY expiration_date DESC
+        SELECT o.id, o.court_id, o.case_id, o.judge_id,
+               j.name as judge_name,
+               o.order_type, o.title, o.content,
+               o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
+               o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
+               o.created_at, o.updated_at
+        FROM judicial_orders o
+        LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        WHERE o.court_id = $1 AND o.expiration_date < NOW() AND o.status NOT IN ('Vacated', 'Superseded')
+        ORDER BY o.expiration_date DESC
         "#,
         &court.0,
     )
@@ -660,13 +686,16 @@ pub async fn check_requires_attention(
     let orders = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        SELECT id, court_id, case_id, judge_id, order_type, title, content,
-               status, is_sealed, signer_name, signed_at, signature_hash,
-               issued_at, effective_date, expiration_date, related_motions,
-               created_at, updated_at
-        FROM judicial_orders
-        WHERE court_id = $1 AND status IN ('Draft', 'Pending Signature')
-        ORDER BY created_at ASC
+        SELECT o.id, o.court_id, o.case_id, o.judge_id,
+               j.name as judge_name,
+               o.order_type, o.title, o.content,
+               o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
+               o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
+               o.created_at, o.updated_at
+        FROM judicial_orders o
+        LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        WHERE o.court_id = $1 AND o.status IN ('Draft', 'Pending Signature')
+        ORDER BY o.created_at ASC
         "#,
         &court.0,
     )
@@ -697,13 +726,16 @@ pub async fn list_pending_signatures(
     let orders = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        SELECT id, court_id, case_id, judge_id, order_type, title, content,
-               status, is_sealed, signer_name, signed_at, signature_hash,
-               issued_at, effective_date, expiration_date, related_motions,
-               created_at, updated_at
-        FROM judicial_orders
-        WHERE court_id = $1 AND status = 'Pending Signature'
-        ORDER BY created_at ASC
+        SELECT o.id, o.court_id, o.case_id, o.judge_id,
+               j.name as judge_name,
+               o.order_type, o.title, o.content,
+               o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
+               o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
+               o.created_at, o.updated_at
+        FROM judicial_orders o
+        LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        WHERE o.court_id = $1 AND o.status = 'Pending Signature'
+        ORDER BY o.created_at ASC
         "#,
         &court.0,
     )
@@ -746,17 +778,20 @@ pub async fn list_expiring(
     let orders = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        SELECT id, court_id, case_id, judge_id, order_type, title, content,
-               status, is_sealed, signer_name, signed_at, signature_hash,
-               issued_at, effective_date, expiration_date, related_motions,
-               created_at, updated_at
-        FROM judicial_orders
-        WHERE court_id = $1
-          AND expiration_date IS NOT NULL
-          AND expiration_date > NOW()
-          AND expiration_date <= NOW() + ($2::INT || ' days')::INTERVAL
-          AND status NOT IN ('Vacated', 'Superseded')
-        ORDER BY expiration_date ASC
+        SELECT o.id, o.court_id, o.case_id, o.judge_id,
+               j.name as judge_name,
+               o.order_type, o.title, o.content,
+               o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
+               o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
+               o.created_at, o.updated_at
+        FROM judicial_orders o
+        LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        WHERE o.court_id = $1
+          AND o.expiration_date IS NOT NULL
+          AND o.expiration_date > NOW()
+          AND o.expiration_date <= NOW() + ($2::INT || ' days')::INTERVAL
+          AND o.status NOT IN ('Vacated', 'Superseded')
+        ORDER BY o.expiration_date ASC
         "#,
         &court.0,
         days as i32,
@@ -874,7 +909,7 @@ pub async fn create_from_template(
 
     let create_req = CreateJudicialOrderRequest {
         case_id: body.case_id,
-        judge_id: Uuid::nil(), // Will be set by the caller or defaulted
+        judge_id: body.judge_id.unwrap_or(Uuid::nil()),
         order_type: template.order_type,
         title: template.name,
         content,

@@ -1,0 +1,130 @@
+/* Compliance Dashboard styles */
+
+.compliance-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.compliance-section-title {
+    margin: 0;
+    color: var(--color-on-surface);
+    font-family: var(--cyber-font-mono);
+    font-size: var(--font-size-lg);
+}
+
+.compliance-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-md);
+}
+
+.compliance-stats-grid-narrow {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    max-width: 50%;
+}
+
+/* ── Metric card ─────────────────────────────────────── */
+
+.metric-card {
+    text-align: center;
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-primary);
+    font-family: var(--cyber-font-mono);
+    line-height: 1;
+}
+
+.metric-label {
+    margin: 0;
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* ── Compliance rate ─────────────────────────────────── */
+
+.compliance-rate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+}
+
+.compliance-rate-value {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    font-family: var(--cyber-font-mono);
+}
+
+.compliance-rate-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+    font-weight: 600;
+}
+
+/* ── Source distribution ─────────────────────────────── */
+
+.source-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.source-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2xs) 0;
+}
+
+.source-name {
+    color: var(--color-on-surface);
+    font-size: var(--font-size-sm);
+    text-transform: capitalize;
+}
+
+/* ── Empty state ─────────────────────────────────────── */
+
+.compliance-empty-text {
+    color: var(--color-on-surface-muted);
+    text-align: center;
+    padding: var(--space-lg);
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .compliance-stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .compliance-stats-grid-narrow {
+        max-width: 100%;
+    }
+
+    .compliance-rate {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .compliance-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-value {
+        font-size: var(--font-size-2xl);
+    }
+}

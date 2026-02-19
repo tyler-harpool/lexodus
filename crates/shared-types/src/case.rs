@@ -71,6 +71,10 @@ pub struct CaseResponse {
     pub case_number: String,
     pub title: String,
     pub description: String,
+    /// "criminal" or "civil"
+    #[serde(default = "default_case_type")]
+    pub case_type: String,
+    /// For criminal: crime_type. For civil: nature_of_suit code.
     pub crime_type: String,
     pub status: String,
     pub priority: String,
@@ -89,6 +93,28 @@ pub struct CaseResponse {
     pub sealed_date: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seal_reason: Option<String>,
+    /// Civil-only: jurisdiction basis (federal_question, diversity, etc.)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jurisdiction_basis: Option<String>,
+    /// Civil-only: jury demand (none, plaintiff, defendant, both)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jury_demand: Option<String>,
+    /// Civil-only: class action flag
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub class_action: Option<bool>,
+    /// Civil-only: amount in controversy
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub amount_in_controversy: Option<f64>,
+    /// Civil-only: consent to magistrate
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub consent_to_magistrate: Option<bool>,
+    /// Civil-only: pro se litigant
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pro_se: Option<bool>,
+}
+
+fn default_case_type() -> String {
+    "criminal".to_string()
 }
 
 impl From<CriminalCase> for CaseResponse {
@@ -98,6 +124,7 @@ impl From<CriminalCase> for CaseResponse {
             case_number: c.case_number,
             title: c.title,
             description: c.description,
+            case_type: "criminal".to_string(),
             crime_type: c.crime_type,
             status: c.status,
             priority: c.priority,
@@ -111,6 +138,12 @@ impl From<CriminalCase> for CaseResponse {
             sealed_by: c.sealed_by,
             sealed_date: c.sealed_date.map(|d| d.to_rfc3339()),
             seal_reason: c.seal_reason,
+            jurisdiction_basis: None,
+            jury_demand: None,
+            class_action: None,
+            amount_in_controversy: None,
+            consent_to_magistrate: None,
+            pro_se: None,
         }
     }
 }

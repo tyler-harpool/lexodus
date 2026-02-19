@@ -76,3 +76,68 @@ pub fn use_user_role() -> UserRole {
     })
     .unwrap_or(UserRole::Public)
 }
+
+/// Determine which sidebar groups are visible for the current user's role.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SidebarVisibility {
+    pub work: bool,    // Queue
+    pub court: bool,   // Cases, Schedule, Deadlines
+    pub admin: bool,   // Compliance, Rules, Users, Settings
+}
+
+pub fn use_sidebar_visibility() -> SidebarVisibility {
+    let role = use_user_role();
+    match role {
+        UserRole::Admin => SidebarVisibility {
+            work: true,
+            court: true,
+            admin: true,
+        },
+        UserRole::Clerk => SidebarVisibility {
+            work: true,
+            court: true,
+            admin: true,
+        },
+        UserRole::Judge => SidebarVisibility {
+            work: true,
+            court: true,
+            admin: false,
+        },
+        UserRole::Attorney => SidebarVisibility {
+            work: true,
+            court: true,
+            admin: false,
+        },
+        UserRole::Public => SidebarVisibility {
+            work: false,
+            court: true,
+            admin: false,
+        },
+    }
+}
+
+/// Actions that can be role-gated in the UI.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Action {
+    Create,
+    Edit,
+    Delete,
+    Sign,
+    Issue,
+    Serve,
+    Seal,
+    GeneratePdf,
+}
+
+/// Check if a role is permitted to perform an action.
+/// v1: permissive defaults — structure exists so we don't hardcode buttons everywhere.
+pub fn can(role: &UserRole, action: Action) -> bool {
+    match action {
+        Action::Sign => matches!(role, UserRole::Judge | UserRole::Admin),
+        Action::Issue | Action::Serve => matches!(role, UserRole::Clerk | UserRole::Admin),
+        Action::Seal => matches!(role, UserRole::Judge | UserRole::Clerk | UserRole::Admin),
+        Action::Create | Action::Edit | Action::Delete | Action::GeneratePdf => {
+            !matches!(role, UserRole::Public)
+        }
+    }
+}

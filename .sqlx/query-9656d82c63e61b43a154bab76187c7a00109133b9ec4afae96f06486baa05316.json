@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            sr.id, sr.court_id, sr.document_id, sr.party_id,\n            COALESCE(p.name, 'Unknown') AS \"party_name!\",\n            COALESCE(p.party_type, 'Unknown') AS \"party_type!\",\n            sr.service_date, sr.service_method, sr.served_by,\n            sr.proof_of_service_filed, sr.successful, sr.attempts, sr.notes\n        FROM service_records sr\n        LEFT JOIN parties p ON p.id = sr.party_id AND p.court_id = sr.court_id\n        WHERE sr.id = $1 AND sr.court_id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "party_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "party_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "party_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "service_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "service_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "served_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "proof_of_service_filed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "successful",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "attempts",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "notes",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "9656d82c63e61b43a154bab76187c7a00109133b9ec4afae96f06486baa05316"
+}

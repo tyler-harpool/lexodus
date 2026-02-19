@@ -9,3 +9,8 @@ signoz/
 .DS_Store
 postman/node_modules/
 postman/results.json
+postman/lexodus-contract.json
+postman/package-lock.json
+.worktrees/
+.claude/
+.mcp.json

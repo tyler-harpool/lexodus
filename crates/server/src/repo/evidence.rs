@@ -93,6 +93,55 @@ pub async fn list_by_case(
     Ok(rows)
 }
 
+/// List all evidence for a court (across all cases), ordered by description.
+/// Supports optional search by description and pagination.
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<Evidence>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!" FROM evidence
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(description) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        Evidence,
+        r#"
+        SELECT id, court_id, case_id, description, evidence_type,
+               seized_date, seized_by,
+               COALESCE(location, '') as "location!",
+               is_sealed, created_at
+        FROM evidence
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(description) LIKE $2)
+        ORDER BY description ASC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}
+
 /// Update evidence with only the provided fields.
 pub async fn update(
     pool: &Pool<Postgres>,

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) as \"count!\" FROM clerk_queue WHERE court_id = $1 AND created_at >= CURRENT_DATE AND status NOT IN ('completed', 'rejected')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2a703de3f9b76438a2791463306df0e40c071aeb8b9fc08df0fb773f57fed1f5"
+}

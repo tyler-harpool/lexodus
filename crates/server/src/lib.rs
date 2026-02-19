@@ -51,3 +51,9 @@ pub mod tenant;
 
 #[cfg(feature = "server")]
 pub mod rate_limit;
+
+#[cfg(feature = "server")]
+pub mod typst;
+
+#[cfg(feature = "server")]
+pub mod search;

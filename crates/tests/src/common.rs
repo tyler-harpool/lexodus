@@ -24,8 +24,9 @@ pub async fn test_app() -> (Router, Pool<Postgres>, tokio::sync::MutexGuard<'sta
 
     let _ = dotenvy::dotenv();
 
-    let database_url =
-        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+    let database_url = std::env::var("TEST_DATABASE_URL")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("TEST_DATABASE_URL or DATABASE_URL must be set for tests");
 
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(5)
@@ -40,7 +41,7 @@ pub async fn test_app() -> (Router, Pool<Postgres>, tokio::sync::MutexGuard<'sta
         .expect("Failed to run migrations");
 
     // Truncate all data and re-seed
-    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests CASCADE")
+    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, civil_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue CASCADE")
         .execute(&pool)
         .await
         .expect("Failed to truncate");
@@ -60,7 +61,8 @@ pub async fn test_app() -> (Router, Pool<Postgres>, tokio::sync::MutexGuard<'sta
     .await
     .expect("Failed to seed test user");
 
-    let state = server::db::AppState { pool: pool.clone() };
+    let search = std::sync::Arc::new(server::search::SearchIndex::new());
+    let state = server::db::AppState { pool: pool.clone(), search };
     // Include the permissive auth middleware so AuthRequired extractors work
     // when a JWT Bearer token is present; unauthenticated requests still pass through.
     let router = server::rest::api_router()
@@ -195,6 +197,44 @@ async fn send(app: &Router, req: Request<Body>) -> (StatusCode, Value) {
     (status, body)
 }
 
+/// Send a request and return raw bytes + status + headers (for non-JSON responses like PDFs).
+pub async fn send_raw(
+    app: &Router,
+    req: Request<Body>,
+) -> (StatusCode, axum::http::HeaderMap, Vec<u8>) {
+    let response = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("Failed to send request");
+
+    let status = response.status();
+    let headers = response.headers().clone();
+    let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("Failed to read body");
+
+    (status, headers, body_bytes.to_vec())
+}
+
+/// POST JSON to a route with a court header, returning raw bytes (for PDF endpoints).
+pub async fn post_json_raw(
+    app: &Router,
+    uri: &str,
+    body: &str,
+    court: &str,
+) -> (StatusCode, axum::http::HeaderMap, Vec<u8>) {
+    let req = Request::builder()
+        .method("POST")
+        .uri(uri)
+        .header("content-type", "application/json")
+        .header("x-court-district", court)
+        .body(Body::from(body.to_string()))
+        .unwrap();
+
+    send_raw(app, req).await
+}
+
 /// Build a test router with a very tight rate limit for testing 429 responses.
 pub async fn test_app_rate_limited(
     max_requests: u32,
@@ -202,8 +242,9 @@ pub async fn test_app_rate_limited(
     let guard = TEST_MUTEX.lock().await;
     let _ = dotenvy::dotenv();
 
-    let database_url =
-        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+    let database_url = std::env::var("TEST_DATABASE_URL")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("TEST_DATABASE_URL or DATABASE_URL must be set for tests");
 
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(5)
@@ -216,7 +257,7 @@ pub async fn test_app_rate_limited(
         .await
         .expect("Failed to run migrations");
 
-    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests CASCADE")
+    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, civil_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue CASCADE")
         .execute(&pool)
         .await
         .expect("Failed to truncate");
@@ -232,7 +273,8 @@ pub async fn test_app_rate_limited(
         max_requests,
         std::time::Duration::from_secs(60),
     );
-    let state = server::db::AppState { pool: pool.clone() };
+    let search = std::sync::Arc::new(server::search::SearchIndex::new());
+    let state = server::db::AppState { pool: pool.clone(), search };
     let router = server::rest::api_router_with_rate_limit(rate_limit)
         .layer(middleware::from_fn_with_state(
             state.clone(),
@@ -418,6 +460,29 @@ pub async fn create_test_case_via_api(
         status,
         StatusCode::CREATED,
         "Failed to create test case: {} {:?}",
+        status,
+        response
+    );
+    response
+}
+
+/// Create a test civil case via the API and return the response JSON.
+pub async fn create_test_civil_case_via_api(
+    app: &Router,
+    court: &str,
+    title: &str,
+) -> Value {
+    let body = serde_json::json!({
+        "title": title,
+        "nature_of_suit": "110",
+        "jurisdiction_basis": "federal_question",
+    });
+
+    let (status, response) = post_json(app, "/api/civil-cases", &body.to_string(), court).await;
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create test civil case: {} {:?}",
         status,
         response
     );
@@ -667,6 +732,25 @@ pub async fn create_test_party(
     .expect("Failed to create test party");
 
     row.to_string()
+}
+
+/// Create a test queue item via the API and return the response JSON.
+pub async fn create_test_queue_item(
+    app: &Router,
+    court: &str,
+    title: &str,
+    source_id: &str,
+) -> serde_json::Value {
+    let body = serde_json::json!({
+        "queue_type": "filing",
+        "priority": 3,
+        "title": title,
+        "source_type": "filing",
+        "source_id": source_id,
+    });
+    let (status, resp) = post_json(app, "/api/queue", &body.to_string(), court).await;
+    assert_eq!(status, StatusCode::CREATED, "Failed to create queue item: {resp}");
+    resp
 }
 
 /// Create a test party with a specific service method and name.

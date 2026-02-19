@@ -167,9 +167,16 @@ pub struct UserWithMembership {
     pub display_name: String,
     pub role: String,
     pub tier: String,
+    #[serde(default)]
+    pub email: String,
+    #[serde(default)]
+    pub phone_number: Option<String>,
     /// Role in the requested court ("" if none).
     #[serde(default)]
     pub court_role: String,
+    /// All court memberships: court_id -> role.
+    #[serde(default)]
+    pub all_court_roles: std::collections::HashMap<String, String>,
 }
 
 /// Aggregated dashboard statistics.
@@ -256,6 +263,12 @@ pub struct AuthUser {
     /// Per-court role memberships: maps court_id -> role string.
     #[serde(default)]
     pub court_roles: HashMap<String, String>,
+    /// Per-court subscription tiers: maps court_id -> tier string.
+    #[serde(default)]
+    pub court_tiers: HashMap<String, String>,
+    /// Last-selected court district (cross-platform persistence).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_court_id: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -291,7 +304,12 @@ pub struct RefreshRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub enum BillingEvent {
-    SubscriptionUpdated { tier: String, status: String },
+    SubscriptionUpdated {
+        tier: String,
+        status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        court_id: Option<String>,
+    },
     PaymentSucceeded { amount_cents: i64 },
     PaymentFailed { message: String },
 }

@@ -818,11 +818,13 @@ pub async fn get_assignment_history(
     let assignments = sqlx::query_as!(
         shared_types::CaseAssignment,
         r#"
-        SELECT id, court_id, case_id, judge_id, assignment_type,
-               assigned_date, reason, previous_judge_id, reassignment_reason
-        FROM case_assignments
-        WHERE case_id = $1 AND court_id = $2
-        ORDER BY assigned_date DESC
+        SELECT ca.id, ca.court_id, ca.case_id, ca.judge_id, ca.assignment_type,
+               ca.assigned_date, ca.reason, ca.previous_judge_id, ca.reassignment_reason,
+               j.name as judge_name
+        FROM case_assignments ca
+        LEFT JOIN judges j ON ca.judge_id = j.id AND j.court_id = ca.court_id
+        WHERE ca.case_id = $1 AND ca.court_id = $2
+        ORDER BY ca.assigned_date DESC
         "#,
         case_uuid,
         &court.0,

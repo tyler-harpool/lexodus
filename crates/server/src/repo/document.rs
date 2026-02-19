@@ -321,3 +321,52 @@ pub async fn strike(
     .map_err(SqlxErrorExt::into_app_error)?
     .ok_or_else(|| AppError::not_found("Document not found"))
 }
+
+/// List all documents for a court with optional title search, paginated.
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<Document>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!" FROM documents
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        Document,
+        r#"
+        SELECT id, court_id, case_id, title, document_type, storage_key,
+               checksum, file_size, content_type, is_sealed, uploaded_by,
+               source_attachment_id, created_at,
+               sealing_level, seal_reason_code, seal_motion_id,
+               replaced_by_document_id, is_stricken
+        FROM documents
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(title) LIKE $2)
+        ORDER BY created_at DESC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}

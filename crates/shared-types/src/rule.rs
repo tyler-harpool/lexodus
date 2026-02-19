@@ -42,7 +42,7 @@ pub struct Rule {
 // ---------------------------------------------------------------------------
 
 /// API response for a rule.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RuleResponse {
     pub id: String,
@@ -142,7 +142,7 @@ pub struct EvaluateRulesRequest {
 }
 
 /// Response body for a rule evaluation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EvaluateRulesResponse {
     pub matched_rules: Vec<RuleResponse>,

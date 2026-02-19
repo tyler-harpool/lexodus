@@ -20516,7 +20516,31 @@
             "format": "uuid"
           },
           "document_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Motion",
+              "Order",
+              "Brief",
+              "Memorandum",
+              "Declaration",
+              "Affidavit",
+              "Exhibit",
+              "Transcript",
+              "Notice",
+              "Subpoena",
+              "Warrant",
+              "Indictment",
+              "Plea Agreement",
+              "Judgment",
+              "Verdict",
+              "Other",
+              "Conditions of Release",
+              "Court Order",
+              "Criminal Judgment",
+              "Minute Entry",
+              "Rule 16(b) Scheduling Order",
+              "Waiver of Indictment"
+            ]
           },
           "judge_id": {
             "type": [
@@ -20697,7 +20721,18 @@
             ]
           },
           "service_method": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Electronic",
+              "Mail",
+              "Personal Service",
+              "Waiver",
+              "Publication",
+              "Certified Mail",
+              "Express Mail",
+              "ECF",
+              "Other"
+            ]
           }
         }
       },
@@ -20937,7 +20972,14 @@
             "type": "string"
           },
           "assignment_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Initial",
+              "Reassignment",
+              "Temporary",
+              "Related Case",
+              "Emergency"
+            ]
           },
           "case_id": {
             "type": "string"
@@ -21000,7 +21042,16 @@
             "type": "boolean"
           },
           "note_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "General",
+              "Legal Research",
+              "Procedural",
+              "Confidential",
+              "Bench Note",
+              "Clerk Note",
+              "Other"
+            ]
           }
         }
       },
@@ -21038,7 +21089,18 @@
             ]
           },
           "crime_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "fraud",
+              "drug_offense",
+              "racketeering",
+              "cybercrime",
+              "tax_offense",
+              "money_laundering",
+              "immigration",
+              "firearms",
+              "other"
+            ]
           },
           "description": {
             "type": "string"
@@ -21059,7 +21121,13 @@
             "type": "string"
           },
           "priority": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
           },
           "seal_reason": {
             "type": [
@@ -21161,7 +21229,14 @@
             "type": "string"
           },
           "plea": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Not Guilty",
+              "Guilty",
+              "No Contest",
+              "Alford",
+              "Not Yet Entered"
+            ]
           },
           "plea_date": {
             "type": [
@@ -21187,7 +21262,16 @@
             "format": "int32"
           },
           "verdict": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "",
+              "Guilty",
+              "Not Guilty",
+              "Dismissed",
+              "Mistrial",
+              "Acquitted",
+              "Hung Jury"
+            ]
           },
           "verdict_date": {
             "type": [
@@ -21205,7 +21289,11 @@
         ],
         "properties": {
           "checkout_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "subscription",
+              "onetime"
+            ]
           },
           "price_cents": {
             "type": [
@@ -21831,7 +21919,14 @@
         ],
         "properties": {
           "assignment_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Initial",
+              "Reassignment",
+              "Temporary",
+              "Related Case",
+              "Emergency"
+            ]
           },
           "case_id": {
             "type": "string",
@@ -21885,7 +21980,16 @@
             "type": "boolean"
           },
           "note_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "General",
+              "Legal Research",
+              "Procedural",
+              "Confidential",
+              "Bench Note",
+              "Clerk Note",
+              "Other"
+            ]
           }
         }
       },
@@ -21906,7 +22010,18 @@
             "format": "uuid"
           },
           "crime_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "fraud",
+              "drug_offense",
+              "racketeering",
+              "cybercrime",
+              "tax_offense",
+              "money_laundering",
+              "immigration",
+              "firearms",
+              "other"
+            ]
           },
           "description": {
             "type": "string"
@@ -22236,7 +22351,16 @@
             "format": "date-time"
           },
           "action_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Reprimand",
+              "Censure",
+              "Suspension",
+              "Disbarment",
+              "Reinstatement",
+              "Probation",
+              "Other"
+            ]
           },
           "description": {
             "type": "string"
@@ -22284,7 +22408,48 @@
             "format": "uuid"
           },
           "entry_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "complaint",
+              "indictment",
+              "information",
+              "criminal_complaint",
+              "answer",
+              "motion",
+              "response",
+              "reply",
+              "notice",
+              "order",
+              "minute_order",
+              "scheduling_order",
+              "protective_order",
+              "sealing_order",
+              "discovery_request",
+              "discovery_response",
+              "deposition",
+              "interrogatories",
+              "exhibit",
+              "witness_list",
+              "expert_report",
+              "hearing_notice",
+              "hearing_minutes",
+              "transcript",
+              "judgment",
+              "verdict",
+              "sentence",
+              "summons",
+              "subpoena",
+              "service_return",
+              "appearance",
+              "withdrawal",
+              "substitution",
+              "notice_of_appeal",
+              "appeal_brief",
+              "appellate_order",
+              "letter",
+              "status",
+              "other"
+            ]
           },
           "filed_by": {
             "type": [
@@ -22353,7 +22518,16 @@
             "type": "string"
           },
           "evidence_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Physical",
+              "Documentary",
+              "Digital",
+              "Testimonial",
+              "Demonstrative",
+              "Forensic",
+              "Other"
+            ]
           },
           "is_sealed": {
             "type": [
@@ -22527,7 +22701,15 @@
         ],
         "properties": {
           "conflict_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Financial",
+              "Familial",
+              "Professional",
+              "Prior Representation",
+              "Organizational",
+              "Other"
+            ]
           },
           "corporation": {
             "type": [
@@ -22621,7 +22803,14 @@
             ]
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Chief Judge",
+              "Judge",
+              "Senior Judge",
+              "Magistrate Judge",
+              "Visiting Judge"
+            ]
           }
         }
       },
@@ -22672,7 +22861,17 @@
             }
           },
           "opinion_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Majority",
+              "Concurrence",
+              "Dissent",
+              "Per Curiam",
+              "Memorandum",
+              "En Banc",
+              "Summary",
+              "Other"
+            ]
           },
           "status": {
             "type": [
@@ -22734,7 +22933,22 @@
             "format": "uuid"
           },
           "order_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Scheduling",
+              "Protective",
+              "Restraining",
+              "Dismissal",
+              "Sentencing",
+              "Detention",
+              "Release",
+              "Discovery",
+              "Sealing",
+              "Contempt",
+              "Procedural",
+              "Standing",
+              "Other"
+            ]
           },
           "related_motions": {
             "type": "array",
@@ -22782,7 +22996,22 @@
             "format": "date-time"
           },
           "motion_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Dismiss",
+              "Suppress",
+              "Compel",
+              "Summary Judgment",
+              "Continuance",
+              "Change of Venue",
+              "Reconsideration",
+              "Limine",
+              "Severance",
+              "Joinder",
+              "Discovery",
+              "New Trial",
+              "Other"
+            ]
           },
           "ruling_date": {
             "type": [
@@ -22817,7 +23046,19 @@
             "type": "string"
           },
           "citation_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Followed",
+              "Distinguished",
+              "Overruled",
+              "Cited",
+              "Discussed",
+              "Criticized",
+              "Questioned",
+              "Harmonized",
+              "Parallel",
+              "Other"
+            ]
           },
           "cited_opinion_id": {
             "type": [
@@ -22883,7 +23124,16 @@
             ]
           },
           "vote_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Join",
+              "Concur",
+              "Concur in Part",
+              "Dissent",
+              "Dissent in Part",
+              "Recused",
+              "Not Participating"
+            ]
           }
         }
       },
@@ -22909,7 +23159,22 @@
             "type": "string"
           },
           "order_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Scheduling",
+              "Protective",
+              "Restraining",
+              "Dismissal",
+              "Sentencing",
+              "Detention",
+              "Release",
+              "Discovery",
+              "Sealing",
+              "Contempt",
+              "Procedural",
+              "Standing",
+              "Other"
+            ]
           }
         }
       },
@@ -22955,7 +23220,18 @@
             ]
           },
           "entity_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Individual",
+              "Corporation",
+              "Partnership",
+              "LLC",
+              "Government",
+              "Non-Profit",
+              "Trust",
+              "Estate",
+              "Other"
+            ]
           },
           "first_name": {
             "type": [
@@ -22991,7 +23267,23 @@
             ]
           },
           "party_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Plaintiff",
+              "Defendant",
+              "Appellant",
+              "Appellee",
+              "Petitioner",
+              "Respondent",
+              "Intervenor",
+              "Amicus Curiae",
+              "Third Party",
+              "Government",
+              "Witness",
+              "Counter-Claimant",
+              "Cross-Claimant",
+              "Other"
+            ]
           },
           "phone": {
             "type": [
@@ -23480,7 +23772,18 @@
             ]
           },
           "service_method": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Electronic",
+              "Mail",
+              "Personal Service",
+              "Waiver",
+              "Publication",
+              "Certified Mail",
+              "Express Mail",
+              "ECF",
+              "Other"
+            ]
           }
         }
       },
@@ -23598,7 +23901,15 @@
             ]
           },
           "victim_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Individual",
+              "Organization",
+              "Government",
+              "Minor",
+              "Deceased",
+              "Anonymous"
+            ]
           }
         }
       },
@@ -23829,13 +24140,29 @@
             "type": "string"
           },
           "citizenship_status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Citizen",
+              "Permanent Resident",
+              "Visa Holder",
+              "Undocumented",
+              "Unknown"
+            ]
           },
           "created_at": {
             "type": "string"
           },
           "custody_status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "In Custody",
+              "Released",
+              "Bail",
+              "Bond",
+              "Fugitive",
+              "Supervised Release",
+              "Unknown"
+            ]
           },
           "date_of_birth": {
             "type": [
@@ -23884,7 +24211,12 @@
             "type": "string"
           },
           "departure_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Upward",
+              "Downward",
+              "None"
+            ]
           }
         }
       },
@@ -23963,7 +24295,16 @@
             "type": "string"
           },
           "action_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Reprimand",
+              "Censure",
+              "Suspension",
+              "Disbarment",
+              "Reinstatement",
+              "Probation",
+              "Other"
+            ]
           },
           "attorney_id": {
             "type": "string"
@@ -24088,7 +24429,48 @@
             "format": "int32"
           },
           "entry_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "complaint",
+              "indictment",
+              "information",
+              "criminal_complaint",
+              "answer",
+              "motion",
+              "response",
+              "reply",
+              "notice",
+              "order",
+              "minute_order",
+              "scheduling_order",
+              "protective_order",
+              "sealing_order",
+              "discovery_request",
+              "discovery_response",
+              "deposition",
+              "interrogatories",
+              "exhibit",
+              "witness_list",
+              "expert_report",
+              "hearing_notice",
+              "hearing_minutes",
+              "transcript",
+              "judgment",
+              "verdict",
+              "sentence",
+              "summons",
+              "subpoena",
+              "service_return",
+              "appearance",
+              "withdrawal",
+              "substitution",
+              "notice_of_appeal",
+              "appeal_brief",
+              "appellate_order",
+              "letter",
+              "status",
+              "other"
+            ]
           },
           "filed_by": {
             "type": [
@@ -24238,7 +24620,31 @@
           },
           "document_type": {
             "type": "string",
-            "description": "DocumentType enum stored as text (e.g. \"Pleading\", \"Order\", \"Exhibit\")."
+            "description": "DocumentType enum stored as text (e.g. \"Pleading\", \"Order\", \"Exhibit\").",
+            "enum": [
+              "Motion",
+              "Order",
+              "Brief",
+              "Memorandum",
+              "Declaration",
+              "Affidavit",
+              "Exhibit",
+              "Transcript",
+              "Notice",
+              "Subpoena",
+              "Warrant",
+              "Indictment",
+              "Plea Agreement",
+              "Judgment",
+              "Verdict",
+              "Other",
+              "Conditions of Release",
+              "Court Order",
+              "Criminal Judgment",
+              "Minute Entry",
+              "Rule 16(b) Scheduling Order",
+              "Waiver of Indictment"
+            ]
           },
           "file_size": {
             "type": "integer",
@@ -24371,7 +24777,31 @@
             "type": "string"
           },
           "document_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Motion",
+              "Order",
+              "Brief",
+              "Memorandum",
+              "Declaration",
+              "Affidavit",
+              "Exhibit",
+              "Transcript",
+              "Notice",
+              "Subpoena",
+              "Warrant",
+              "Indictment",
+              "Plea Agreement",
+              "Judgment",
+              "Verdict",
+              "Other",
+              "Conditions of Release",
+              "Court Order",
+              "Criminal Judgment",
+              "Minute Entry",
+              "Rule 16(b) Scheduling Order",
+              "Waiver of Indictment"
+            ]
           },
           "file_size": {
             "type": "integer",
@@ -24584,7 +25014,16 @@
             "type": "string"
           },
           "evidence_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Physical",
+              "Documentary",
+              "Digital",
+              "Testimonial",
+              "Demonstrative",
+              "Forensic",
+              "Other"
+            ]
           },
           "id": {
             "type": "string"
@@ -25112,7 +25551,15 @@
             "format": "int32"
           },
           "criminal_history_category": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "I",
+              "II",
+              "III",
+              "IV",
+              "V",
+              "VI"
+            ]
           },
           "specific_offense_adjustments": {
             "type": "array",
@@ -25134,7 +25581,15 @@
         ],
         "properties": {
           "criminal_history_category": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "I",
+              "II",
+              "III",
+              "IV",
+              "V",
+              "VI"
+            ]
           },
           "range_high_months": {
             "type": "integer",
@@ -25316,7 +25771,15 @@
         ],
         "properties": {
           "conflict_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Financial",
+              "Familial",
+              "Professional",
+              "Prior Representation",
+              "Organizational",
+              "Other"
+            ]
           },
           "corporation": {
             "type": [
@@ -25420,10 +25883,24 @@
             }
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Active",
+              "Senior",
+              "Inactive",
+              "Retired",
+              "Deceased"
+            ]
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Chief Judge",
+              "Judge",
+              "Senior Judge",
+              "Magistrate Judge",
+              "Visiting Judge"
+            ]
           },
           "updated_at": {
             "type": "string"
@@ -25549,7 +26026,16 @@
             "type": "string"
           },
           "disposition": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Affirmed",
+              "Reversed",
+              "Remanded",
+              "Vacated",
+              "Dismissed",
+              "Modified",
+              "Certified"
+            ]
           },
           "docket_number": {
             "type": "string"
@@ -25576,7 +26062,17 @@
             }
           },
           "opinion_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Majority",
+              "Concurrence",
+              "Dissent",
+              "Per Curiam",
+              "Memorandum",
+              "En Banc",
+              "Summary",
+              "Other"
+            ]
           },
           "published_at": {
             "type": [
@@ -25652,7 +26148,22 @@
             "type": "string"
           },
           "order_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Scheduling",
+              "Protective",
+              "Restraining",
+              "Dismissal",
+              "Sentencing",
+              "Detention",
+              "Release",
+              "Discovery",
+              "Sealing",
+              "Contempt",
+              "Procedural",
+              "Standing",
+              "Other"
+            ]
           },
           "related_motions": {
             "type": "array",
@@ -25832,7 +26343,22 @@
             "type": "string"
           },
           "motion_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Dismiss",
+              "Suppress",
+              "Compel",
+              "Summary Judgment",
+              "Continuance",
+              "Change of Venue",
+              "Reconsideration",
+              "Limine",
+              "Severance",
+              "Joinder",
+              "Discovery",
+              "New Trial",
+              "Other"
+            ]
           },
           "ruling_date": {
             "type": [
@@ -25847,7 +26373,16 @@
             ]
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Granted",
+              "Denied",
+              "Withdrawn",
+              "Moot",
+              "Deferred",
+              "Partially Granted"
+            ]
           }
         }
       },
@@ -26002,7 +26537,19 @@
             "type": "string"
           },
           "citation_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Followed",
+              "Distinguished",
+              "Overruled",
+              "Cited",
+              "Discussed",
+              "Criticized",
+              "Questioned",
+              "Harmonized",
+              "Parallel",
+              "Other"
+            ]
           },
           "cited_opinion_id": {
             "type": [
@@ -26126,7 +26673,16 @@
             "type": "string"
           },
           "vote_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Join",
+              "Concur",
+              "Concur in Part",
+              "Dissent",
+              "Dissent in Part",
+              "Recused",
+              "Not Participating"
+            ]
           }
         }
       },
@@ -26189,7 +26745,22 @@
             "type": "string"
           },
           "order_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Scheduling",
+              "Protective",
+              "Restraining",
+              "Dismissal",
+              "Sentencing",
+              "Detention",
+              "Release",
+              "Discovery",
+              "Sealing",
+              "Contempt",
+              "Procedural",
+              "Standing",
+              "Other"
+            ]
           },
           "updated_at": {
             "type": "string"
@@ -26432,7 +27003,18 @@
           },
           "entity_type": {
             "type": "string",
-            "description": "EntityType enum stored as text (e.g. \"Individual\", \"Corporation\", \"Government\")."
+            "description": "EntityType enum stored as text (e.g. \"Individual\", \"Corporation\", \"Government\").",
+            "enum": [
+              "Individual",
+              "Corporation",
+              "Partnership",
+              "LLC",
+              "Government",
+              "Non-Profit",
+              "Trust",
+              "Estate",
+              "Other"
+            ]
           },
           "first_name": {
             "type": [
@@ -26478,11 +27060,45 @@
           },
           "party_role": {
             "type": "string",
-            "description": "PartyRole enum stored as text."
+            "description": "PartyRole enum stored as text.",
+            "enum": [
+              "Lead",
+              "Co-Defendant",
+              "Co-Plaintiff",
+              "Cross-Claimant",
+              "Counter-Claimant",
+              "Garnishee",
+              "Real Party in Interest",
+              "Principal",
+              "Co-Party",
+              "Representative",
+              "Guardian",
+              "Trustee",
+              "Executor",
+              "Administrator",
+              "Next Friend",
+              "Other"
+            ]
           },
           "party_type": {
             "type": "string",
-            "description": "PartyType enum stored as text (e.g. \"Defendant\", \"Plaintiff\", \"Intervenor\")."
+            "description": "PartyType enum stored as text (e.g. \"Defendant\", \"Plaintiff\", \"Intervenor\").",
+            "enum": [
+              "Plaintiff",
+              "Defendant",
+              "Appellant",
+              "Appellee",
+              "Petitioner",
+              "Respondent",
+              "Intervenor",
+              "Amicus Curiae",
+              "Third Party",
+              "Government",
+              "Witness",
+              "Counter-Claimant",
+              "Cross-Claimant",
+              "Other"
+            ]
           },
           "phone": {
             "type": [
@@ -26590,7 +27206,18 @@
             ]
           },
           "entity_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Individual",
+              "Corporation",
+              "Partnership",
+              "LLC",
+              "Government",
+              "Non-Profit",
+              "Trust",
+              "Estate",
+              "Other"
+            ]
           },
           "first_name": {
             "type": [
@@ -26632,10 +27259,44 @@
             ]
           },
           "party_role": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Lead",
+              "Co-Defendant",
+              "Co-Plaintiff",
+              "Cross-Claimant",
+              "Counter-Claimant",
+              "Garnishee",
+              "Real Party in Interest",
+              "Principal",
+              "Co-Party",
+              "Representative",
+              "Guardian",
+              "Trustee",
+              "Executor",
+              "Administrator",
+              "Next Friend",
+              "Other"
+            ]
           },
           "party_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Plaintiff",
+              "Defendant",
+              "Appellant",
+              "Appellee",
+              "Petitioner",
+              "Respondent",
+              "Intervenor",
+              "Amicus Curiae",
+              "Third Party",
+              "Government",
+              "Witness",
+              "Counter-Claimant",
+              "Cross-Claimant",
+              "Other"
+            ]
           },
           "phone": {
             "type": [
@@ -26723,7 +27384,31 @@
             "type": "string"
           },
           "document_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Motion",
+              "Order",
+              "Brief",
+              "Memorandum",
+              "Declaration",
+              "Affidavit",
+              "Exhibit",
+              "Transcript",
+              "Notice",
+              "Subpoena",
+              "Warrant",
+              "Indictment",
+              "Plea Agreement",
+              "Judgment",
+              "Verdict",
+              "Other",
+              "Conditions of Release",
+              "Court Order",
+              "Criminal Judgment",
+              "Minute Entry",
+              "Rule 16(b) Scheduling Order",
+              "Waiver of Indictment"
+            ]
           },
           "format": {
             "type": "string"
@@ -26747,7 +27432,14 @@
             "format": "uuid"
           },
           "plea": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Not Guilty",
+              "Guilty",
+              "No Contest",
+              "Alford",
+              "Not Yet Entered"
+            ]
           },
           "plea_date": {
             "type": [
@@ -27025,7 +27717,16 @@
             ]
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Granted",
+              "Denied",
+              "Withdrawn",
+              "Moot",
+              "Deferred",
+              "Partially Granted"
+            ]
           }
         }
       },
@@ -27084,7 +27785,14 @@
             "type": "string"
           },
           "reminder_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Email",
+              "SMS",
+              "In-App",
+              "Push",
+              "Fax"
+            ]
           },
           "sent_at": {
             "type": "string"
@@ -27182,7 +27890,20 @@
           },
           "representation_type": {
             "type": "string",
-            "description": "RepresentationType enum stored as text (e.g. \"Private\", \"Court Appointed\", \"Pro Bono\")."
+            "description": "RepresentationType enum stored as text (e.g. \"Private\", \"Court Appointed\", \"Pro Bono\").",
+            "enum": [
+              "Private",
+              "Court Appointed",
+              "Pro Bono",
+              "Public Defender",
+              "CJA Panel",
+              "Government",
+              "General",
+              "Limited",
+              "Pro Hac Vice",
+              "Standby",
+              "Other"
+            ]
           },
           "scope_of_representation": {
             "type": [
@@ -27271,7 +27992,20 @@
             "type": "string"
           },
           "representation_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Private",
+              "Court Appointed",
+              "Pro Bono",
+              "Public Defender",
+              "CJA Panel",
+              "Government",
+              "General",
+              "Limited",
+              "Pro Hac Vice",
+              "Standby",
+              "Other"
+            ]
           },
           "scope_of_representation": {
             "type": [
@@ -27578,7 +28312,14 @@
             "type": "string"
           },
           "reminder_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Email",
+              "SMS",
+              "In-App",
+              "Push",
+              "Fax"
+            ]
           }
         }
       },
@@ -27823,7 +28564,18 @@
             }
           },
           "service_method": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Electronic",
+              "Mail",
+              "Personal Service",
+              "Waiver",
+              "Publication",
+              "Certified Mail",
+              "Express Mail",
+              "ECF",
+              "Other"
+            ]
           }
         }
       },
@@ -27838,7 +28590,48 @@
         ],
         "properties": {
           "entry_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "complaint",
+              "indictment",
+              "information",
+              "criminal_complaint",
+              "answer",
+              "motion",
+              "response",
+              "reply",
+              "notice",
+              "order",
+              "minute_order",
+              "scheduling_order",
+              "protective_order",
+              "sealing_order",
+              "discovery_request",
+              "discovery_response",
+              "deposition",
+              "interrogatories",
+              "exhibit",
+              "witness_list",
+              "expert_report",
+              "hearing_notice",
+              "hearing_minutes",
+              "transcript",
+              "judgment",
+              "verdict",
+              "sentence",
+              "summons",
+              "subpoena",
+              "service_return",
+              "appearance",
+              "withdrawal",
+              "substitution",
+              "notice_of_appeal",
+              "appeal_brief",
+              "appellate_order",
+              "letter",
+              "status",
+              "other"
+            ]
           },
           "requires_service": {
             "type": "boolean"
@@ -27848,7 +28641,18 @@
             "format": "int32"
           },
           "service_method": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Electronic",
+              "Mail",
+              "Personal Service",
+              "Waiver",
+              "Publication",
+              "Certified Mail",
+              "Express Mail",
+              "ECF",
+              "Other"
+            ]
           }
         }
       },
@@ -27926,7 +28730,18 @@
           },
           "service_method": {
             "type": "string",
-            "description": "ServiceMethod enum stored as text."
+            "description": "ServiceMethod enum stored as text.",
+            "enum": [
+              "Electronic",
+              "Mail",
+              "Personal Service",
+              "Waiver",
+              "Publication",
+              "Certified Mail",
+              "Express Mail",
+              "ECF",
+              "Other"
+            ]
           },
           "successful": {
             "type": "boolean"
@@ -27983,7 +28798,23 @@
             "type": "string"
           },
           "party_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Plaintiff",
+              "Defendant",
+              "Appellant",
+              "Appellee",
+              "Petitioner",
+              "Respondent",
+              "Intervenor",
+              "Amicus Curiae",
+              "Third Party",
+              "Government",
+              "Witness",
+              "Counter-Claimant",
+              "Cross-Claimant",
+              "Other"
+            ]
           },
           "proof_of_service_filed": {
             "type": "boolean"
@@ -27995,7 +28826,18 @@
             "type": "string"
           },
           "service_method": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Electronic",
+              "Mail",
+              "Personal Service",
+              "Waiver",
+              "Publication",
+              "Certified Mail",
+              "Express Mail",
+              "ECF",
+              "Other"
+            ]
           },
           "successful": {
             "type": "boolean"
@@ -28245,7 +29087,12 @@
           },
           "event_kind": {
             "type": "string",
-            "description": "Which kind of event: \"text_entry\", \"filing\", or \"promote_attachment\"."
+            "description": "Which kind of event: \"text_entry\", \"filing\", or \"promote_attachment\".",
+            "enum": [
+              "text_entry",
+              "filing",
+              "promote_attachment"
+            ]
           },
           "filed_by": {
             "type": [
@@ -28328,7 +29175,12 @@
             "format": "int32"
           },
           "event_kind": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "text_entry",
+              "filing",
+              "promote_attachment"
+            ]
           },
           "filing_id": {
             "type": [
@@ -29158,7 +30010,14 @@
         ],
         "properties": {
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Active",
+              "Senior",
+              "Inactive",
+              "Retired",
+              "Deceased"
+            ]
           }
         }
       },
@@ -29490,7 +30349,13 @@
         ],
         "properties": {
           "priority": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
           }
         }
       },
@@ -29944,7 +30809,31 @@
             "type": "string"
           },
           "document_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Motion",
+              "Order",
+              "Brief",
+              "Memorandum",
+              "Declaration",
+              "Affidavit",
+              "Exhibit",
+              "Transcript",
+              "Notice",
+              "Subpoena",
+              "Warrant",
+              "Indictment",
+              "Plea Agreement",
+              "Judgment",
+              "Verdict",
+              "Other",
+              "Conditions of Release",
+              "Court Order",
+              "Criminal Judgment",
+              "Minute Entry",
+              "Rule 16(b) Scheduling Order",
+              "Waiver of Indictment"
+            ]
           },
           "filed_by": {
             "type": "string"
@@ -30019,7 +30908,12 @@
             "type": "string"
           },
           "variance_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Upward",
+              "Downward",
+              "None"
+            ]
           }
         }
       },
@@ -30127,7 +31021,15 @@
             "type": "string"
           },
           "victim_type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "Individual",
+              "Organization",
+              "Government",
+              "Minor",
+              "Deceased",
+              "Anonymous"
+            ]
           }
         }
       },
@@ -30357,6 +31259,12 @@
     {
       "name": "health",
       "description": "Health check endpoint"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local dev"
     }
   ]
 }

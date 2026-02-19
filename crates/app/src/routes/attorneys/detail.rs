@@ -2,11 +2,17 @@ use dioxus::prelude::*;
 use shared_types::AttorneyResponse;
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
-    AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Badge, BadgeVariant, Button,
-    ButtonVariant, Card, CardContent, CardHeader, CardTitle, DetailFooter, DetailGrid, DetailItem,
-    DetailList, PageActions, PageHeader, PageTitle, Skeleton,
+    AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Button, ButtonVariant, Card,
+    CardContent, PageActions, PageHeader, PageTitle, Skeleton, TabContent, TabList, TabTrigger,
+    Tabs,
 };
 
+use super::form_sheet::{AttorneyFormSheet, FormMode};
+use super::tabs::{
+    admissions::AdmissionsTab, cases::AttorneyCasesTab, cja::CjaTab, discipline::DisciplineTab,
+    metrics::AttorneyMetricsTab, pro_hac_vice::ProHacViceTab, profile::ProfileTab,
+};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -16,10 +22,12 @@ pub fn AttorneyDetailPage(id: String) -> Element {
     let court_id = ctx.court_id.read().clone();
     let attorney_id = id.clone();
 
+    let role = use_user_role();
+    let mut show_edit = use_signal(|| false);
     let mut show_delete_confirm = use_signal(|| false);
     let mut deleting = use_signal(|| false);
 
-    let data = use_resource(move || {
+    let mut data = use_resource(move || {
         let court = court_id.clone();
         let aid = attorney_id.clone();
         async move {
@@ -59,10 +67,19 @@ pub fn AttorneyDetailPage(id: String) -> Element {
                             Link { to: Route::AttorneyList {},
                                 Button { variant: ButtonVariant::Secondary, "Back to List" }
                             }
-                            Button {
-                                variant: ButtonVariant::Destructive,
-                                onclick: move |_| show_delete_confirm.set(true),
-                                "Delete"
+                            if can(&role, Action::Edit) {
+                                Button {
+                                    variant: ButtonVariant::Primary,
+                                    onclick: move |_| show_edit.set(true),
+                                    "Edit"
+                                }
+                            }
+                            if can(&role, Action::Delete) {
+                                Button {
+                                    variant: ButtonVariant::Destructive,
+                                    onclick: move |_| show_delete_confirm.set(true),
+                                    "Delete"
+                                }
                             }
                         }
                     }
@@ -85,98 +102,45 @@ pub fn AttorneyDetailPage(id: String) -> Element {
                         }
                     }
 
-                    DetailGrid {
-                        Card {
-                            CardHeader { CardTitle { "Basic Information" } }
-                            CardContent {
-                                DetailList {
-                                    DetailItem { label: "Bar Number", value: att.bar_number.clone() }
-                                    DetailItem { label: "First Name", value: att.first_name.clone() }
-                                    DetailItem { label: "Last Name", value: att.last_name.clone() }
-                                    if let Some(mid) = &att.middle_name {
-                                        DetailItem { label: "Middle Name", value: mid.clone() }
-                                    }
-                                    if let Some(firm) = &att.firm_name {
-                                        DetailItem { label: "Firm", value: firm.clone() }
-                                    }
-                                    DetailItem { label: "Status",
-                                        Badge {
-                                            variant: status_badge_variant(&att.status),
-                                            "{att.status}"
-                                        }
-                                    }
-                                }
-                            }
+                    Tabs { default_value: "profile", horizontal: true,
+                        TabList {
+                            TabTrigger { value: "profile", index: 0usize, "Profile" }
+                            TabTrigger { value: "admissions", index: 1usize, "Admissions" }
+                            TabTrigger { value: "cja", index: 2usize, "CJA" }
+                            TabTrigger { value: "cases", index: 3usize, "Cases" }
+                            TabTrigger { value: "metrics", index: 4usize, "Metrics" }
+                            TabTrigger { value: "discipline", index: 5usize, "Discipline" }
+                            TabTrigger { value: "pro-hac-vice", index: 6usize, "Pro Hac Vice" }
                         }
-
-                        Card {
-                            CardHeader { CardTitle { "Contact" } }
-                            CardContent {
-                                DetailList {
-                                    DetailItem { label: "Email", value: att.email.clone() }
-                                    DetailItem { label: "Phone", value: att.phone.clone() }
-                                    if let Some(fax) = &att.fax {
-                                        DetailItem { label: "Fax", value: fax.clone() }
-                                    }
-                                }
-                            }
+                        TabContent { value: "profile", index: 0usize,
+                            ProfileTab { attorney: att.clone(), attorney_id: id.clone() }
                         }
-
-                        Card {
-                            CardHeader { CardTitle { "Address" } }
-                            CardContent {
-                                DetailList {
-                                    DetailItem { label: "Street", value: att.address.street1.clone() }
-                                    if let Some(s2) = &att.address.street2 {
-                                        DetailItem { label: "Street 2", value: s2.clone() }
-                                    }
-                                    DetailItem { label: "City", value: att.address.city.clone() }
-                                    DetailItem { label: "State", value: att.address.state.clone() }
-                                    DetailItem { label: "ZIP", value: att.address.zip_code.clone() }
-                                    DetailItem { label: "Country", value: att.address.country.clone() }
-                                }
-                            }
+                        TabContent { value: "admissions", index: 1usize,
+                            AdmissionsTab { attorney_id: id.clone() }
                         }
-
-                        Card {
-                            CardHeader { CardTitle { "Practice Details" } }
-                            CardContent {
-                                DetailList {
-                                    DetailItem {
-                                        label: "CJA Panel Member",
-                                        value: (if att.cja_panel_member { "Yes" } else { "No" }).to_string()
-                                    }
-                                    DetailItem {
-                                        label: "Cases Handled",
-                                        value: att.cases_handled.to_string()
-                                    }
-                                    if let Some(wr) = att.win_rate_percentage {
-                                        DetailItem {
-                                            label: "Win Rate",
-                                            value: format!("{:.1}%", wr)
-                                        }
-                                    }
-                                    if let Some(dur) = att.avg_case_duration_days {
-                                        DetailItem {
-                                            label: "Avg Case Duration",
-                                            value: format!("{} days", dur)
-                                        }
-                                    }
-                                    if !att.languages_spoken.is_empty() {
-                                        DetailItem {
-                                            label: "Languages",
-                                            value: att.languages_spoken.join(", ")
-                                        }
-                                    }
-                                }
-                            }
+                        TabContent { value: "cja", index: 2usize,
+                            CjaTab { attorney_id: id.clone() }
+                        }
+                        TabContent { value: "cases", index: 3usize,
+                            AttorneyCasesTab { attorney_id: id.clone() }
+                        }
+                        TabContent { value: "metrics", index: 4usize,
+                            AttorneyMetricsTab { attorney: att.clone() }
+                        }
+                        TabContent { value: "discipline", index: 5usize,
+                            DisciplineTab { attorney_id: id.clone() }
+                        }
+                        TabContent { value: "pro-hac-vice", index: 6usize,
+                            ProHacViceTab { attorney_id: id.clone() }
                         }
                     }
 
-                    DetailFooter {
-                        span { "ID: {att.id}" }
-                        span { "Created: {att.created_at}" }
-                        span { "Updated: {att.updated_at}" }
+                    AttorneyFormSheet {
+                        mode: FormMode::Edit,
+                        initial: Some(att.clone()),
+                        open: show_edit(),
+                        on_close: move |_| show_edit.set(false),
+                        on_saved: move |_| data.restart(),
                     }
                 },
                 Some(None) => rsx! {
@@ -201,15 +165,5 @@ pub fn AttorneyDetailPage(id: String) -> Element {
                 },
             }
         }
-    }
-}
-
-fn status_badge_variant(status: &str) -> BadgeVariant {
-    match status {
-        "Active" => BadgeVariant::Primary,
-        "Inactive" => BadgeVariant::Secondary,
-        "Suspended" => BadgeVariant::Destructive,
-        "Retired" => BadgeVariant::Outline,
-        _ => BadgeVariant::Secondary,
     }
 }

@@ -54,22 +54,6 @@
     white-space: nowrap;
 }
 
-/* Tier column (badge or admin select) */
-.user-tier {
-    flex-shrink: 0;
-}
-
-.user-tier .cyber-select {
-    min-width: 7rem;
-}
-
-.user-tier .cyber-select-trigger {
-    padding: 0.25rem 0.5rem;
-    font-size: var(--font-size-sm);
-    min-height: unset;
-    height: auto;
-}
-
 /* Court role column (badge or admin/clerk select) */
 .user-court-role {
     flex-shrink: 0;
@@ -118,6 +102,87 @@
     color: var(--color-on-surface-muted);
 }
 
+/* "..." actions trigger */
+.user-actions-trigger {
+    padding: 0.35rem 0.6rem;
+    border-radius: 4px;
+    color: var(--color-on-surface);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.user-actions-trigger:hover {
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    color: var(--color-primary);
+}
+
+/* Destructive action item in dropdown */
+.user-action-destructive {
+    color: var(--color-destructive, #ef4444);
+}
+
+/* Position user row dropdown to right edge */
+.user-row .cyber-dropdown-menu-content {
+    right: 0;
+    left: auto;
+}
+
+/* Court memberships in popover */
+.popover-memberships {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+.popover-memberships-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-on-surface-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.popover-membership-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.popover-membership-court {
+    flex: 1;
+    font-size: var(--font-size-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.popover-membership-remove {
+    background: none;
+    border: none;
+    color: var(--color-destructive, #ef4444);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    padding: 2px 4px;
+    border-radius: var(--radius-sm);
+    line-height: 1;
+}
+
+.popover-membership-remove:hover {
+    background: color-mix(in srgb, var(--color-destructive, #ef4444) 15%, transparent);
+}
+
+.popover-hint {
+    font-size: var(--font-size-xs);
+    color: var(--color-on-surface-muted);
+    font-style: italic;
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+}
+
 .dialog-form {
     display: flex;
     flex-direction: column;
@@ -138,6 +203,159 @@
     padding-top: var(--space-sm);
 }
 
+/* Right-click user info card */
+.user-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    min-width: 240px;
+}
+
+.user-info-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xs);
+}
+
+.user-info-card-header > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-info-card-name {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.user-info-card-username {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+}
+
+.user-info-card-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
+}
+
+.user-info-card-label {
+    font-weight: 600;
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.user-info-card-none {
+    color: var(--color-on-surface-muted);
+    font-style: italic;
+}
+
+.user-info-card-courts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.user-info-card-court-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
+    padding-left: var(--space-sm);
+}
+
+/* View mode toggle tabs */
+.users-view-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    width: fit-content;
+}
+
+.toggle-tab {
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    background: transparent;
+    color: var(--color-on-surface-muted);
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.toggle-tab:hover {
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    color: var(--color-on-surface);
+}
+
+.toggle-tab.active {
+    background: var(--color-primary);
+    color: var(--color-primary-foreground, #fff);
+}
+
+/* ---- Pending Request Cards ---- */
+.request-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+}
+
+.request-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.request-name {
+    font-weight: 600;
+    color: var(--color-on-surface);
+}
+
+.request-email {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+}
+
+.request-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
+}
+
+.request-date {
+    color: var(--color-on-surface-muted);
+    font-size: var(--font-size-xs);
+}
+
+.request-reason {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+    padding: var(--space-xs) var(--space-sm);
+    background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+    border-radius: var(--radius-sm);
+}
+
+.request-reason-label {
+    font-weight: 600;
+    color: var(--color-on-surface);
+}
+
+.request-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+}
+
 /* ---- Mobile responsive ---- */
 @media (max-width: 768px) {
     .user-row {
@@ -149,7 +367,6 @@
         flex: 1;
     }
 
-    .user-tier,
     .user-court-role {
         display: none;
     }

@@ -1,44 +1,28 @@
-use crate::auth::{use_can_manage_memberships, use_is_admin};
-use crate::CourtContext;
+use crate::auth::use_can_manage_memberships;
+use crate::{CourtContext, COURT_OPTIONS};
 use dioxus::prelude::*;
 use dioxus_free_icons::icons::ld_icons::LdEllipsis;
 use dioxus_free_icons::Icon;
 use server::api::{
-    create_user, delete_user, list_users_with_memberships, remove_user_court_role,
-    set_user_court_role, update_user, update_user_tier,
+    approve_court_request, create_user, delete_user, deny_court_request,
+    list_pending_court_requests, list_users_with_memberships, remove_user_court_role,
+    set_user_court_role, update_user,
 };
 use shared_types::UserWithMembership;
 use shared_ui::{
     use_toast, AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Avatar, AvatarFallback, Badge,
-    BadgeVariant, Button, ButtonVariant, Checkbox, CheckboxIndicator, CheckboxState, ContentAlign,
-    ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, DialogContent,
-    DialogDescription, DialogRoot, DialogTitle, Input, Label, PopoverContent, PopoverRoot,
-    PopoverTrigger, SelectContent, SelectItem, SelectItemIndicator, SelectRoot, SelectTrigger,
-    SelectValue, Separator, ToastOptions, Toolbar, ToolbarButton, ToolbarSeparator,
+    BadgeVariant, Button, ButtonVariant, Checkbox, CheckboxIndicator, CheckboxState, ContextMenu,
+    ContextMenuContent, ContextMenuTrigger, DialogContent, DialogDescription, DialogRoot,
+    DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+    DropdownMenuTrigger, Input, Label, SelectContent, SelectItem, SelectItemIndicator, SelectRoot,
+    SelectTrigger, SelectValue, Separator, ToastOptions, Toolbar, ToolbarButton, ToolbarSeparator,
 };
+use shared_ui::components::FormSelect;
 
 /// Extract the first two characters of a name as uppercase initials.
 fn initials(name: &str) -> String {
     name.chars().take(2).collect::<String>().to_uppercase()
-}
-
-/// Map a tier string to its badge variant.
-fn tier_badge_variant(tier: &str) -> BadgeVariant {
-    match tier.to_lowercase().as_str() {
-        "pro" => BadgeVariant::Primary,
-        "enterprise" => BadgeVariant::Destructive,
-        _ => BadgeVariant::Secondary,
-    }
-}
-
-/// Format a tier string for display (capitalized).
-fn tier_display(tier: &str) -> &str {
-    match tier.to_lowercase().as_str() {
-        "pro" => "Pro",
-        "enterprise" => "Enterprise",
-        _ => "Free",
-    }
 }
 
 /// Map a court role string to its badge variant.
@@ -66,7 +50,6 @@ fn court_role_display(role: &str) -> &str {
 pub fn Users() -> Element {
     let ctx = use_context::<CourtContext>();
     let toast = use_toast();
-    let is_admin = use_is_admin();
     let can_manage = use_can_manage_memberships();
 
     // Fetch users with their membership for the current court (re-fetches on court change)
@@ -75,12 +58,33 @@ pub fn Users() -> Element {
         async move { list_users_with_memberships(court).await }
     });
 
+    // Toggle between "Court Members", "All Users", and "Pending Requests"
+    let mut view_mode = use_signal(|| "members".to_string()); // "members" | "all" | "requests"
+
+    // Pending requests resource (only fetched when view_mode is "requests")
+    let mut pending_requests = use_resource(move || {
+        let court = ctx.court_id.read().clone();
+        async move { list_pending_court_requests(court).await }
+    });
+
     let mut show_create_dialog = use_signal(|| false);
     let mut editing_user: Signal<Option<UserWithMembership>> = use_signal(|| None);
     let mut show_delete_confirm = use_signal(|| false);
     let mut selected_ids: Signal<Vec<i64>> = use_signal(Vec::new);
     let mut form_username = use_signal(String::new);
     let mut form_display_name = use_signal(String::new);
+
+    // "Assign to Court" dialog state
+    let mut show_assign_dialog = use_signal(|| false);
+    let mut assign_user_id: Signal<Option<i64>> = use_signal(|| None);
+    let mut assign_user_name = use_signal(String::new);
+    let mut assign_court = use_signal(String::new);
+    let mut assign_role = use_signal(|| "attorney".to_string());
+
+    // Deny request dialog state
+    let mut show_deny_dialog = use_signal(|| false);
+    let mut deny_request_id = use_signal(String::new);
+    let mut deny_reason = use_signal(String::new);
 
     let has_selection = !selected_ids.read().is_empty();
 
@@ -147,8 +151,18 @@ pub fn Users() -> Element {
         });
     };
 
-    let user_list = users.read();
-    let user_list = user_list.as_ref().and_then(|r| r.as_ref().ok());
+    // Filter based on view mode: "members" shows only users with a role in the current court
+    let mode = view_mode.read().clone();
+    let filtered_users: Option<Vec<UserWithMembership>> = {
+        let data = users.read();
+        data.as_ref().and_then(|r| r.as_ref().ok()).map(|all| {
+            if mode == "members" {
+                all.iter().filter(|u| !u.court_role.is_empty()).cloned().collect()
+            } else {
+                all.to_vec()
+            }
+        })
+    };
 
     rsx! {
         document::Link { rel: "stylesheet", href: asset!("./users.css") }
@@ -180,15 +194,148 @@ pub fn Users() -> Element {
                 }
             }
 
-            // User List
-            div {
-                class: "users-list",
+            // View mode toggle
+            div { class: "users-view-toggle",
+                button {
+                    class: if *view_mode.read() == "members" { "toggle-tab active" } else { "toggle-tab" },
+                    onclick: move |_| view_mode.set("members".to_string()),
+                    "Court Members"
+                }
+                button {
+                    class: if *view_mode.read() == "all" { "toggle-tab active" } else { "toggle-tab" },
+                    onclick: move |_| view_mode.set("all".to_string()),
+                    "All Users"
+                }
+                if can_manage {
+                    button {
+                        class: if *view_mode.read() == "requests" { "toggle-tab active" } else { "toggle-tab" },
+                        onclick: move |_| {
+                            view_mode.set("requests".to_string());
+                            pending_requests.restart();
+                        },
+                        "Pending Requests"
+                    }
+                }
+            }
 
-                    if let Some(user_vec) = user_list {
+            // Pending Requests View
+            if mode == "requests" && can_manage {
+                div { class: "users-list",
+                    {
+                        let requests_data = pending_requests.read();
+                        let requests_result = requests_data.as_ref();
+
+                        match requests_result {
+                            Some(Ok(requests)) if requests.is_empty() => {
+                                rsx! {
+                                    div { class: "users-empty",
+                                        "No pending access requests for this court."
+                                    }
+                                }
+                            }
+                            Some(Ok(requests)) => {
+                                rsx! {
+                                    for req in requests.iter() {
+                                        {
+                                            let req_id = req.id.clone();
+                                            let req_id_for_deny = req.id.clone();
+                                            let display_name = req.user_display_name.clone().unwrap_or_else(|| format!("User #{}", req.user_id));
+                                            let email = req.user_email.clone().unwrap_or_default();
+                                            let role = req.requested_role.clone();
+                                            let notes = req.notes.clone();
+                                            let requested_at = req.requested_at.clone();
+
+                                            rsx! {
+                                                div { class: "request-card",
+                                                    div { class: "request-info",
+                                                        span { class: "request-name", "{display_name}" }
+                                                        if !email.is_empty() {
+                                                            span { class: "request-email", "{email}" }
+                                                        }
+                                                    }
+                                                    div { class: "request-meta",
+                                                        Badge {
+                                                            variant: court_role_badge_variant(&role),
+                                                            "{court_role_display(&role)}"
+                                                        }
+                                                        span { class: "request-date", "{requested_at}" }
+                                                    }
+                                                    if let Some(reason) = notes {
+                                                        div { class: "request-reason",
+                                                            span { class: "request-reason-label", "Reason:" }
+                                                            " {reason}"
+                                                        }
+                                                    }
+                                                    div { class: "request-actions",
+                                                        Button {
+                                                            variant: ButtonVariant::Primary,
+                                                            onclick: move |_| {
+                                                                let rid = req_id.clone();
+                                                                spawn(async move {
+                                                                    match approve_court_request(rid).await {
+                                                                        Ok(()) => {
+                                                                            toast.success("Request approved".to_string(), ToastOptions::new());
+                                                                            pending_requests.restart();
+                                                                            users.restart();
+                                                                        }
+                                                                        Err(err) => {
+                                                                            toast.error(
+                                                                                shared_types::AppError::friendly_message(&err.to_string()),
+                                                                                ToastOptions::new(),
+                                                                            );
+                                                                        }
+                                                                    }
+                                                                });
+                                                            },
+                                                            "Approve"
+                                                        }
+                                                        Button {
+                                                            variant: ButtonVariant::Destructive,
+                                                            onclick: move |_| {
+                                                                deny_request_id.set(req_id_for_deny.clone());
+                                                                deny_reason.set(String::new());
+                                                                show_deny_dialog.set(true);
+                                                            },
+                                                            "Deny"
+                                                        }
+                                                    }
+                                                }
+                                                Separator {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Some(Err(err)) => {
+                                let msg = shared_types::AppError::friendly_message(&err.to_string());
+                                rsx! {
+                                    div { class: "users-empty", "Error loading requests: {msg}" }
+                                }
+                            }
+                            None => {
+                                rsx! {
+                                    div { class: "users-empty", "Loading requests..." }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // User List
+            if mode != "requests" {
+                div {
+                    class: "users-list",
+
+                    if let Some(user_vec) = filtered_users.as_ref() {
                         if user_vec.is_empty() {
                             div {
                                 class: "users-empty",
-                                "No users found. Click \"Add User\" to create one."
+                                if *view_mode.read() == "members" {
+                                    "No members in this court. Switch to \"All Users\" to assign roles."
+                                } else {
+                                    "No users found. Click \"Add User\" to create one."
+                                }
                             }
                         } else {
                             for user in user_vec.iter() {
@@ -197,6 +344,8 @@ pub fn Users() -> Element {
                                     let user_clone = user.clone();
                                     let user_for_edit = user.clone();
                                     let user_for_ctx_edit = user.clone();
+                                    let user_for_assign = user.clone();
+                                    let user_for_info = user.clone();
                                     let display_initials = initials(&user.display_name);
                                     let is_checked = selected_ids.read().contains(&user_id);
 
@@ -239,80 +388,6 @@ pub fn Users() -> Element {
                                                         span {
                                                             class: "user-username",
                                                             "@{user_clone.username}"
-                                                        }
-                                                    }
-
-                                                    // Tier column
-                                                    {
-                                                        let tier_str = user_clone.tier.clone();
-                                                        let row_user_id = user_id;
-                                                        rsx! {
-                                                            div {
-                                                                class: "user-tier",
-                                                                if is_admin {
-                                                                    {
-                                                                        let current_tier = tier_str.to_lowercase();
-                                                                        rsx! {
-                                                                            SelectRoot::<String> {
-                                                                                default_value: current_tier.clone(),
-                                                                                placeholder: "Tier",
-                                                                                on_value_change: move |val: Option<String>| {
-                                                                                    if let Some(new_tier) = val {
-                                                                                        spawn(async move {
-                                                                                            match update_user_tier(row_user_id, new_tier.clone()).await {
-                                                                                                Ok(_) => {
-                                                                                                    let label = tier_display(&new_tier);
-                                                                                                    toast.success(
-                                                                                                        format!("Tier updated to {label}"),
-                                                                                                        ToastOptions::new(),
-                                                                                                    );
-                                                                                                    users.restart();
-                                                                                                }
-                                                                                                Err(err) => {
-                                                                                                    toast.error(
-                                                                                                        format!("Failed to update tier: {}", shared_types::AppError::friendly_message(&err.to_string())),
-                                                                                                        ToastOptions::new(),
-                                                                                                    );
-                                                                                                }
-                                                                                            }
-                                                                                        });
-                                                                                    }
-                                                                                },
-                                                                                SelectTrigger {
-                                                                                    aria_label: "Change tier",
-                                                                                    SelectValue {}
-                                                                                }
-                                                                                SelectContent {
-                                                                                    aria_label: "Tier options",
-                                                                                    SelectItem::<String> {
-                                                                                        value: "free",
-                                                                                        index: 0usize,
-                                                                                        "Free"
-                                                                                        SelectItemIndicator { "\u{2713}" }
-                                                                                    }
-                                                                                    SelectItem::<String> {
-                                                                                        value: "pro",
-                                                                                        index: 1usize,
-                                                                                        "Pro"
-                                                                                        SelectItemIndicator { "\u{2713}" }
-                                                                                    }
-                                                                                    SelectItem::<String> {
-                                                                                        value: "enterprise",
-                                                                                        index: 2usize,
-                                                                                        "Enterprise"
-                                                                                        SelectItemIndicator { "\u{2713}" }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                } else {
-                                                                    Badge {
-                                                                        variant: tier_badge_variant(&tier_str),
-                                                                        "{tier_display(&tier_str)}"
-                                                                    }
-                                                                }
-                                                            }
                                                         }
                                                     }
 
@@ -407,66 +482,175 @@ pub fn Users() -> Element {
                                                         }
                                                     }
 
-                                                    PopoverRoot {
-                                                        PopoverTrigger {
-                                                            Icon::<LdEllipsis> { icon: LdEllipsis, width: 18, height: 18 }
+                                                    // Actions dropdown ("..." button)
+                                                    DropdownMenu {
+                                                        DropdownMenuTrigger {
+                                                            div { class: "user-actions-trigger",
+                                                                Icon::<LdEllipsis> { icon: LdEllipsis, width: 18, height: 18 }
+                                                            }
                                                         }
-                                                        PopoverContent {
-                                                        align: ContentAlign::End,
-                                                            div {
-                                                                class: "popover-details",
-                                                                span {
-                                                                    class: "popover-name",
-                                                                    "{user_for_edit.display_name}"
+                                                        DropdownMenuContent {
+                                                            // Edit
+                                                            DropdownMenuItem::<String> {
+                                                                value: "edit".to_string(),
+                                                                index: 0usize,
+                                                                on_select: move |_: String| {
+                                                                    let u = user_for_ctx_edit.clone();
+                                                                    form_username.set(u.username.clone());
+                                                                    form_display_name.set(u.display_name.clone());
+                                                                    editing_user.set(Some(u));
+                                                                    show_create_dialog.set(true);
+                                                                },
+                                                                "\u{270E}  Edit"
+                                                            }
+
+                                                            // Assign to Court
+                                                            if can_manage {
+                                                                DropdownMenuItem::<String> {
+                                                                    value: "assign_court".to_string(),
+                                                                    index: 1usize,
+                                                                    on_select: move |_: String| {
+                                                                        let u = user_for_assign.clone();
+                                                                        assign_user_id.set(Some(u.id));
+                                                                        assign_user_name.set(u.display_name.clone());
+                                                                        assign_court.set(String::new());
+                                                                        assign_role.set("attorney".to_string());
+                                                                        show_assign_dialog.set(true);
+                                                                    },
+                                                                    "\u{2795}  Assign to Court"
                                                                 }
-                                                                span {
-                                                                    class: "popover-meta",
-                                                                    "Username: {user_for_edit.username}"
+                                                            }
+
+                                                            // Court memberships — inline remove
+                                                            if !user_for_edit.all_court_roles.is_empty() {
+                                                                DropdownMenuSeparator {}
+                                                                for (idx , (cid , crole)) in user_for_edit.all_court_roles.iter().enumerate() {
+                                                                    {
+                                                                        let cid_clone = cid.clone();
+                                                                        let court_label = COURT_OPTIONS.iter()
+                                                                            .find(|(id, _)| *id == cid.as_str())
+                                                                            .map(|(_, name)| *name)
+                                                                            .unwrap_or(cid.as_str());
+                                                                        let role_label = court_role_display(crole);
+                                                                        let label = format!("\u{2715}  {court_label} ({role_label})");
+                                                                        rsx! {
+                                                                            DropdownMenuItem::<String> {
+                                                                                value: format!("remove_{cid_clone}"),
+                                                                                index: 10 + idx,
+                                                                                on_select: move |_: String| {
+                                                                                    let uid = user_id;
+                                                                                    let court = cid_clone.clone();
+                                                                                    spawn(async move {
+                                                                                        match remove_user_court_role(uid, court.clone()).await {
+                                                                                            Ok(_) => {
+                                                                                                toast.success(
+                                                                                                    format!("Removed from {court}"),
+                                                                                                    ToastOptions::new(),
+                                                                                                );
+                                                                                                users.restart();
+                                                                                            }
+                                                                                            Err(err) => {
+                                                                                                toast.error(
+                                                                                                    shared_types::AppError::friendly_message(&err.to_string()),
+                                                                                                    ToastOptions::new(),
+                                                                                                );
+                                                                                            }
+                                                                                        }
+                                                                                    });
+                                                                                },
+                                                                                "{label}"
+                                                                            }
+                                                                        }
+                                                                    }
                                                                 }
-                                                                span {
-                                                                    class: "popover-meta",
-                                                                    "ID: {user_id}"
-                                                                }
+                                                            }
+
+                                                            DropdownMenuSeparator {}
+
+                                                            // Delete
+                                                            DropdownMenuItem::<String> {
+                                                                value: "delete".to_string(),
+                                                                index: 99usize,
+                                                                on_select: move |_: String| {
+                                                                    spawn(async move {
+                                                                        match delete_user(user_id).await {
+                                                                            Ok(()) => {
+                                                                                toast.success("User deleted".to_string(), ToastOptions::new());
+                                                                                selected_ids.write().retain(|&id| id != user_id);
+                                                                                users.restart();
+                                                                            }
+                                                                            Err(err) => {
+                                                                                toast.error(shared_types::AppError::friendly_message(&err.to_string()), ToastOptions::new());
+                                                                            }
+                                                                        }
+                                                                    });
+                                                                },
+                                                                span { class: "user-action-destructive", "\u{1F5D1}  Delete" }
                                                             }
                                                         }
                                                     }
                                                 }
-                                            }
+                                            } // ContextMenuTrigger close
 
+                                            // Right-click info card
                                             ContextMenuContent {
-                                                ContextMenuItem {
-                                                    value: "edit",
-                                                    index: 0usize,
-                                                    on_select: move |_: String| {
-                                                        let u = user_for_ctx_edit.clone();
-                                                        form_username.set(u.username.clone());
-                                                        form_display_name.set(u.display_name.clone());
-                                                        editing_user.set(Some(u));
-                                                        show_create_dialog.set(true);
-                                                    },
-                                                    "Edit"
-                                                }
-                                                ContextMenuItem {
-                                                    value: "delete",
-                                                    index: 1usize,
-                                                    on_select: move |_: String| {
-                                                        spawn(async move {
-                                                            match delete_user(user_id).await {
-                                                                Ok(()) => {
-                                                                    toast.success("User deleted".to_string(), ToastOptions::new());
-                                                                    selected_ids.write().retain(|&id| id != user_id);
-                                                                    users.restart();
-                                                                }
-                                                                Err(err) => {
-                                                                    toast.error(shared_types::AppError::friendly_message(&err.to_string()), ToastOptions::new());
+                                                div { class: "user-info-card",
+                                                    div { class: "user-info-card-header",
+                                                        Avatar {
+                                                            AvatarFallback { "{initials(&user_for_info.display_name)}" }
+                                                        }
+                                                        div {
+                                                            span { class: "user-info-card-name", "{user_for_info.display_name}" }
+                                                            span { class: "user-info-card-username", "@{user_for_info.username}" }
+                                                        }
+                                                    }
+
+                                                    if !user_for_info.email.is_empty() {
+                                                        div { class: "user-info-card-field",
+                                                            span { class: "user-info-card-label", "Email" }
+                                                            span { "{user_for_info.email}" }
+                                                        }
+                                                    }
+
+                                                    if let Some(phone) = &user_for_info.phone_number {
+                                                        div { class: "user-info-card-field",
+                                                            span { class: "user-info-card-label", "Phone" }
+                                                            span { "{phone}" }
+                                                        }
+                                                    }
+
+                                                    div { class: "user-info-card-field",
+                                                        span { class: "user-info-card-label", "Platform Role" }
+                                                        Badge { variant: court_role_badge_variant(&user_for_info.role), "{user_for_info.role}" }
+                                                    }
+
+                                                    if !user_for_info.all_court_roles.is_empty() {
+                                                        div { class: "user-info-card-courts",
+                                                            span { class: "user-info-card-label", "Court Assignments" }
+                                                            for (cid , crole) in user_for_info.all_court_roles.iter() {
+                                                                {
+                                                                    let court_label = COURT_OPTIONS.iter()
+                                                                        .find(|(id, _)| *id == cid.as_str())
+                                                                        .map(|(_, name)| *name)
+                                                                        .unwrap_or(cid.as_str());
+                                                                    rsx! {
+                                                                        div { class: "user-info-card-court-row",
+                                                                            span { "{court_label}" }
+                                                                            Badge { variant: court_role_badge_variant(crole), "{court_role_display(crole)}" }
+                                                                        }
+                                                                    }
                                                                 }
                                                             }
-                                                        });
-                                                    },
-                                                    "Delete"
+                                                        }
+                                                    } else {
+                                                        div { class: "user-info-card-field",
+                                                            span { class: "user-info-card-label", "Court Assignments" }
+                                                            span { class: "user-info-card-none", "None" }
+                                                        }
+                                                    }
                                                 }
                                             }
-                                        }
+                                        } // ContextMenu close
 
                                         Separator {}
                                     }
@@ -480,6 +664,58 @@ pub fn Users() -> Element {
                         }
                     }
                 }
+            }
+
+            // Deny Request Dialog
+            AlertDialogRoot {
+                open: show_deny_dialog(),
+                on_open_change: move |open: bool| show_deny_dialog.set(open),
+                AlertDialogContent {
+                    AlertDialogTitle { "Deny Access Request" }
+                    AlertDialogDescription {
+                        "Optionally provide a reason for denying this request."
+                    }
+                    div { class: "dialog-field",
+                        label { class: "form-label", "Reason (optional)" }
+                        textarea {
+                            class: "input",
+                            rows: 3,
+                            placeholder: "Reason for denial...",
+                            value: deny_reason(),
+                            oninput: move |evt: FormEvent| deny_reason.set(evt.value()),
+                        }
+                    }
+                    AlertDialogActions {
+                        AlertDialogCancel { "Cancel" }
+                        AlertDialogAction {
+                            on_click: move |_: MouseEvent| {
+                                let rid = deny_request_id.read().clone();
+                                let reason_text = deny_reason.read().clone();
+                                let notes = if reason_text.trim().is_empty() {
+                                    None
+                                } else {
+                                    Some(reason_text)
+                                };
+                                spawn(async move {
+                                    match deny_court_request(rid, notes).await {
+                                        Ok(()) => {
+                                            toast.success("Request denied".to_string(), ToastOptions::new());
+                                            pending_requests.restart();
+                                        }
+                                        Err(err) => {
+                                            toast.error(
+                                                shared_types::AppError::friendly_message(&err.to_string()),
+                                                ToastOptions::new(),
+                                            );
+                                        }
+                                    }
+                                });
+                            },
+                            "Deny Request"
+                        }
+                    }
+                }
+            }
 
             // Create / Edit Dialog
             DialogRoot {
@@ -559,6 +795,87 @@ pub fn Users() -> Element {
                         AlertDialogAction {
                             on_click: handle_delete_selected,
                             "Delete"
+                        }
+                    }
+                }
+            }
+
+            // Assign to Court Dialog
+            DialogRoot {
+                open: show_assign_dialog(),
+                on_open_change: move |open: bool| show_assign_dialog.set(open),
+                DialogContent {
+                    DialogTitle { "Assign to Court" }
+                    DialogDescription {
+                        {format!("Grant {} access to a court district.", assign_user_name.read())}
+                    }
+
+                    div {
+                        class: "dialog-form",
+
+                        FormSelect {
+                            label: "District Court".to_string(),
+                            value: assign_court(),
+                            onchange: move |evt: Event<FormData>| {
+                                assign_court.set(evt.value());
+                            },
+                            option { value: "", disabled: true, "Select a district..." }
+                            for (court_id , court_name) in COURT_OPTIONS.iter() {
+                                option { value: *court_id, "{court_name}" }
+                            }
+                        }
+
+                        FormSelect {
+                            label: "Role".to_string(),
+                            value: assign_role(),
+                            onchange: move |evt: Event<FormData>| {
+                                assign_role.set(evt.value());
+                            },
+                            option { value: "attorney", "Attorney" }
+                            option { value: "clerk", "Clerk" }
+                            option { value: "judge", "Judge" }
+                        }
+
+                        div {
+                            class: "dialog-actions",
+                            Button {
+                                variant: ButtonVariant::Ghost,
+                                onclick: move |_| show_assign_dialog.set(false),
+                                "Cancel"
+                            }
+                            Button {
+                                variant: ButtonVariant::Primary,
+                                onclick: move |_| {
+                                    let uid = assign_user_id.read().unwrap_or(0);
+                                    let court = assign_court.read().clone();
+                                    let role = assign_role.read().clone();
+
+                                    if court.is_empty() {
+                                        toast.error("Please select a district.".to_string(), ToastOptions::new());
+                                        return;
+                                    }
+
+                                    spawn(async move {
+                                        match set_user_court_role(uid, court.clone(), role.clone()).await {
+                                            Ok(_) => {
+                                                toast.success(
+                                                    format!("Assigned {} role in {}", court_role_display(&role), court),
+                                                    ToastOptions::new(),
+                                                );
+                                                show_assign_dialog.set(false);
+                                                users.restart();
+                                            }
+                                            Err(err) => {
+                                                toast.error(
+                                                    shared_types::AppError::friendly_message(&err.to_string()),
+                                                    ToastOptions::new(),
+                                                );
+                                            }
+                                        }
+                                    });
+                                },
+                                "Assign"
+                            }
                         }
                     }
                 }

@@ -607,3 +607,56 @@ pub async fn list_attorney_contacts_by_case(
     .await
     .map_err(SqlxErrorExt::into_app_error)
 }
+
+/// List all parties for a court (across all cases), ordered by name, with search and pagination.
+pub async fn list_all(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    q: Option<&str>,
+    offset: i64,
+    limit: i64,
+) -> Result<(Vec<Party>, i64), AppError> {
+    let search = q.map(|s| format!("%{}%", s.to_lowercase()));
+
+    let total = sqlx::query_scalar!(
+        r#"
+        SELECT COUNT(*) as "count!" FROM parties
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(name) LIKE $2)
+        "#,
+        court_id,
+        search.as_deref(),
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let rows = sqlx::query_as!(
+        Party,
+        r#"
+        SELECT
+            id, court_id, case_id, party_type, party_role, name, entity_type,
+            first_name, middle_name, last_name, date_of_birth,
+            organization_name, address_street1, address_city, address_state,
+            address_zip, address_country, phone, email,
+            represented, pro_se, service_method, status,
+            joined_date, terminated_date,
+            ssn_last_four, ein, nef_sms_opt_in,
+            created_at, updated_at
+        FROM parties
+        WHERE court_id = $1
+          AND ($2::TEXT IS NULL OR LOWER(name) LIKE $2)
+        ORDER BY name ASC
+        LIMIT $3 OFFSET $4
+        "#,
+        court_id,
+        search.as_deref(),
+        limit,
+        offset,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok((rows, total))
+}

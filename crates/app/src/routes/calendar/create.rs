@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::CalendarEntryResponse;
+use shared_types::{CalendarEntryResponse, CaseSearchResponse};
 use shared_ui::components::{
     Button, ButtonVariant, Card, CardContent, CardHeader, CardTitle, Form, FormSelect, Input,
     PageActions, PageHeader, PageTitle,
@@ -14,6 +14,29 @@ pub fn CalendarCreatePage() -> Element {
 
     let mut case_id = use_signal(String::new);
     let mut judge_id = use_signal(String::new);
+
+    // Load cases and judges for dropdown selectors
+    let cases_for_select = use_resource(move || {
+        let court = ctx.court_id.read().clone();
+        async move {
+            match server::api::search_cases(court, None, None, None, None, None, Some(100)).await {
+                Ok(json) => serde_json::from_str::<CaseSearchResponse>(&json)
+                    .ok()
+                    .map(|r| r.cases),
+                Err(_) => None,
+            }
+        }
+    });
+
+    let judges_for_select = use_resource(move || {
+        let court = ctx.court_id.read().clone();
+        async move {
+            match server::api::list_judges(court).await {
+                Ok(json) => serde_json::from_str::<Vec<serde_json::Value>>(&json).ok(),
+                Err(_) => None,
+            }
+        }
+    });
     let mut event_type = use_signal(|| "motion_hearing".to_string());
     let mut scheduled_date = use_signal(String::new);
     let mut duration_minutes = use_signal(|| "60".to_string());
@@ -88,17 +111,49 @@ pub fn CalendarCreatePage() -> Element {
                     }
                     CardContent {
                         div { class: "form-row",
-                            Input {
-                                label: "Case ID *",
-                                value: case_id.read().clone(),
-                                on_input: move |e: FormEvent| case_id.set(e.value().to_string()),
-                                placeholder: "UUID of the case",
+                            div { class: "form-group",
+                                label { class: "input-label", "Case *" }
+                                select {
+                                    class: "input",
+                                    value: case_id.read().clone(),
+                                    onchange: move |e: FormEvent| case_id.set(e.value().to_string()),
+                                    option { value: "", "-- Select a case --" }
+                                    {match &*cases_for_select.read() {
+                                        Some(Some(cases)) => rsx! {
+                                            for c in cases.iter() {
+                                                option {
+                                                    value: "{c.id}",
+                                                    "{c.case_number} — {c.title}"
+                                                }
+                                            }
+                                        },
+                                        _ => rsx! {
+                                            option { value: "", disabled: true, "Loading cases..." }
+                                        },
+                                    }}
+                                }
                             }
-                            Input {
-                                label: "Judge ID *",
-                                value: judge_id.read().clone(),
-                                on_input: move |e: FormEvent| judge_id.set(e.value().to_string()),
-                                placeholder: "UUID of the judge",
+                            div { class: "form-group",
+                                label { class: "input-label", "Judge *" }
+                                select {
+                                    class: "input",
+                                    value: judge_id.read().clone(),
+                                    onchange: move |e: FormEvent| judge_id.set(e.value().to_string()),
+                                    option { value: "", "-- Select a judge --" }
+                                    {match &*judges_for_select.read() {
+                                        Some(Some(judges)) => rsx! {
+                                            for j in judges.iter() {
+                                                option {
+                                                    value: j["id"].as_str().unwrap_or(""),
+                                                    {j["name"].as_str().unwrap_or("Unknown")}
+                                                }
+                                            }
+                                        },
+                                        _ => rsx! {
+                                            option { value: "", disabled: true, "Loading judges..." }
+                                        },
+                                    }}
+                                }
                             }
                         }
                         div { class: "form-row",
