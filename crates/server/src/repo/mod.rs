@@ -5,6 +5,8 @@ pub mod calendar;
 #[cfg(feature = "server")]
 pub mod case;
 #[cfg(feature = "server")]
+pub mod civil_case;
+#[cfg(feature = "server")]
 pub mod deadline;
 #[cfg(feature = "server")]
 pub mod docket;
