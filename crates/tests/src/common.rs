@@ -40,7 +40,7 @@ pub async fn test_app() -> (Router, Pool<Postgres>, tokio::sync::MutexGuard<'sta
         .expect("Failed to run migrations");
 
     // Truncate all data and re-seed
-    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue CASCADE")
+    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, civil_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue CASCADE")
         .execute(&pool)
         .await
         .expect("Failed to truncate");
@@ -255,7 +255,7 @@ pub async fn test_app_rate_limited(
         .await
         .expect("Failed to run migrations");
 
-    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue CASCADE")
+    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, civil_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue CASCADE")
         .execute(&pool)
         .await
         .expect("Failed to truncate");
@@ -458,6 +458,29 @@ pub async fn create_test_case_via_api(
         status,
         StatusCode::CREATED,
         "Failed to create test case: {} {:?}",
+        status,
+        response
+    );
+    response
+}
+
+/// Create a test civil case via the API and return the response JSON.
+pub async fn create_test_civil_case_via_api(
+    app: &Router,
+    court: &str,
+    title: &str,
+) -> Value {
+    let body = serde_json::json!({
+        "title": title,
+        "nature_of_suit": "110",
+        "jurisdiction_basis": "federal_question",
+    });
+
+    let (status, response) = post_json(app, "/api/civil-cases", &body.to_string(), court).await;
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "Failed to create test civil case: {} {:?}",
         status,
         response
     );

@@ -77,6 +77,15 @@ mod deadline_search_tests;
 mod deadline_isolation_tests;
 
 #[cfg(test)]
+mod civil_case_create_tests;
+
+#[cfg(test)]
+mod civil_case_search_tests;
+
+#[cfg(test)]
+mod civil_case_isolation_tests;
+
+#[cfg(test)]
 mod case_create_tests;
 
 #[cfg(test)]
