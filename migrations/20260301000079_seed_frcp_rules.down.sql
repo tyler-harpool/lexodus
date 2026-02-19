@@ -1,2 +1,4 @@
--- Remove FRCP rule seed data by deterministic ID prefixes
-DELETE FROM rules WHERE id::text LIKE 'd9ru%' OR id::text LIKE 'd12ru%';
+-- Remove seeded FRCP and local civil rules
+DELETE FROM rules WHERE source = 'Federal Rules of Civil Procedure';
+DELETE FROM rules WHERE source = 'Local Rules' AND id::text LIKE 'd9ru%';
+DELETE FROM rules WHERE source = 'Local Rules' AND id::text LIKE 'd12ru%';

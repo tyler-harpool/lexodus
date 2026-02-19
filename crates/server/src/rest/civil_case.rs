@@ -72,24 +72,23 @@ pub async fn create_civil_case(
 
     let case = crate::repo::civil_case::create(&pool, &court.0, body).await?;
 
-    // Auto-create a clerk queue item for the new civil filing
-    sqlx::query!(
+    // Auto-create a clerk queue item for the new civil filing.
+    // Uses direct SQL instead of repo::queue::create to set case_type = 'civil'.
+    let _ = sqlx::query!(
         r#"
         INSERT INTO clerk_queue
             (court_id, queue_type, priority, title, description,
              source_type, source_id, case_id, case_type, case_number, current_step)
         VALUES ($1, 'filing', 3, $2, $3, 'filing', $4, $4, 'civil', $5, 'review')
-        ON CONFLICT DO NOTHING
         "#,
         case.court_id,
-        format!("New Civil Complaint — {}", case.title),
-        format!("Process initial civil filing. NOS {}. Verify filing fee, assign case number, and issue summons.", case.nature_of_suit),
+        format!("Civil Complaint: {}", case.title),
+        "New civil complaint requires clerk review",
         case.id,
         case.case_number,
     )
     .execute(&pool)
-    .await
-    .ok(); // Best-effort: don't fail the case creation if queue insert fails
+    .await;
 
     Ok((StatusCode::CREATED, Json(CivilCaseResponse::from(case))))
 }
