@@ -2,6 +2,7 @@ pub mod attorney;
 pub mod attachment;
 pub mod calendar;
 pub mod case;
+pub mod civil_case;
 pub mod charge;
 pub mod deadline;
 pub mod defendant;
@@ -82,6 +83,12 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/cases/{id}/seal", post(case::seal_case))
         .route("/api/cases/{id}/unseal", post(case::unseal_case))
         .route("/api/cases/{case_id}/filing-stats", get(case::get_filing_stats))
+        // Civil Cases
+        .route("/api/civil-cases/statistics", get(civil_case::civil_case_statistics))
+        .route("/api/civil-cases/by-judge/{judge_id}", get(civil_case::list_civil_cases_by_judge))
+        .route("/api/civil-cases", get(civil_case::search_civil_cases).post(civil_case::create_civil_case))
+        .route("/api/civil-cases/{id}", get(civil_case::get_civil_case).delete(civil_case::delete_civil_case))
+        .route("/api/civil-cases/{id}/status", patch(civil_case::update_civil_case_status))
         // Victims
         .route("/api/cases/{id}/victims", get(victim::list_victims).post(victim::add_victim))
         .route("/api/cases/{id}/victims/{victim_id}/notifications", post(victim::send_notification))

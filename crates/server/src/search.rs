@@ -375,13 +375,13 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
         CalendarRow,
         r#"
         SELECT e.id as "id!", e.court_id as "court_id!", e.event_type as "event_type!",
-               e.description as "description!", c.title as "case_title!"
+               e.description as "description?: String", c.title as "case_title!"
         FROM calendar_events e
         JOIN criminal_cases c ON c.id = e.case_id AND c.court_id = e.court_id
         WHERE e.case_type = 'criminal'
         UNION ALL
         SELECT e.id as "id!", e.court_id as "court_id!", e.event_type as "event_type!",
-               e.description as "description!", cv.title as "case_title!"
+               e.description as "description?: String", cv.title as "case_title!"
         FROM calendar_events e
         JOIN civil_cases cv ON cv.id = e.case_id AND cv.court_id = e.court_id
         WHERE e.case_type = 'civil'
