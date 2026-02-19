@@ -83,11 +83,41 @@ pub async fn get_case(
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
 
-    let case = crate::repo::case::find_by_id(&pool, &court.0, uuid)
+    // Try criminal first, then fall back to civil
+    if let Some(c) = crate::repo::case::find_by_id(&pool, &court.0, uuid).await? {
+        return Ok(Json(CaseResponse::from(c)));
+    }
+
+    let c = crate::repo::civil_case::find_by_id(&pool, &court.0, uuid)
         .await?
         .ok_or_else(|| AppError::not_found(format!("Case {} not found", id)))?;
 
-    Ok(Json(CaseResponse::from(case)))
+    Ok(Json(CaseResponse {
+        id: c.id.to_string(),
+        case_number: c.case_number,
+        title: c.title,
+        description: c.description,
+        case_type: "civil".to_string(),
+        crime_type: c.nature_of_suit,
+        status: c.status,
+        priority: c.priority,
+        district_code: c.district_code,
+        location: c.location,
+        opened_at: c.opened_at.to_rfc3339(),
+        updated_at: c.updated_at.to_rfc3339(),
+        closed_at: c.closed_at.map(|d| d.to_rfc3339()),
+        assigned_judge_id: c.assigned_judge_id.map(|u| u.to_string()),
+        is_sealed: c.is_sealed,
+        sealed_by: c.sealed_by,
+        sealed_date: c.sealed_date.map(|d| d.to_rfc3339()),
+        seal_reason: c.seal_reason,
+        jurisdiction_basis: Some(c.jurisdiction_basis),
+        jury_demand: Some(c.jury_demand),
+        class_action: Some(c.class_action),
+        amount_in_controversy: c.amount_in_controversy,
+        consent_to_magistrate: Some(c.consent_to_magistrate),
+        pro_se: Some(c.pro_se),
+    }))
 }
 
 /// DELETE /api/cases/{id}
