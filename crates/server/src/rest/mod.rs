@@ -353,6 +353,11 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/pdf/waiver-indictment", post(pdf::generate_waiver))
         .route("/api/pdf/conditions-release", post(pdf::generate_conditions))
         .route("/api/pdf/criminal-judgment", post(pdf::generate_judgment))
+        // Civil PDF Generation
+        .route("/api/pdf/js44-cover-sheet", post(pdf::generate_js44_cover_sheet))
+        .route("/api/pdf/civil-summons", post(pdf::generate_civil_summons))
+        .route("/api/pdf/civil-scheduling-order", post(pdf::generate_civil_scheduling_order))
+        .route("/api/pdf/civil-judgment", post(pdf::generate_civil_judgment))
         .route("/api/pdf/batch", post(pdf::batch_generate))
         // Signatures
         .route("/api/signatures", post(signature::upload_signature))

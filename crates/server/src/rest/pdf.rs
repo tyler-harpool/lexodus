@@ -1,13 +1,17 @@
 use axum::{
-    extract::{Path, State},
+    extract::State,
+    http::{header, StatusCode},
+    response::IntoResponse,
     Json,
 };
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use shared_types::AppError;
 use crate::tenant::CourtId;
+use crate::typst::{build_document_source, compile_typst, DocumentParams};
 
 // ---------------------------------------------------------------------------
 // Shared types for PDF generation
@@ -25,16 +29,6 @@ pub struct PdfGenerateRequest {
     pub body_text: Option<String>,
     #[serde(default)]
     pub metadata: Option<serde_json::Value>,
-}
-
-/// Response containing generated HTML (to be rendered as PDF by a downstream service).
-#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
-pub struct PdfGenerateResponse {
-    pub case_id: String,
-    pub document_type: String,
-    pub format: String,
-    pub html: String,
-    pub metadata: serde_json::Value,
 }
 
 /// Request body for batch PDF generation.
@@ -58,76 +52,52 @@ pub struct BatchPdfItem {
     pub metadata: Option<serde_json::Value>,
 }
 
+/// A single result in a batch PDF generation response.
+#[derive(Debug, Clone, Serialize, utoipa::ToSchema)]
+pub struct BatchPdfResponseItem {
+    pub case_id: String,
+    pub document_type: String,
+    pub filename: String,
+    pub pdf_base64: String,
+}
+
 // ---------------------------------------------------------------------------
-// Helper: build HTML for a document type
+// Helpers
 // ---------------------------------------------------------------------------
 
-fn build_html(
+/// Build a `DocumentParams` from the common request fields.
+fn build_params(
     court_id: &str,
     doc_type: &str,
-    case_id: &Uuid,
+    req_case_id: &Uuid,
     title: Option<&str>,
     body_text: Option<&str>,
     signed: bool,
     judge_id: Option<&Uuid>,
-) -> String {
-    let doc_title = title.unwrap_or(doc_type);
-    let body = body_text.unwrap_or("Content pending.");
-    let signature_block = if signed {
-        let jid = judge_id.map(|u| u.to_string()).unwrap_or_else(|| "N/A".to_string());
-        format!(
-            r#"<div class="signature-block">
-                <hr/>
-                <p>Electronically signed by Judge (ID: {})</p>
-                <p>Court: {}</p>
-            </div>"#,
-            jid, court_id
-        )
-    } else {
-        String::new()
-    };
-
-    format!(
-        r#"<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8"/>
-    <title>{doc_title}</title>
-    <style>
-        body {{ font-family: 'Times New Roman', serif; margin: 1in; }}
-        .header {{ text-align: center; margin-bottom: 2em; }}
-        .court-name {{ font-size: 14pt; font-weight: bold; text-transform: uppercase; }}
-        .doc-type {{ font-size: 12pt; margin-top: 1em; }}
-        .case-info {{ margin: 1em 0; }}
-        .body-text {{ margin: 2em 0; line-height: 1.6; }}
-        .signature-block {{ margin-top: 3em; }}
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="court-name">United States District Court - {court_id}</div>
-        <div class="doc-type">{doc_type}</div>
-    </div>
-    <div class="case-info">
-        <p><strong>Case ID:</strong> {case_id}</p>
-    </div>
-    <div class="body-text">
-        {body}
-    </div>
-    {signature_block}
-</body>
-</html>"#,
-    )
+) -> DocumentParams {
+    let today = chrono::Utc::now().format("%B %d, %Y").to_string();
+    DocumentParams {
+        court_name: court_id.to_string(),
+        doc_type: doc_type.to_string(),
+        case_id: req_case_id.to_string(),
+        title: title.unwrap_or(doc_type).to_string(),
+        content_body: body_text.unwrap_or("Content pending.").to_string(),
+        show_signature: signed,
+        signer_id: judge_id
+            .map(|u| u.to_string())
+            .unwrap_or_else(|| "N/A".to_string()),
+        document_date: today,
+    }
 }
 
-fn make_response(
+/// Generate a PDF and return it as an `application/pdf` HTTP response.
+async fn generate_document_pdf(
     court_id: &str,
     doc_type: &str,
-    format: &str,
     req: &PdfGenerateRequest,
     signed: bool,
-) -> PdfGenerateResponse {
-    let html = build_html(
+) -> Result<impl IntoResponse, AppError> {
+    let params = build_params(
         court_id,
         doc_type,
         &req.case_id,
@@ -137,333 +107,430 @@ fn make_response(
         req.judge_id.as_ref(),
     );
 
-    PdfGenerateResponse {
-        case_id: req.case_id.to_string(),
-        document_type: doc_type.to_string(),
-        format: format.to_string(),
-        html,
-        metadata: req.metadata.clone().unwrap_or(serde_json::json!({})),
-    }
+    let source = build_document_source(&params);
+    let pdf_bytes = compile_typst(&source).await?;
+
+    Ok((
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "application/pdf"),
+            (
+                header::CONTENT_DISPOSITION,
+                "inline; filename=\"document.pdf\"",
+            ),
+        ],
+        pdf_bytes,
+    ))
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/pdf/rule16b
 // ---------------------------------------------------------------------------
 
-/// Generate a Rule 16(b) Scheduling Order document.
+/// Generate a Rule 16(b) Scheduling Order PDF.
 #[utoipa::path(
     post,
     path = "/api/pdf/rule16b",
     params(("X-Court-District" = String, Header, description = "Court district ID")),
     request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
     tag = "pdf"
 )]
 pub async fn generate_rule16b(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
     Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Rule 16(b) Scheduling Order", "html", &body, false)))
-}
-
-/// Generate a Rule 16(b) Scheduling Order in a specified format.
-#[utoipa::path(
-    post,
-    path = "/api/pdf/rule16b/{format}",
-    params(
-        ("format" = String, Path, description = "Output format"),
-        ("X-Court-District" = String, Header, description = "Court district ID")
-    ),
-    request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
-    tag = "pdf"
-)]
-pub async fn generate_rule16b_fmt(
-    State(_pool): State<Pool<Postgres>>,
-    court: CourtId,
-    Path(format): Path<String>,
-    Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Rule 16(b) Scheduling Order", &format, &body, false)))
+) -> Result<impl IntoResponse, AppError> {
+    generate_document_pdf(&court.0, "Rule 16(b) Scheduling Order", &body, false).await
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/pdf/signed/rule16b
 // ---------------------------------------------------------------------------
 
-/// Generate a signed Rule 16(b) Scheduling Order.
+/// Generate a signed Rule 16(b) Scheduling Order PDF.
 #[utoipa::path(
     post,
     path = "/api/pdf/signed/rule16b",
     params(("X-Court-District" = String, Header, description = "Court district ID")),
     request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated signed document", body = PdfGenerateResponse)),
+    responses((status = 200, description = "Generated signed PDF", content_type = "application/pdf")),
     tag = "pdf"
 )]
 pub async fn generate_signed_rule16b(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
     Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Rule 16(b) Scheduling Order", "html", &body, true)))
-}
-
-/// Generate a signed Rule 16(b) Scheduling Order in a specified format.
-#[utoipa::path(
-    post,
-    path = "/api/pdf/signed/rule16b/{format}",
-    params(
-        ("format" = String, Path, description = "Output format"),
-        ("X-Court-District" = String, Header, description = "Court district ID")
-    ),
-    request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated signed document", body = PdfGenerateResponse)),
-    tag = "pdf"
-)]
-pub async fn generate_signed_rule16b_fmt(
-    State(_pool): State<Pool<Postgres>>,
-    court: CourtId,
-    Path(format): Path<String>,
-    Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Rule 16(b) Scheduling Order", &format, &body, true)))
+) -> Result<impl IntoResponse, AppError> {
+    generate_document_pdf(&court.0, "Rule 16(b) Scheduling Order", &body, true).await
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/pdf/court-order
 // ---------------------------------------------------------------------------
 
-/// Generate a Court Order document.
+/// Generate a Court Order PDF.
 #[utoipa::path(
     post,
     path = "/api/pdf/court-order",
     params(("X-Court-District" = String, Header, description = "Court district ID")),
     request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
     tag = "pdf"
 )]
 pub async fn generate_court_order(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
     Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Court Order", "html", &body, true)))
-}
-
-/// Generate a Court Order in a specified format.
-#[utoipa::path(
-    post,
-    path = "/api/pdf/court-order/{format}",
-    params(
-        ("format" = String, Path, description = "Output format"),
-        ("X-Court-District" = String, Header, description = "Court district ID")
-    ),
-    request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
-    tag = "pdf"
-)]
-pub async fn generate_court_order_fmt(
-    State(_pool): State<Pool<Postgres>>,
-    court: CourtId,
-    Path(format): Path<String>,
-    Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Court Order", &format, &body, true)))
+) -> Result<impl IntoResponse, AppError> {
+    generate_document_pdf(&court.0, "Court Order", &body, true).await
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/pdf/minute-entry
 // ---------------------------------------------------------------------------
 
-/// Generate a Minute Entry document.
+/// Generate a Minute Entry PDF.
 #[utoipa::path(
     post,
     path = "/api/pdf/minute-entry",
     params(("X-Court-District" = String, Header, description = "Court district ID")),
     request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
     tag = "pdf"
 )]
 pub async fn generate_minute_entry(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
     Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Minute Entry", "html", &body, false)))
-}
-
-/// Generate a Minute Entry in a specified format.
-#[utoipa::path(
-    post,
-    path = "/api/pdf/minute-entry/{format}",
-    params(
-        ("format" = String, Path, description = "Output format"),
-        ("X-Court-District" = String, Header, description = "Court district ID")
-    ),
-    request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
-    tag = "pdf"
-)]
-pub async fn generate_minute_entry_fmt(
-    State(_pool): State<Pool<Postgres>>,
-    court: CourtId,
-    Path(format): Path<String>,
-    Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Minute Entry", &format, &body, false)))
+) -> Result<impl IntoResponse, AppError> {
+    generate_document_pdf(&court.0, "Minute Entry", &body, false).await
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/pdf/waiver-indictment
 // ---------------------------------------------------------------------------
 
-/// Generate a Waiver of Indictment document.
+/// Generate a Waiver of Indictment PDF.
 #[utoipa::path(
     post,
     path = "/api/pdf/waiver-indictment",
     params(("X-Court-District" = String, Header, description = "Court district ID")),
     request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
     tag = "pdf"
 )]
 pub async fn generate_waiver(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
     Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Waiver of Indictment", "html", &body, false)))
-}
-
-/// Generate a Waiver of Indictment in a specified format.
-#[utoipa::path(
-    post,
-    path = "/api/pdf/waiver-indictment/{format}",
-    params(
-        ("format" = String, Path, description = "Output format"),
-        ("X-Court-District" = String, Header, description = "Court district ID")
-    ),
-    request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
-    tag = "pdf"
-)]
-pub async fn generate_waiver_fmt(
-    State(_pool): State<Pool<Postgres>>,
-    court: CourtId,
-    Path(format): Path<String>,
-    Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Waiver of Indictment", &format, &body, false)))
+) -> Result<impl IntoResponse, AppError> {
+    generate_document_pdf(&court.0, "Waiver of Indictment", &body, false).await
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/pdf/conditions-release
 // ---------------------------------------------------------------------------
 
-/// Generate a Conditions of Release document.
+/// Generate a Conditions of Release PDF.
 #[utoipa::path(
     post,
     path = "/api/pdf/conditions-release",
     params(("X-Court-District" = String, Header, description = "Court district ID")),
     request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
     tag = "pdf"
 )]
 pub async fn generate_conditions(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
     Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Conditions of Release", "html", &body, true)))
-}
-
-/// Generate a Conditions of Release document in a specified format.
-#[utoipa::path(
-    post,
-    path = "/api/pdf/conditions-release/{format}",
-    params(
-        ("format" = String, Path, description = "Output format"),
-        ("X-Court-District" = String, Header, description = "Court district ID")
-    ),
-    request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
-    tag = "pdf"
-)]
-pub async fn generate_conditions_fmt(
-    State(_pool): State<Pool<Postgres>>,
-    court: CourtId,
-    Path(format): Path<String>,
-    Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Conditions of Release", &format, &body, true)))
+) -> Result<impl IntoResponse, AppError> {
+    generate_document_pdf(&court.0, "Conditions of Release", &body, true).await
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/pdf/criminal-judgment
 // ---------------------------------------------------------------------------
 
-/// Generate a Criminal Judgment document.
+/// Generate a Criminal Judgment PDF.
 #[utoipa::path(
     post,
     path = "/api/pdf/criminal-judgment",
     params(("X-Court-District" = String, Header, description = "Court district ID")),
     request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
     tag = "pdf"
 )]
 pub async fn generate_judgment(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
     Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Criminal Judgment", "html", &body, true)))
+) -> Result<impl IntoResponse, AppError> {
+    generate_document_pdf(&court.0, "Criminal Judgment", &body, true).await
 }
 
-/// Generate a Criminal Judgment document in a specified format.
+// ---------------------------------------------------------------------------
+// Civil case request types
+// ---------------------------------------------------------------------------
+
+/// Request body for JS-44 Cover Sheet generation.
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+pub struct Js44CoverSheetRequest {
+    pub case_id: Uuid,
+    pub plaintiff_name: String,
+    pub defendant_name: String,
+    #[serde(default)]
+    pub county: Option<String>,
+    #[serde(default)]
+    pub attorney_info: Option<String>,
+    pub jurisdiction_basis: String,
+    pub nature_of_suit: String,
+    #[serde(default)]
+    pub nos_description: Option<String>,
+    #[serde(default)]
+    pub cause_of_action: Option<String>,
+    #[serde(default)]
+    pub class_action: Option<bool>,
+    #[serde(default)]
+    pub jury_demand: Option<String>,
+    #[serde(default)]
+    pub amount_in_controversy: Option<f64>,
+}
+
+/// Request body for Civil Summons generation.
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+pub struct CivilSummonsRequest {
+    pub case_id: Uuid,
+    pub plaintiff_name: String,
+    pub defendant_name: String,
+    #[serde(default)]
+    pub attorney_info: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/pdf/js44-cover-sheet
+// ---------------------------------------------------------------------------
+
+/// Generate a JS-44 Civil Cover Sheet PDF.
 #[utoipa::path(
     post,
-    path = "/api/pdf/criminal-judgment/{format}",
-    params(
-        ("format" = String, Path, description = "Output format"),
-        ("X-Court-District" = String, Header, description = "Court district ID")
-    ),
-    request_body = PdfGenerateRequest,
-    responses((status = 200, description = "Generated document", body = PdfGenerateResponse)),
+    path = "/api/pdf/js44-cover-sheet",
+    params(("X-Court-District" = String, Header, description = "Court district ID")),
+    request_body = Js44CoverSheetRequest,
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
     tag = "pdf"
 )]
-pub async fn generate_judgment_fmt(
+pub async fn generate_js44_cover_sheet(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
-    Path(format): Path<String>,
+    Json(body): Json<Js44CoverSheetRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    use crate::typst::{build_civil_cover_sheet_source, CivilCoverSheetParams};
+
+    let today = chrono::Utc::now().format("%B %d, %Y").to_string();
+    let params = CivilCoverSheetParams {
+        court_name: court.0.clone(),
+        case_number: body.case_id.to_string(),
+        plaintiff_name: body.plaintiff_name,
+        defendant_name: body.defendant_name,
+        county: body.county.unwrap_or_default(),
+        attorney_info: body.attorney_info.unwrap_or_default(),
+        jurisdiction_basis: body.jurisdiction_basis,
+        nature_of_suit: body.nature_of_suit,
+        nos_description: body.nos_description.unwrap_or_default(),
+        cause_of_action: body.cause_of_action.unwrap_or_default(),
+        class_action: body.class_action.unwrap_or(false),
+        jury_demand: body.jury_demand.unwrap_or_else(|| "none".to_string()),
+        amount_in_controversy: body
+            .amount_in_controversy
+            .map(|a| format!("{:.2}", a))
+            .unwrap_or_default(),
+        document_date: today,
+    };
+
+    let source = build_civil_cover_sheet_source(&params);
+    let pdf_bytes = compile_typst(&source).await?;
+
+    Ok((
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "application/pdf"),
+            (
+                header::CONTENT_DISPOSITION,
+                "inline; filename=\"js44-cover-sheet.pdf\"",
+            ),
+        ],
+        pdf_bytes,
+    ))
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/pdf/civil-summons
+// ---------------------------------------------------------------------------
+
+/// Generate a Civil Summons PDF.
+#[utoipa::path(
+    post,
+    path = "/api/pdf/civil-summons",
+    params(("X-Court-District" = String, Header, description = "Court district ID")),
+    request_body = CivilSummonsRequest,
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
+    tag = "pdf"
+)]
+pub async fn generate_civil_summons(
+    State(_pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Json(body): Json<CivilSummonsRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    use crate::typst::{build_civil_summons_source, CivilSummonsParams};
+
+    let today = chrono::Utc::now().format("%B %d, %Y").to_string();
+    let params = CivilSummonsParams {
+        court_name: court.0.clone(),
+        case_number: body.case_id.to_string(),
+        plaintiff_name: body.plaintiff_name,
+        defendant_name: body.defendant_name,
+        attorney_info: body.attorney_info.unwrap_or_default(),
+        document_date: today,
+    };
+
+    let source = build_civil_summons_source(&params);
+    let pdf_bytes = compile_typst(&source).await?;
+
+    Ok((
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "application/pdf"),
+            (
+                header::CONTENT_DISPOSITION,
+                "inline; filename=\"civil-summons.pdf\"",
+            ),
+        ],
+        pdf_bytes,
+    ))
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/pdf/civil-scheduling-order
+// ---------------------------------------------------------------------------
+
+/// Generate a Civil Scheduling Order (FRCP Rule 16(b)) PDF.
+#[utoipa::path(
+    post,
+    path = "/api/pdf/civil-scheduling-order",
+    params(("X-Court-District" = String, Header, description = "Court district ID")),
+    request_body = PdfGenerateRequest,
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
+    tag = "pdf"
+)]
+pub async fn generate_civil_scheduling_order(
+    State(_pool): State<Pool<Postgres>>,
+    court: CourtId,
     Json(body): Json<PdfGenerateRequest>,
-) -> Result<Json<PdfGenerateResponse>, AppError> {
-    Ok(Json(make_response(&court.0, "Criminal Judgment", &format, &body, true)))
+) -> Result<impl IntoResponse, AppError> {
+    use crate::typst::build_civil_scheduling_order_source;
+
+    let params = build_params(
+        &court.0,
+        "Scheduling Order (FRCP 16(b))",
+        &body.case_id,
+        body.title.as_deref(),
+        body.body_text.as_deref(),
+        true,
+        body.judge_id.as_ref(),
+    );
+
+    let source = build_civil_scheduling_order_source(&params);
+    let pdf_bytes = compile_typst(&source).await?;
+
+    Ok((
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "application/pdf"),
+            (
+                header::CONTENT_DISPOSITION,
+                "inline; filename=\"civil-scheduling-order.pdf\"",
+            ),
+        ],
+        pdf_bytes,
+    ))
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/pdf/civil-judgment
+// ---------------------------------------------------------------------------
+
+/// Generate a Civil Judgment (FRCP Rule 58) PDF.
+#[utoipa::path(
+    post,
+    path = "/api/pdf/civil-judgment",
+    params(("X-Court-District" = String, Header, description = "Court district ID")),
+    request_body = PdfGenerateRequest,
+    responses((status = 200, description = "Generated PDF", content_type = "application/pdf")),
+    tag = "pdf"
+)]
+pub async fn generate_civil_judgment(
+    State(_pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Json(body): Json<PdfGenerateRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    use crate::typst::build_civil_judgment_source;
+
+    let params = build_params(
+        &court.0,
+        "Judgment in a Civil Case",
+        &body.case_id,
+        body.title.as_deref(),
+        body.body_text.as_deref(),
+        true,
+        body.judge_id.as_ref(),
+    );
+
+    let source = build_civil_judgment_source(&params);
+    let pdf_bytes = compile_typst(&source).await?;
+
+    Ok((
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "application/pdf"),
+            (
+                header::CONTENT_DISPOSITION,
+                "inline; filename=\"civil-judgment.pdf\"",
+            ),
+        ],
+        pdf_bytes,
+    ))
 }
 
 // ---------------------------------------------------------------------------
 // POST /api/pdf/batch
 // ---------------------------------------------------------------------------
 
-/// Batch-generate multiple documents at once.
+/// Batch-generate multiple document PDFs at once.
 #[utoipa::path(
     post,
     path = "/api/pdf/batch",
     params(("X-Court-District" = String, Header, description = "Court district ID")),
     request_body = BatchPdfRequest,
-    responses((status = 200, description = "Batch generation result", body = Vec<PdfGenerateResponse>)),
+    responses((status = 200, description = "Batch generation result", body = Vec<BatchPdfResponseItem>)),
     tag = "pdf"
 )]
 pub async fn batch_generate(
     State(_pool): State<Pool<Postgres>>,
     court: CourtId,
     Json(body): Json<BatchPdfRequest>,
-) -> Result<Json<Vec<PdfGenerateResponse>>, AppError> {
+) -> Result<Json<Vec<BatchPdfResponseItem>>, AppError> {
     let mut results = Vec::with_capacity(body.documents.len());
 
     for item in &body.documents {
         let signed = matches!(
             item.document_type.as_str(),
-            "court-order" | "conditions-release" | "criminal-judgment"
+            "court-order"
+                | "conditions-release"
+                | "criminal-judgment"
+                | "civil-scheduling-order"
+                | "civil-judgment"
         );
         let doc_type_label = match item.document_type.as_str() {
             "rule16b" => "Rule 16(b) Scheduling Order",
@@ -472,10 +539,14 @@ pub async fn batch_generate(
             "waiver-indictment" => "Waiver of Indictment",
             "conditions-release" => "Conditions of Release",
             "criminal-judgment" => "Criminal Judgment",
+            "js44-cover-sheet" => "JS-44 Cover Sheet",
+            "civil-summons" => "Civil Summons",
+            "civil-scheduling-order" => "Scheduling Order (FRCP 16(b))",
+            "civil-judgment" => "Judgment in a Civil Case",
             other => other,
         };
 
-        let html = build_html(
+        let params = build_params(
             &court.0,
             doc_type_label,
             &item.case_id,
@@ -485,12 +556,22 @@ pub async fn batch_generate(
             item.judge_id.as_ref(),
         );
 
-        results.push(PdfGenerateResponse {
+        let source = build_document_source(&params);
+        let pdf_bytes = compile_typst(&source).await?;
+        let pdf_base64 =
+            base64::engine::general_purpose::STANDARD.encode(&pdf_bytes);
+
+        let filename = format!(
+            "{}_{}.pdf",
+            item.document_type,
+            item.case_id.to_string().split('-').next().unwrap_or("doc")
+        );
+
+        results.push(BatchPdfResponseItem {
             case_id: item.case_id.to_string(),
             document_type: item.document_type.clone(),
-            format: "html".to_string(),
-            html,
-            metadata: item.metadata.clone().unwrap_or(serde_json::json!({})),
+            filename,
+            pdf_base64,
         });
     }
 
