@@ -25,8 +25,8 @@ use crate::auth::{use_auth, use_sidebar_visibility};
 use crate::{CourtContext, ProfileState};
 use dioxus::prelude::*;
 use dioxus_free_icons::icons::ld_icons::{
-    LdBell, LdBookOpen, LdBriefcase, LdCalendar, LdClock, LdLayoutDashboard, LdScale, LdSearch,
-    LdSettings, LdShield, LdUserCheck, LdUsers,
+    LdBell, LdBookOpen, LdBriefcase, LdCalendar, LdClock, LdLayoutDashboard, LdSearch,
+    LdSettings, LdShield, LdUsers,
 };
 use dioxus_free_icons::Icon;
 use shared_types::{FeatureFlags, UserTier};
@@ -243,10 +243,10 @@ fn AppLayout() -> Element {
                 SidebarSeparator {}
 
                 SidebarContent {
-                    // ── 1. Work ──
+                    // ── 1. My Work ──
                     if vis.work {
                         SidebarGroup {
-                            SidebarGroupLabel { "Work" }
+                            SidebarGroupLabel { "My Work" }
                             SidebarGroupContent {
                                 SidebarMenu {
                                     SidebarMenuItem {
@@ -257,6 +257,18 @@ fn AppLayout() -> Element {
                                             }
                                         }
                                     }
+                                }
+                            }
+                        }
+                        SidebarSeparator {}
+                    }
+
+                    // ── 2. Court ──
+                    if vis.court {
+                        SidebarGroup {
+                            SidebarGroupLabel { "Court" }
+                            SidebarGroupContent {
+                                SidebarMenu {
                                     SidebarMenuItem {
                                         Link { to: Route::CaseList {},
                                             SidebarMenuButton { active: matches!(route, Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. }),
@@ -269,7 +281,7 @@ fn AppLayout() -> Element {
                                         Link { to: Route::CalendarList {},
                                             SidebarMenuButton { active: matches!(route, Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. }),
                                                 Icon::<LdCalendar> { icon: LdCalendar, width: 18, height: 18 }
-                                                "Calendar"
+                                                "Schedule"
                                             }
                                         }
                                     }
@@ -287,55 +299,7 @@ fn AppLayout() -> Element {
                         SidebarSeparator {}
                     }
 
-                    // ── 2. People ──
-                    if vis.people {
-                        SidebarGroup {
-                            SidebarGroupLabel { "People" }
-                            SidebarGroupContent {
-                                SidebarMenu {
-                                    SidebarMenuItem {
-                                        Link { to: Route::AttorneyList {},
-                                            SidebarMenuButton { active: matches!(route, Route::AttorneyList {} | Route::AttorneyCreate {} | Route::AttorneyDetail { .. }),
-                                                Icon::<LdUserCheck> { icon: LdUserCheck, width: 18, height: 18 }
-                                                "Attorneys"
-                                            }
-                                        }
-                                    }
-                                    SidebarMenuItem {
-                                        Link { to: Route::JudgeList {},
-                                            SidebarMenuButton { active: matches!(route, Route::JudgeList {} | Route::JudgeDetail { .. }),
-                                                Icon::<LdScale> { icon: LdScale, width: 18, height: 18 }
-                                                "Judges"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        SidebarSeparator {}
-                    }
-
-                    // ── 3. Legal ──
-                    if vis.legal {
-                        SidebarGroup {
-                            SidebarGroupLabel { "Legal" }
-                            SidebarGroupContent {
-                                SidebarMenu {
-                                    SidebarMenuItem {
-                                        Link { to: Route::OpinionList {},
-                                            SidebarMenuButton { active: matches!(route, Route::OpinionList {} | Route::OpinionDetail { .. }),
-                                                Icon::<LdBookOpen> { icon: LdBookOpen, width: 18, height: 18 }
-                                                "Opinions"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        SidebarSeparator {}
-                    }
-
-                    // ── 4. Admin ──
+                    // ── 3. Admin ──
                     if vis.admin {
                         SidebarGroup {
                             SidebarGroupLabel { "Admin" }

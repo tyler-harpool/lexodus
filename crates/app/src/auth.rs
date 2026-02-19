@@ -80,9 +80,8 @@ pub fn use_user_role() -> UserRole {
 /// Determine which sidebar groups are visible for the current user's role.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SidebarVisibility {
-    pub work: bool,    // Queue, Cases, Calendar, Deadlines
-    pub people: bool,  // Attorneys, Judges
-    pub legal: bool,   // Opinions
+    pub work: bool,    // Queue
+    pub court: bool,   // Cases, Schedule, Deadlines
     pub admin: bool,   // Compliance, Rules, Users, Settings
 }
 
@@ -91,32 +90,27 @@ pub fn use_sidebar_visibility() -> SidebarVisibility {
     match role {
         UserRole::Admin => SidebarVisibility {
             work: true,
-            people: true,
-            legal: true,
+            court: true,
             admin: true,
         },
         UserRole::Clerk => SidebarVisibility {
             work: true,
-            people: true,
-            legal: true,
+            court: true,
             admin: true,
         },
         UserRole::Judge => SidebarVisibility {
             work: true,
-            people: false,
-            legal: true,
+            court: true,
             admin: false,
         },
         UserRole::Attorney => SidebarVisibility {
             work: true,
-            people: false,
-            legal: true,
+            court: true,
             admin: false,
         },
         UserRole::Public => SidebarVisibility {
-            work: true,
-            people: false,
-            legal: false,
+            work: false,
+            court: true,
             admin: false,
         },
     }
