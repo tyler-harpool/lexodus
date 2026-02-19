@@ -21,7 +21,8 @@ struct SearchResult {
 
 /// Human-readable group labels keyed by entity_type values from the search index.
 const ENTITY_TYPE_LABELS: &[(&str, &str)] = &[
-    ("case", "Cases"),
+    ("case", "Criminal Cases"),
+    ("civil_case", "Civil Cases"),
     ("attorney", "Attorneys"),
     ("judge", "Judges"),
     ("docket", "Docket Entries"),
@@ -35,6 +36,11 @@ const ENTITY_TYPE_LABELS: &[(&str, &str)] = &[
 fn route_for_result(result: &SearchResult) -> Route {
     match result.entity_type.as_str() {
         "case" => Route::CaseDetail {
+            id: result.id.clone(),
+        },
+        // Civil cases route to CaseDetail for now; a dedicated CivilCaseDetail
+        // route will be added when the civil case UI is built.
+        "civil_case" => Route::CaseDetail {
             id: result.id.clone(),
         },
         "attorney" => Route::AttorneyDetail {

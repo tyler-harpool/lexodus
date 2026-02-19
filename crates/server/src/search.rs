@@ -154,13 +154,23 @@ pub fn init_search() -> &'static SearchIndex {
     SEARCH_INDEX.get_or_init(SearchIndex::new)
 }
 
-/// Row type for lightweight case queries used during indexing.
+/// Row type for lightweight criminal case queries used during indexing.
 struct CaseRow {
     id: uuid::Uuid,
     court_id: String,
     case_number: String,
     title: String,
     crime_type: String,
+}
+
+/// Row type for lightweight civil case queries used during indexing.
+struct CivilCaseRow {
+    id: uuid::Uuid,
+    court_id: String,
+    case_number: String,
+    title: String,
+    nature_of_suit: String,
+    jurisdiction_basis: String,
 }
 
 /// Row type for lightweight attorney queries used during indexing.
@@ -254,6 +264,29 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
             .ok();
     }
 
+    // Index civil cases
+    let civil_cases = sqlx::query_as!(
+        CivilCaseRow,
+        "SELECT id, court_id, case_number, title, nature_of_suit, jurisdiction_basis FROM civil_cases"
+    )
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
+
+    for row in &civil_cases {
+        let display_title = format!("{} - {}", row.case_number, row.title);
+        let display_subtitle = format!("NOS {} | {}", row.nature_of_suit, row.jurisdiction_basis.replace('_', " "));
+        writer
+            .add_document(doc!(
+                f.id => row.id.to_string(),
+                f.entity_type => "civil_case",
+                f.title => display_title,
+                f.subtitle => display_subtitle,
+                f.court_id => row.court_id.as_str(),
+            ))
+            .ok();
+    }
+
     // Index attorneys
     let attorneys = sqlx::query_as!(
         AttorneyRow,
@@ -299,14 +332,23 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
             .ok();
     }
 
-    // Index docket entries (joined with case for case_number)
+    // Index docket entries (joined with case for case_number, both criminal and civil)
     let dockets = sqlx::query_as!(
         DocketRow,
         r#"
-        SELECT d.id, d.court_id, d.entry_number, d.entry_type, d.description,
-               c.case_number
+        SELECT d.id as "id!", d.court_id as "court_id!", d.entry_number as "entry_number!",
+               d.entry_type as "entry_type!", d.description as "description!",
+               c.case_number as "case_number!"
         FROM docket_entries d
         JOIN criminal_cases c ON c.id = d.case_id AND c.court_id = d.court_id
+        WHERE d.case_type = 'criminal'
+        UNION ALL
+        SELECT d.id as "id!", d.court_id as "court_id!", d.entry_number as "entry_number!",
+               d.entry_type as "entry_type!", d.description as "description!",
+               cv.case_number as "case_number!"
+        FROM docket_entries d
+        JOIN civil_cases cv ON cv.id = d.case_id AND cv.court_id = d.court_id
+        WHERE d.case_type = 'civil'
         "#
     )
     .fetch_all(pool)
@@ -328,14 +370,21 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
             .ok();
     }
 
-    // Index calendar events (joined with case for title)
+    // Index calendar events (joined with case for title, both criminal and civil)
     let events = sqlx::query_as!(
         CalendarRow,
         r#"
-        SELECT e.id, e.court_id, e.event_type, e.description,
-               c.title as case_title
+        SELECT e.id as "id!", e.court_id as "court_id!", e.event_type as "event_type!",
+               e.description as "description!", c.title as "case_title!"
         FROM calendar_events e
         JOIN criminal_cases c ON c.id = e.case_id AND c.court_id = e.court_id
+        WHERE e.case_type = 'criminal'
+        UNION ALL
+        SELECT e.id as "id!", e.court_id as "court_id!", e.event_type as "event_type!",
+               e.description as "description!", cv.title as "case_title!"
+        FROM calendar_events e
+        JOIN civil_cases cv ON cv.id = e.case_id AND cv.court_id = e.court_id
+        WHERE e.case_type = 'civil'
         "#
     )
     .fetch_all(pool)
@@ -357,14 +406,21 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
             .ok();
     }
 
-    // Index deadlines (joined with case for title)
+    // Index deadlines (joined with case for title, both criminal and civil)
     let deadlines = sqlx::query_as!(
         DeadlineRow,
         r#"
-        SELECT d.id, d.court_id, d.title, d.status,
-               c.title as case_title
+        SELECT d.id as "id!", d.court_id as "court_id!", d.title as "title!",
+               d.status as "status!", c.title as "case_title!"
         FROM deadlines d
         JOIN criminal_cases c ON c.id = d.case_id AND c.court_id = d.court_id
+        WHERE d.case_type = 'criminal'
+        UNION ALL
+        SELECT d.id as "id!", d.court_id as "court_id!", d.title as "title!",
+               d.status as "status!", cv.title as "case_title!"
+        FROM deadlines d
+        JOIN civil_cases cv ON cv.id = d.case_id AND cv.court_id = d.court_id
+        WHERE d.case_type = 'civil'
         "#
     )
     .fetch_all(pool)
@@ -384,14 +440,21 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
             .ok();
     }
 
-    // Index judicial orders (joined with case for title)
+    // Index judicial orders (joined with case for title, both criminal and civil)
     let orders = sqlx::query_as!(
         OrderRow,
         r#"
-        SELECT o.id, o.court_id, o.title, o.order_type,
-               c.title as case_title
+        SELECT o.id as "id!", o.court_id as "court_id!", o.title as "title!",
+               o.order_type as "order_type!", c.title as "case_title!"
         FROM judicial_orders o
         JOIN criminal_cases c ON c.id = o.case_id AND c.court_id = o.court_id
+        WHERE o.case_type = 'criminal'
+        UNION ALL
+        SELECT o.id as "id!", o.court_id as "court_id!", o.title as "title!",
+               o.order_type as "order_type!", cv.title as "case_title!"
+        FROM judicial_orders o
+        JOIN civil_cases cv ON cv.id = o.case_id AND cv.court_id = o.court_id
+        WHERE o.case_type = 'civil'
         "#
     )
     .fetch_all(pool)
