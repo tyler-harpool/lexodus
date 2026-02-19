@@ -41,6 +41,7 @@ pub struct QueueItem {
     pub source_type: String,
     pub source_id: Uuid,
     pub case_id: Option<Uuid>,
+    pub case_type: String,
     pub case_number: Option<String>,
     pub assigned_to: Option<i64>,
     pub submitted_by: Option<i64>,
@@ -70,6 +71,7 @@ pub struct QueueItemResponse {
     pub source_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub case_id: Option<String>,
+    pub case_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub case_number: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -98,6 +100,7 @@ impl From<QueueItem> for QueueItemResponse {
             source_type: q.source_type,
             source_id: q.source_id.to_string(),
             case_id: q.case_id.map(|u| u.to_string()),
+            case_type: q.case_type,
             case_number: q.case_number,
             assigned_to: q.assigned_to,
             submitted_by: q.submitted_by,

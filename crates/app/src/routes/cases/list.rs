@@ -62,6 +62,7 @@ pub fn CaseListPage() -> Element {
                                     case_number: c.case_number,
                                     title: c.title,
                                     description: c.description,
+                                    case_type: "civil".to_string(),
                                     crime_type: c.nature_of_suit,
                                     status: c.status,
                                     priority: c.priority,
@@ -75,6 +76,12 @@ pub fn CaseListPage() -> Element {
                                     opened_at: c.opened_at,
                                     updated_at: c.updated_at,
                                     closed_at: c.closed_at,
+                                    jurisdiction_basis: Some(c.jurisdiction_basis),
+                                    jury_demand: Some(c.jury_demand),
+                                    class_action: Some(c.class_action),
+                                    amount_in_controversy: c.amount_in_controversy,
+                                    consent_to_magistrate: Some(c.consent_to_magistrate),
+                                    pro_se: Some(c.pro_se),
                                 })
                                 .collect();
                             Some(CaseSearchResponse {

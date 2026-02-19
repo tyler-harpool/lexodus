@@ -2568,20 +2568,58 @@ pub async fn search_cases(
     Ok(serde_json::to_string(&response).unwrap_or_default())
 }
 
-/// Get a single case by ID.
+/// Get a single case by ID. Checks criminal_cases first, then civil_cases.
 #[server]
 pub async fn get_case(court_id: String, id: String) -> Result<String, ServerFnError> {
     use crate::db::get_db;
-    use crate::repo::case;
+    use crate::repo::{case, civil_case};
     use uuid::Uuid;
 
     let pool = get_db().await;
     let uuid = Uuid::parse_str(&id).map_err(|_| ServerFnError::new("Invalid UUID"))?;
-    let c = case::find_by_id(pool, &court_id, uuid).await
+
+    // Try criminal first
+    if let Some(c) = case::find_by_id(pool, &court_id, uuid)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+    {
+        return Ok(serde_json::to_string(&shared_types::CaseResponse::from(c)).unwrap_or_default());
+    }
+
+    // Fall back to civil
+    let c = civil_case::find_by_id(pool, &court_id, uuid)
+        .await
         .map_err(|e| ServerFnError::new(e.to_string()))?
         .ok_or_else(|| ServerFnError::new("Case not found"))?;
 
-    Ok(serde_json::to_string(&shared_types::CaseResponse::from(c)).unwrap_or_default())
+    let resp = shared_types::CaseResponse {
+        id: c.id.to_string(),
+        case_number: c.case_number,
+        title: c.title,
+        description: c.description,
+        case_type: "civil".to_string(),
+        crime_type: c.nature_of_suit,
+        status: c.status,
+        priority: c.priority,
+        district_code: c.district_code,
+        location: c.location,
+        opened_at: c.opened_at.to_rfc3339(),
+        updated_at: c.updated_at.to_rfc3339(),
+        closed_at: c.closed_at.map(|d| d.to_rfc3339()),
+        assigned_judge_id: c.assigned_judge_id.map(|u| u.to_string()),
+        is_sealed: c.is_sealed,
+        sealed_by: c.sealed_by,
+        sealed_date: c.sealed_date.map(|d| d.to_rfc3339()),
+        seal_reason: c.seal_reason,
+        jurisdiction_basis: Some(c.jurisdiction_basis),
+        jury_demand: Some(c.jury_demand),
+        class_action: Some(c.class_action),
+        amount_in_controversy: c.amount_in_controversy,
+        consent_to_magistrate: Some(c.consent_to_magistrate),
+        pro_se: Some(c.pro_se),
+    };
+
+    Ok(serde_json::to_string(&resp).unwrap_or_default())
 }
 
 /// Create a new criminal case.

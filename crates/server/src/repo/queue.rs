@@ -29,7 +29,7 @@ pub async fn create(
              metadata, current_step)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING id, court_id, queue_type, priority, status, title,
-                  description, source_type, source_id, case_id, case_number,
+                  description, source_type, source_id, case_id, case_type, case_number,
                   assigned_to, submitted_by, current_step,
                   metadata, created_at, updated_at, completed_at
         "#,
@@ -60,7 +60,7 @@ pub async fn find_by_id(
         QueueItem,
         r#"
         SELECT id, court_id, queue_type, priority, status, title,
-               description, source_type, source_id, case_id, case_number,
+               description, source_type, source_id, case_id, case_type, case_number,
                assigned_to, submitted_by, current_step,
                metadata, created_at, updated_at, completed_at
         FROM clerk_queue
@@ -111,7 +111,7 @@ pub async fn search(
         QueueItem,
         r#"
         SELECT id, court_id, queue_type, priority, status, title,
-               description, source_type, source_id, case_id, case_number,
+               description, source_type, source_id, case_id, case_type, case_number,
                assigned_to, submitted_by, current_step,
                metadata, created_at, updated_at, completed_at
         FROM clerk_queue
@@ -217,7 +217,7 @@ pub async fn claim(
             updated_at = NOW()
         WHERE id = $1 AND court_id = $2 AND assigned_to IS NULL AND status = 'pending'
         RETURNING id, court_id, queue_type, priority, status, title,
-                  description, source_type, source_id, case_id, case_number,
+                  description, source_type, source_id, case_id, case_type, case_number,
                   assigned_to, submitted_by, current_step,
                   metadata, created_at, updated_at, completed_at
         "#,
@@ -245,7 +245,7 @@ pub async fn release(
             updated_at = NOW()
         WHERE id = $1 AND court_id = $2 AND assigned_to = $3
         RETURNING id, court_id, queue_type, priority, status, title,
-                  description, source_type, source_id, case_id, case_number,
+                  description, source_type, source_id, case_id, case_type, case_number,
                   assigned_to, submitted_by, current_step,
                   metadata, created_at, updated_at, completed_at
         "#,
@@ -276,7 +276,7 @@ pub async fn advance(
             updated_at = NOW()
         WHERE id = $1 AND court_id = $2
         RETURNING id, court_id, queue_type, priority, status, title,
-                  description, source_type, source_id, case_id, case_number,
+                  description, source_type, source_id, case_id, case_type, case_number,
                   assigned_to, submitted_by, current_step,
                   metadata, created_at, updated_at, completed_at
         "#,
@@ -308,7 +308,7 @@ pub async fn reject(
             updated_at = NOW()
         WHERE id = $1 AND court_id = $2
         RETURNING id, court_id, queue_type, priority, status, title,
-                  description, source_type, source_id, case_id, case_number,
+                  description, source_type, source_id, case_id, case_type, case_number,
                   assigned_to, submitted_by, current_step,
                   metadata, created_at, updated_at, completed_at
         "#,
