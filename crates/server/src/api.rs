@@ -4890,17 +4890,27 @@ pub async fn sign_order_action(
     let order = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        UPDATE judicial_orders SET
-            status = 'Signed',
-            signer_name = $3,
-            signed_at = NOW(),
-            signature_hash = md5($3 || id::text),
-            updated_at = NOW()
-        WHERE id = $1 AND court_id = $2
-        RETURNING id, court_id, case_id, judge_id, order_type, title, content,
-                  status, is_sealed, signer_name, signed_at, signature_hash,
-                  issued_at, effective_date, expiration_date, related_motions,
-                  created_at, updated_at
+        WITH upd AS (
+            UPDATE judicial_orders SET
+                status = 'Signed',
+                signer_name = $3,
+                signed_at = NOW(),
+                signature_hash = md5($3 || id::text),
+                updated_at = NOW()
+            WHERE id = $1 AND court_id = $2
+            RETURNING id, court_id, case_id, judge_id, order_type, title, content,
+                      status, is_sealed, signer_name, signed_at, signature_hash,
+                      issued_at, effective_date, expiration_date, related_motions,
+                      created_at, updated_at
+        )
+        SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
+               j.name as judge_name,
+               upd.order_type, upd.title, upd.content,
+               upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
+               upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
+               upd.created_at, upd.updated_at
+        FROM upd
+        LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
         "#,
         uuid,
         &court_id,
@@ -4929,15 +4939,25 @@ pub async fn issue_order_action(
     let order = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        UPDATE judicial_orders SET
-            status = 'Filed',
-            issued_at = NOW(),
-            updated_at = NOW()
-        WHERE id = $1 AND court_id = $2
-        RETURNING id, court_id, case_id, judge_id, order_type, title, content,
-                  status, is_sealed, signer_name, signed_at, signature_hash,
-                  issued_at, effective_date, expiration_date, related_motions,
-                  created_at, updated_at
+        WITH upd AS (
+            UPDATE judicial_orders SET
+                status = 'Filed',
+                issued_at = NOW(),
+                updated_at = NOW()
+            WHERE id = $1 AND court_id = $2
+            RETURNING id, court_id, case_id, judge_id, order_type, title, content,
+                      status, is_sealed, signer_name, signed_at, signature_hash,
+                      issued_at, effective_date, expiration_date, related_motions,
+                      created_at, updated_at
+        )
+        SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
+               j.name as judge_name,
+               upd.order_type, upd.title, upd.content,
+               upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
+               upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
+               upd.created_at, upd.updated_at
+        FROM upd
+        LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
         "#,
         uuid,
         &court_id,
@@ -7291,12 +7311,15 @@ pub async fn generate_order_pdf(
     let order = sqlx::query_as!(
         shared_types::JudicialOrder,
         r#"
-        SELECT id, court_id, case_id, judge_id, order_type, title, content,
-               status, is_sealed, signer_name, signed_at, signature_hash,
-               issued_at, effective_date, expiration_date, related_motions,
-               created_at, updated_at
-        FROM judicial_orders
-        WHERE id = $1 AND court_id = $2
+        SELECT o.id, o.court_id, o.case_id, o.judge_id,
+               j.name as judge_name,
+               o.order_type, o.title, o.content,
+               o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
+               o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
+               o.created_at, o.updated_at
+        FROM judicial_orders o
+        LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        WHERE o.id = $1 AND o.court_id = $2
         "#,
         uuid,
         &court_id,

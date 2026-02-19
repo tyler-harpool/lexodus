@@ -24,8 +24,9 @@ pub async fn test_app() -> (Router, Pool<Postgres>, tokio::sync::MutexGuard<'sta
 
     let _ = dotenvy::dotenv();
 
-    let database_url =
-        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+    let database_url = std::env::var("TEST_DATABASE_URL")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("TEST_DATABASE_URL or DATABASE_URL must be set for tests");
 
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(5)
@@ -241,8 +242,9 @@ pub async fn test_app_rate_limited(
     let guard = TEST_MUTEX.lock().await;
     let _ = dotenvy::dotenv();
 
-    let database_url =
-        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+    let database_url = std::env::var("TEST_DATABASE_URL")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .expect("TEST_DATABASE_URL or DATABASE_URL must be set for tests");
 
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(5)

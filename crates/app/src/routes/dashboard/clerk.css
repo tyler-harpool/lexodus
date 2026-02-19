@@ -125,8 +125,16 @@
     color: var(--color-on-surface-muted);
 }
 
+.clerk-queue-item-dot {
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+    line-height: 1;
+}
+
 .clerk-queue-item-actions {
     flex-shrink: 0;
+    align-self: flex-start;
+    margin-left: var(--space-md);
 }
 
 @media (max-width: 640px) {

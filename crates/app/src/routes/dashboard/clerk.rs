@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use shared_types::QueueItemResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardDescription, CardHeader,
-    CardTitle, PageHeader, PageTitle, Separator, Skeleton,
+    CardTitle, PageHeader, PageTitle, Skeleton,
 };
 
 use crate::routes::Route;
@@ -221,11 +221,14 @@ fn StatCard(label: String, value: i64, variant: BadgeVariant) -> Element {
 #[component]
 fn QueueItemRow(item: QueueItemResponse) -> Element {
     let nav = use_navigator();
+    let ctx = use_context::<CourtContext>();
     let (badge_variant, badge_label) = priority_badge(item.priority);
     let step = step_label(&item.current_step);
 
     let case_id = item.case_id.clone();
-    let _queue_id = item.id.clone();
+    let case_id_continue = item.case_id.clone();
+    let queue_id = item.id.clone();
+    let case_type = item.case_type.clone();
 
     rsx! {
         div { class: "clerk-queue-item",
@@ -234,14 +237,17 @@ fn QueueItemRow(item: QueueItemResponse) -> Element {
                     span { class: "clerk-queue-item-title", "{item.title}" }
                     Badge { variant: badge_variant, "{badge_label}" }
                     Badge { variant: BadgeVariant::Secondary, "{item.queue_type}" }
+                    if case_type == "civil" {
+                        Badge { variant: BadgeVariant::Outline, "Civil" }
+                    }
                 }
                 div { class: "clerk-queue-item-meta",
                     span { class: "clerk-queue-item-step", "Step: {step}" }
                     if let Some(ref cn) = item.case_number {
-                        Separator {}
+                        span { class: "clerk-queue-item-dot", "\u{00B7}" }
                         span { class: "clerk-queue-item-case", "Case: {cn}" }
                     }
-                    Separator {}
+                    span { class: "clerk-queue-item-dot", "\u{00B7}" }
                     span { class: "clerk-queue-item-status", "{item.status}" }
                 }
             }
@@ -250,9 +256,22 @@ fn QueueItemRow(item: QueueItemResponse) -> Element {
                     Button {
                         variant: ButtonVariant::Primary,
                         onclick: move |_| {
-                            if let Some(ref cid) = case_id {
-                                nav.push(Route::CaseDetail { id: cid.clone() });
-                            }
+                            let court = ctx.court_id.read().clone();
+                            let qid = queue_id.clone();
+                            let cid = case_id.clone();
+                            spawn(async move {
+                                // Claim the queue item via API, then navigate to the case
+                                match server::api::claim_queue_item_fn(court, qid, 1).await {
+                                    Ok(_) => {
+                                        if let Some(cid) = cid {
+                                            nav.push(Route::CaseDetail { id: cid });
+                                        }
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Failed to claim queue item: {e}");
+                                    }
+                                }
+                            });
                         },
                         "Claim"
                     }
@@ -260,7 +279,7 @@ fn QueueItemRow(item: QueueItemResponse) -> Element {
                     Button {
                         variant: ButtonVariant::Secondary,
                         onclick: move |_| {
-                            if let Some(ref cid) = case_id {
+                            if let Some(ref cid) = case_id_continue {
                                 nav.push(Route::CaseDetail { id: cid.clone() });
                             }
                         },

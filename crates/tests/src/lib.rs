@@ -198,3 +198,6 @@ mod queue_create_tests;
 
 #[cfg(test)]
 mod queue_workflow_tests;
+
+#[cfg(test)]
+mod judge_name_tests;

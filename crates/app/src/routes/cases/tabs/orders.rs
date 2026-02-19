@@ -20,18 +20,24 @@ pub fn OrdersTab(case_id: String) -> Element {
     let mut form_title = use_signal(String::new);
     let mut form_content = use_signal(String::new);
     let mut form_judge_id = use_signal(String::new);
+    let mut form_judge_name = use_signal(String::new);
     let mut form_template_id = use_signal(String::new);
 
-    // Fetch the case to get the assigned judge
+    // Fetch the case assignment to get the assigned judge ID and name
     let case_id_for_judge = case_id.clone();
     let _case_judge = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let cid = case_id_for_judge.clone();
         async move {
-            if let Ok(json) = server::api::get_case(court, cid).await {
-                if let Ok(case) = serde_json::from_str::<serde_json::Value>(&json) {
-                    if let Some(jid) = case["assigned_judge_id"].as_str() {
-                        form_judge_id.set(jid.to_string());
+            if let Ok(json) = server::api::list_case_assignments(court, cid).await {
+                if let Ok(assignments) = serde_json::from_str::<Vec<serde_json::Value>>(&json) {
+                    if let Some(a) = assignments.first() {
+                        if let Some(jid) = a["judge_id"].as_str() {
+                            form_judge_id.set(jid.to_string());
+                        }
+                        if let Some(name) = a["judge_name"].as_str() {
+                            form_judge_name.set(name.to_string());
+                        }
                     }
                 }
             }
@@ -118,6 +124,7 @@ pub fn OrdersTab(case_id: String) -> Element {
                 DataTable {
                     DataTableHeader {
                         DataTableColumn { "Title" }
+                        DataTableColumn { "Judge" }
                         DataTableColumn { "Order Type" }
                         DataTableColumn { "Date Issued" }
                         DataTableColumn { "Status" }
@@ -126,6 +133,9 @@ pub fn OrdersTab(case_id: String) -> Element {
                         for order in orders.iter() {
                             DataTableRow {
                                 DataTableCell { {order["title"].as_str().unwrap_or("—")} }
+                                DataTableCell {
+                                    {order["judge_name"].as_str().unwrap_or("—")}
+                                }
                                 DataTableCell {
                                     Badge { variant: BadgeVariant::Secondary,
                                         {order["order_type"].as_str().unwrap_or("—").replace('_', " ")}
@@ -184,11 +194,17 @@ pub fn OrdersTab(case_id: String) -> Element {
                             option { value: "standing_order", "Standing Order" }
                         }
 
-                        // Judge (auto-populated from case)
+                        // Judge (auto-populated from case assignment)
                         if !form_judge_id.read().is_empty() {
                             div { class: "form-field",
                                 label { class: "form-label", "Assigned Judge" }
-                                p { class: "form-static-value", "{form_judge_id}" }
+                                p { class: "form-static-value",
+                                    if form_judge_name.read().is_empty() {
+                                        "{form_judge_id}"
+                                    } else {
+                                        "{form_judge_name}"
+                                    }
+                                }
                             }
                         }
 

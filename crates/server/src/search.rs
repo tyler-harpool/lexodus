@@ -17,6 +17,10 @@ pub struct SearchResult {
     pub entity_type: String,
     pub title: String,
     pub subtitle: String,
+    /// For child entities (docket, calendar, deadline, order), the parent case ID.
+    /// Top-level entities (case, attorney, judge, opinion) leave this empty.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
 }
 
 /// Schema field handles for the Tantivy index.
@@ -26,6 +30,7 @@ struct SearchFields {
     title: Field,
     subtitle: Field,
     court_id: Field,
+    parent_id: Field,
 }
 
 /// In-memory Tantivy search index for global court entity search.
@@ -44,6 +49,7 @@ impl SearchIndex {
         let title = schema_builder.add_text_field("title", TEXT | STORED);
         let subtitle = schema_builder.add_text_field("subtitle", TEXT | STORED);
         let court_id = schema_builder.add_text_field("court_id", STORED);
+        let parent_id = schema_builder.add_text_field("parent_id", STORED);
         let schema = schema_builder.build();
 
         let index = Index::create_in_ram(schema);
@@ -62,6 +68,7 @@ impl SearchIndex {
                 title,
                 subtitle,
                 court_id,
+                parent_id,
             },
         }
     }
@@ -119,11 +126,18 @@ impl SearchIndex {
                 .unwrap_or("")
                 .to_string();
 
+            let parent_id = doc
+                .get_first(self.fields.parent_id)
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string());
+
             results.push(SearchResult {
                 id,
                 entity_type,
                 title,
                 subtitle,
+                parent_id,
             });
 
             if results.len() >= limit {
@@ -195,6 +209,7 @@ struct JudgeRow {
 struct DocketRow {
     id: uuid::Uuid,
     court_id: String,
+    case_id: uuid::Uuid,
     entry_number: i32,
     entry_type: String,
     description: String,
@@ -205,6 +220,7 @@ struct DocketRow {
 struct CalendarRow {
     id: uuid::Uuid,
     court_id: String,
+    case_id: uuid::Uuid,
     event_type: String,
     description: Option<String>,
     case_title: String,
@@ -214,6 +230,7 @@ struct CalendarRow {
 struct DeadlineRow {
     id: uuid::Uuid,
     court_id: String,
+    case_id: uuid::Uuid,
     title: String,
     status: String,
     case_title: String,
@@ -223,6 +240,7 @@ struct DeadlineRow {
 struct OrderRow {
     id: uuid::Uuid,
     court_id: String,
+    case_id: uuid::Uuid,
     title: String,
     order_type: String,
     case_title: String,
@@ -336,14 +354,16 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
     let dockets = sqlx::query_as!(
         DocketRow,
         r#"
-        SELECT d.id as "id!", d.court_id as "court_id!", d.entry_number as "entry_number!",
+        SELECT d.id as "id!", d.court_id as "court_id!", d.case_id as "case_id!",
+               d.entry_number as "entry_number!",
                d.entry_type as "entry_type!", d.description as "description!",
                c.case_number as "case_number!"
         FROM docket_entries d
         JOIN criminal_cases c ON c.id = d.case_id AND c.court_id = d.court_id
         WHERE d.case_type = 'criminal'
         UNION ALL
-        SELECT d.id as "id!", d.court_id as "court_id!", d.entry_number as "entry_number!",
+        SELECT d.id as "id!", d.court_id as "court_id!", d.case_id as "case_id!",
+               d.entry_number as "entry_number!",
                d.entry_type as "entry_type!", d.description as "description!",
                cv.case_number as "case_number!"
         FROM docket_entries d
@@ -366,6 +386,7 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
                 f.title => display_title,
                 f.subtitle => display_subtitle,
                 f.court_id => row.court_id.as_str(),
+                f.parent_id => row.case_id.to_string(),
             ))
             .ok();
     }
@@ -374,13 +395,15 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
     let events = sqlx::query_as!(
         CalendarRow,
         r#"
-        SELECT e.id as "id!", e.court_id as "court_id!", e.event_type as "event_type!",
+        SELECT e.id as "id!", e.court_id as "court_id!", e.case_id as "case_id!",
+               e.event_type as "event_type!",
                e.description as "description?: String", c.title as "case_title!"
         FROM calendar_events e
         JOIN criminal_cases c ON c.id = e.case_id AND c.court_id = e.court_id
         WHERE e.case_type = 'criminal'
         UNION ALL
-        SELECT e.id as "id!", e.court_id as "court_id!", e.event_type as "event_type!",
+        SELECT e.id as "id!", e.court_id as "court_id!", e.case_id as "case_id!",
+               e.event_type as "event_type!",
                e.description as "description?: String", cv.title as "case_title!"
         FROM calendar_events e
         JOIN civil_cases cv ON cv.id = e.case_id AND cv.court_id = e.court_id
@@ -402,6 +425,7 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
                 f.title => display_title,
                 f.subtitle => display_subtitle,
                 f.court_id => row.court_id.as_str(),
+                f.parent_id => row.case_id.to_string(),
             ))
             .ok();
     }
@@ -410,13 +434,15 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
     let deadlines = sqlx::query_as!(
         DeadlineRow,
         r#"
-        SELECT d.id as "id!", d.court_id as "court_id!", d.title as "title!",
+        SELECT d.id as "id!", d.court_id as "court_id!", d.case_id as "case_id!",
+               d.title as "title!",
                d.status as "status!", c.title as "case_title!"
         FROM deadlines d
         JOIN criminal_cases c ON c.id = d.case_id AND c.court_id = d.court_id
         WHERE d.case_type = 'criminal'
         UNION ALL
-        SELECT d.id as "id!", d.court_id as "court_id!", d.title as "title!",
+        SELECT d.id as "id!", d.court_id as "court_id!", d.case_id as "case_id!",
+               d.title as "title!",
                d.status as "status!", cv.title as "case_title!"
         FROM deadlines d
         JOIN civil_cases cv ON cv.id = d.case_id AND cv.court_id = d.court_id
@@ -436,6 +462,7 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
                 f.title => row.title.as_str(),
                 f.subtitle => display_subtitle,
                 f.court_id => row.court_id.as_str(),
+                f.parent_id => row.case_id.to_string(),
             ))
             .ok();
     }
@@ -444,13 +471,15 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
     let orders = sqlx::query_as!(
         OrderRow,
         r#"
-        SELECT o.id as "id!", o.court_id as "court_id!", o.title as "title!",
+        SELECT o.id as "id!", o.court_id as "court_id!", o.case_id as "case_id!",
+               o.title as "title!",
                o.order_type as "order_type!", c.title as "case_title!"
         FROM judicial_orders o
         JOIN criminal_cases c ON c.id = o.case_id AND c.court_id = o.court_id
         WHERE o.case_type = 'criminal'
         UNION ALL
-        SELECT o.id as "id!", o.court_id as "court_id!", o.title as "title!",
+        SELECT o.id as "id!", o.court_id as "court_id!", o.case_id as "case_id!",
+               o.title as "title!",
                o.order_type as "order_type!", cv.title as "case_title!"
         FROM judicial_orders o
         JOIN civil_cases cv ON cv.id = o.case_id AND cv.court_id = o.court_id
@@ -470,6 +499,7 @@ pub async fn build_index(pool: &Pool<Postgres>, search: &SearchIndex) {
                 f.title => row.title.as_str(),
                 f.subtitle => display_subtitle,
                 f.court_id => row.court_id.as_str(),
+                f.parent_id => row.case_id.to_string(),
             ))
             .ok();
     }

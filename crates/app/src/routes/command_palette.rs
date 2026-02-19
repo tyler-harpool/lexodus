@@ -17,6 +17,9 @@ struct SearchResult {
     entity_type: String,
     title: String,
     subtitle: String,
+    /// For child entities (docket, calendar, deadline, order), the parent case ID.
+    #[serde(default)]
+    parent_id: Option<String>,
 }
 
 /// Human-readable group labels keyed by entity_type values from the search index.
@@ -35,12 +38,7 @@ const ENTITY_TYPE_LABELS: &[(&str, &str)] = &[
 /// Converts a `SearchResult` into the `Route` it should navigate to.
 fn route_for_result(result: &SearchResult) -> Route {
     match result.entity_type.as_str() {
-        "case" => Route::CaseDetail {
-            id: result.id.clone(),
-        },
-        // Civil cases route to CaseDetail for now; a dedicated CivilCaseDetail
-        // route will be added when the civil case UI is built.
-        "civil_case" => Route::CaseDetail {
+        "case" | "civil_case" => Route::CaseDetail {
             id: result.id.clone(),
         },
         "attorney" => Route::AttorneyDetail {
@@ -52,9 +50,11 @@ fn route_for_result(result: &SearchResult) -> Route {
         "opinion" => Route::OpinionDetail {
             id: result.id.clone(),
         },
-        // Docket entries, calendar events, deadlines, orders all link to their parent case.
-        // The search result `id` is the entity's own id; for now we navigate to CaseDetail
-        // since these entity detail pages are integrated into the case view.
+        // Child entities navigate to their parent case.
+        // parent_id carries the case UUID from the search index.
+        "docket" | "calendar" | "deadline" | "order" => Route::CaseDetail {
+            id: result.parent_id.clone().unwrap_or_else(|| result.id.clone()),
+        },
         _ => Route::CaseDetail {
             id: result.id.clone(),
         },
