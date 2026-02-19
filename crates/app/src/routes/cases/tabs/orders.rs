@@ -18,7 +18,25 @@ pub fn OrdersTab(case_id: String) -> Element {
     let mut show_sheet = use_signal(|| false);
     let mut form_order_type = use_signal(|| "scheduling_order".to_string());
     let mut form_title = use_signal(String::new);
+    let mut form_content = use_signal(String::new);
+    let mut form_judge_id = use_signal(String::new);
     let mut form_template_id = use_signal(String::new);
+
+    // Fetch the case to get the assigned judge
+    let case_id_for_judge = case_id.clone();
+    let _case_judge = use_resource(move || {
+        let court = ctx.court_id.read().clone();
+        let cid = case_id_for_judge.clone();
+        async move {
+            if let Ok(json) = server::api::get_case(court, cid).await {
+                if let Ok(case) = serde_json::from_str::<serde_json::Value>(&json) {
+                    if let Some(jid) = case["assigned_judge_id"].as_str() {
+                        form_judge_id.set(jid.to_string());
+                    }
+                }
+            }
+        }
+    });
 
     let case_id_save = case_id.clone();
 
@@ -55,10 +73,18 @@ pub fn OrdersTab(case_id: String) -> Element {
                 toast.error("Title is required.".to_string(), ToastOptions::new());
                 return;
             }
+            let judge = form_judge_id.read().clone();
+            if judge.is_empty() {
+                toast.error("No judge assigned to this case.".to_string(), ToastOptions::new());
+                return;
+            }
+            let content = form_content.read().clone();
             let mut body = serde_json::json!({
                 "case_id": cid,
+                "judge_id": judge,
                 "order_type": otype,
                 "title": title.trim(),
+                "content": if content.trim().is_empty() { "Draft order content pending." } else { content.trim() },
             });
             if !template.is_empty() {
                 body["template_id"] = serde_json::Value::String(template);
@@ -68,6 +94,7 @@ pub fn OrdersTab(case_id: String) -> Element {
                     toast.success("Order drafted.".to_string(), ToastOptions::new());
                     show_sheet.set(false);
                     form_title.set(String::new());
+                    form_content.set(String::new());
                     orders_data.restart();
                 }
                 Err(e) => toast.error(format!("Error: {e}"), ToastOptions::new()),
@@ -155,6 +182,26 @@ pub fn OrdersTab(case_id: String) -> Element {
                             option { value: "sealing_order", "Sealing Order" }
                             option { value: "minute_order", "Minute Order" }
                             option { value: "standing_order", "Standing Order" }
+                        }
+
+                        // Judge (auto-populated from case)
+                        if !form_judge_id.read().is_empty() {
+                            div { class: "form-field",
+                                label { class: "form-label", "Assigned Judge" }
+                                p { class: "form-static-value", "{form_judge_id}" }
+                            }
+                        }
+
+                        // Order content
+                        div { class: "form-field",
+                            label { class: "form-label", "Content" }
+                            textarea {
+                                class: "input",
+                                rows: 4,
+                                placeholder: "Order content (optional — defaults to draft placeholder)",
+                                value: "{form_content}",
+                                oninput: move |e: Event<FormData>| form_content.set(e.value()),
+                            }
                         }
 
                         // Template selector (loaded from server)
