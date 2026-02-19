@@ -223,6 +223,23 @@ fn AppLayout() -> Element {
     rsx! {
         document::Link { rel: "stylesheet", href: asset!("./layout.css") }
 
+        // Global keyboard listener: Cmd+K (Mac) / Ctrl+K (Win/Linux) toggles the palette.
+        // tabindex="0" ensures the wrapper div is focusable and receives key events.
+        div {
+            tabindex: 0,
+            style: "outline: none;",
+            onkeydown: move |e: KeyboardEvent| {
+                let key = e.key();
+                let mods = e.modifiers();
+                // Check for Cmd+K (Meta on Mac) or Ctrl+K (Control on Win/Linux)
+                let is_cmd_k = matches!(key, Key::Character(ref c) if c == "k")
+                    && (mods.contains(Modifiers::META) || mods.contains(Modifiers::CONTROL));
+                if is_cmd_k {
+                    e.prevent_default();
+                    show_palette.toggle();
+                }
+            },
+
         SidebarProvider { default_open: false,
             command_palette::CommandPalette { show: show_palette }
             if flags.stripe {
@@ -465,6 +482,7 @@ fn AppLayout() -> Element {
                 }
             }
         }
+        } // close global keyboard listener wrapper div
     }
 }
 
