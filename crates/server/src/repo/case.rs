@@ -4,8 +4,13 @@ use uuid::Uuid;
 
 use crate::error_convert::SqlxErrorExt;
 
-/// Generate a unique case number for the given court.
-/// Format: `{YEAR}-CR-{sequence:05}` (e.g. `2026-CR-00001`).
+/// Extract a division code from a court_id (e.g. "district9" → "9", "district12" → "12").
+fn division_code(court_id: &str) -> &str {
+    court_id.strip_prefix("district").unwrap_or(court_id)
+}
+
+/// Generate a CM/ECF case number for a criminal case.
+/// Format: `D:YY-cr-NNNNN` (e.g. `9:26-cr-00001`).
 async fn generate_case_number(
     pool: &Pool<Postgres>,
     court_id: &str,
@@ -18,8 +23,9 @@ async fn generate_case_number(
     .await
     .map_err(SqlxErrorExt::into_app_error)?;
 
-    let year = chrono::Utc::now().format("%Y");
-    Ok(format!("{}-CR-{:05}", year, count + 1))
+    let year = chrono::Utc::now().format("%y");
+    let div = division_code(court_id);
+    Ok(format!("{}:{}-cr-{:05}", div, year, count + 1))
 }
 
 /// Insert a new criminal case with an auto-generated case number.

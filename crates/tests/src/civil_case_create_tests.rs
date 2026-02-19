@@ -24,7 +24,7 @@ async fn create_civil_case_success() {
     assert_eq!(resp["consent_to_magistrate"], false);
     assert_eq!(resp["pro_se"], false);
     assert!(resp["id"].as_str().is_some());
-    assert!(resp["case_number"].as_str().unwrap().contains("-CV-"));
+    assert!(resp["case_number"].as_str().unwrap().contains("-cv-"));
 }
 
 #[tokio::test]
@@ -148,6 +148,6 @@ async fn create_civil_case_auto_increments_case_number() {
     let num2 = c2["case_number"].as_str().unwrap();
 
     assert_ne!(num1, num2);
-    assert!(num1.contains("-CV-"));
-    assert!(num2.contains("-CV-"));
+    assert!(num1.contains("-cv-"));
+    assert!(num2.contains("-cv-"));
 }

@@ -19,7 +19,7 @@ async fn create_case_success() {
     assert_eq!(resp["status"], "filed");
     assert_eq!(resp["priority"], "medium");
     assert!(resp["id"].as_str().is_some());
-    assert!(resp["case_number"].as_str().unwrap().contains("-CR-"));
+    assert!(resp["case_number"].as_str().unwrap().contains("-cr-"));
 }
 
 #[tokio::test]
@@ -136,6 +136,6 @@ async fn create_case_auto_increments_case_number() {
 
     assert_ne!(num1, num2);
     // Both should contain -CR- pattern
-    assert!(num1.contains("-CR-"));
-    assert!(num2.contains("-CR-"));
+    assert!(num1.contains("-cr-"));
+    assert!(num2.contains("-cr-"));
 }

@@ -4,8 +4,13 @@ use uuid::Uuid;
 
 use crate::error_convert::SqlxErrorExt;
 
-/// Generate a unique case number for a civil case in the given court.
-/// Format: `{YEAR}-CV-{sequence:05}` (e.g. `2026-CV-00001`).
+/// Extract a division code from a court_id (e.g. "district9" → "9", "district12" → "12").
+fn division_code(court_id: &str) -> &str {
+    court_id.strip_prefix("district").unwrap_or(court_id)
+}
+
+/// Generate a CM/ECF case number for a civil case.
+/// Format: `D:YY-cv-NNNNN` (e.g. `9:26-cv-00001`).
 async fn generate_case_number(
     pool: &Pool<Postgres>,
     court_id: &str,
@@ -18,8 +23,9 @@ async fn generate_case_number(
     .await
     .map_err(SqlxErrorExt::into_app_error)?;
 
-    let year = chrono::Utc::now().format("%Y");
-    Ok(format!("{}-CV-{:05}", year, count + 1))
+    let year = chrono::Utc::now().format("%y");
+    let div = division_code(court_id);
+    Ok(format!("{}:{}-cv-{:05}", div, year, count + 1))
 }
 
 /// Insert a new civil case with an auto-generated case number.
@@ -43,6 +49,9 @@ pub async fn create(
         .as_deref()
         .and_then(|s| s.parse().ok());
 
+    // Convert f64 to string for safe NUMERIC binding (avoids binary encoding mismatch).
+    let amount_str = req.amount_in_controversy.map(|v| v.to_string());
+
     let row = sqlx::query_as!(
         CivilCase,
         r#"
@@ -51,10 +60,10 @@ pub async fn create(
              cause_of_action, jurisdiction_basis, jury_demand, class_action,
              amount_in_controversy, priority, assigned_judge_id, district_code,
              consent_to_magistrate, pro_se)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::FLOAT8, $11, $12, $13, $14, $15)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::NUMERIC, $11, $12, $13, $14, $15)
         RETURNING id, court_id, case_number, title, description, nature_of_suit,
                   cause_of_action, jurisdiction_basis, jury_demand, class_action,
-                  amount_in_controversy as "amount_in_controversy: f64",
+                  amount_in_controversy::FLOAT8 as "amount_in_controversy: f64",
                   status, priority, assigned_judge_id, district_code, location,
                   is_sealed, sealed_date, sealed_by, seal_reason, related_case_id,
                   consent_to_magistrate, pro_se, opened_at, updated_at, closed_at
@@ -68,7 +77,7 @@ pub async fn create(
         req.jurisdiction_basis,
         jury_demand,
         class_action,
-        req.amount_in_controversy,
+        amount_str as Option<String>,
         priority,
         assigned_judge_id,
         district_code,
@@ -93,7 +102,7 @@ pub async fn find_by_id(
         r#"
         SELECT id, court_id, case_number, title, description, nature_of_suit,
                cause_of_action, jurisdiction_basis, jury_demand, class_action,
-               amount_in_controversy as "amount_in_controversy: f64",
+               amount_in_controversy::FLOAT8 as "amount_in_controversy: f64",
                status, priority, assigned_judge_id, district_code, location,
                is_sealed, sealed_date, sealed_by, seal_reason, related_case_id,
                consent_to_magistrate, pro_se, opened_at, updated_at, closed_at
@@ -144,7 +153,7 @@ pub async fn update_status(
         WHERE id = $1 AND court_id = $2
         RETURNING id, court_id, case_number, title, description, nature_of_suit,
                   cause_of_action, jurisdiction_basis, jury_demand, class_action,
-                  amount_in_controversy as "amount_in_controversy: f64",
+                  amount_in_controversy::FLOAT8 as "amount_in_controversy: f64",
                   status, priority, assigned_judge_id, district_code, location,
                   is_sealed, sealed_date, sealed_by, seal_reason, related_case_id,
                   consent_to_magistrate, pro_se, opened_at, updated_at, closed_at
@@ -205,7 +214,7 @@ pub async fn search(
         r#"
         SELECT id, court_id, case_number, title, description, nature_of_suit,
                cause_of_action, jurisdiction_basis, jury_demand, class_action,
-               amount_in_controversy as "amount_in_controversy: f64",
+               amount_in_controversy::FLOAT8 as "amount_in_controversy: f64",
                status, priority, assigned_judge_id, district_code, location,
                is_sealed, sealed_date, sealed_by, seal_reason, related_case_id,
                consent_to_magistrate, pro_se, opened_at, updated_at, closed_at

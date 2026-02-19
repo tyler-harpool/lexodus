@@ -361,7 +361,7 @@ pub async fn list_civil_cases_by_judge(
         r#"
         SELECT id, court_id, case_number, title, description, nature_of_suit,
                cause_of_action, jurisdiction_basis, jury_demand, class_action,
-               amount_in_controversy as "amount_in_controversy: f64",
+               amount_in_controversy::FLOAT8 as "amount_in_controversy: f64",
                status, priority, assigned_judge_id, district_code, location,
                is_sealed, sealed_date, sealed_by, seal_reason, related_case_id,
                consent_to_magistrate, pro_se, opened_at, updated_at, closed_at
