@@ -258,14 +258,17 @@ pub async fn list_by_judge(
         CalendarEvent,
         r#"
         SELECT
-            id, court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants,
-            court_reporter, is_public, status, notes,
-            actual_start, actual_end, call_time,
-            created_at, updated_at
-        FROM calendar_events
-        WHERE court_id = $1 AND judge_id = $2
-        ORDER BY scheduled_date ASC
+            ce.id, ce.court_id, ce.case_id, ce.judge_id, ce.event_type, ce.scheduled_date,
+            ce.duration_minutes, ce.courtroom, ce.description, ce.participants,
+            ce.court_reporter, ce.is_public, ce.status, ce.notes,
+            ce.actual_start, ce.actual_end, ce.call_time,
+            ce.created_at, ce.updated_at,
+            COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM calendar_events ce
+        LEFT JOIN criminal_cases cc ON ce.case_id = cc.id
+        LEFT JOIN civil_cases cv ON ce.case_id = cv.id
+        WHERE ce.court_id = $1 AND ce.judge_id = $2
+        ORDER BY ce.scheduled_date ASC
         "#,
         court.0,
         uuid,
@@ -306,18 +309,21 @@ pub async fn find_available_slot(
         CalendarEvent,
         r#"
         SELECT
-            id, court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants,
-            court_reporter, is_public, status, notes,
-            actual_start, actual_end, call_time,
-            created_at, updated_at
-        FROM calendar_events
-        WHERE court_id = $1
-          AND judge_id = $2
-          AND status NOT IN ('cancelled', 'completed')
-          AND scheduled_date >= NOW()
-          AND scheduled_date <= NOW() + INTERVAL '14 days'
-        ORDER BY scheduled_date ASC
+            ce.id, ce.court_id, ce.case_id, ce.judge_id, ce.event_type, ce.scheduled_date,
+            ce.duration_minutes, ce.courtroom, ce.description, ce.participants,
+            ce.court_reporter, ce.is_public, ce.status, ce.notes,
+            ce.actual_start, ce.actual_end, ce.call_time,
+            ce.created_at, ce.updated_at,
+            COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM calendar_events ce
+        LEFT JOIN criminal_cases cc ON ce.case_id = cc.id
+        LEFT JOIN civil_cases cv ON ce.case_id = cv.id
+        WHERE ce.court_id = $1
+          AND ce.judge_id = $2
+          AND ce.status NOT IN ('cancelled', 'completed')
+          AND ce.scheduled_date >= NOW()
+          AND ce.scheduled_date <= NOW() + INTERVAL '14 days'
+        ORDER BY ce.scheduled_date ASC
         "#,
         court.0,
         uuid,
@@ -489,14 +495,17 @@ pub async fn list_by_courtroom(
         CalendarEvent,
         r#"
         SELECT
-            id, court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants,
-            court_reporter, is_public, status, notes,
-            actual_start, actual_end, call_time,
-            created_at, updated_at
-        FROM calendar_events
-        WHERE court_id = $1 AND courtroom = $2
-        ORDER BY scheduled_date ASC
+            ce.id, ce.court_id, ce.case_id, ce.judge_id, ce.event_type, ce.scheduled_date,
+            ce.duration_minutes, ce.courtroom, ce.description, ce.participants,
+            ce.court_reporter, ce.is_public, ce.status, ce.notes,
+            ce.actual_start, ce.actual_end, ce.call_time,
+            ce.created_at, ce.updated_at,
+            COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM calendar_events ce
+        LEFT JOIN criminal_cases cc ON ce.case_id = cc.id
+        LEFT JOIN civil_cases cv ON ce.case_id = cv.id
+        WHERE ce.court_id = $1 AND ce.courtroom = $2
+        ORDER BY ce.scheduled_date ASC
         "#,
         court.0,
         courtroom,

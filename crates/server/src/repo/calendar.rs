@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::error_convert::SqlxErrorExt;
 
-/// Insert a new calendar event. Returns the created event.
+/// Insert a new calendar event. Returns the created event with resolved case_number.
 pub async fn create(
     pool: &Pool<Postgres>,
     court_id: &str,
@@ -14,17 +14,42 @@ pub async fn create(
     let row = sqlx::query_as!(
         CalendarEvent,
         r#"
-        INSERT INTO calendar_events (
-            court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants, is_public
+        WITH ins AS (
+            INSERT INTO calendar_events (
+                court_id, case_id, judge_id, event_type, scheduled_date,
+                duration_minutes, courtroom, description, participants, is_public
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING
+                id, court_id, case_id, judge_id, event_type, scheduled_date,
+                duration_minutes, courtroom, description, participants,
+                court_reporter, is_public, status, notes,
+                actual_start, actual_end, call_time,
+                created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING
-            id, court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants,
-            court_reporter, is_public, status, notes,
-            actual_start, actual_end, call_time,
-            created_at, updated_at
+        SELECT ins.id as "id!",
+               ins.court_id as "court_id!",
+               ins.case_id as "case_id!",
+               ins.judge_id as "judge_id!",
+               ins.event_type as "event_type!",
+               ins.scheduled_date as "scheduled_date!",
+               ins.duration_minutes as "duration_minutes!",
+               ins.courtroom as "courtroom!",
+               ins.description as "description!",
+               ins.participants as "participants!",
+               ins.court_reporter,
+               ins.is_public as "is_public!",
+               ins.status as "status!",
+               ins.notes as "notes!",
+               ins.actual_start,
+               ins.actual_end,
+               ins.call_time,
+               ins.created_at as "created_at!",
+               ins.updated_at as "updated_at!",
+               COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM ins
+        LEFT JOIN criminal_cases cc ON ins.case_id = cc.id
+        LEFT JOIN civil_cases cv ON ins.case_id = cv.id
         "#,
         court_id,
         req.case_id,
@@ -54,13 +79,16 @@ pub async fn find_by_id(
         CalendarEvent,
         r#"
         SELECT
-            id, court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants,
-            court_reporter, is_public, status, notes,
-            actual_start, actual_end, call_time,
-            created_at, updated_at
-        FROM calendar_events
-        WHERE id = $1 AND court_id = $2
+            ce.id, ce.court_id, ce.case_id, ce.judge_id, ce.event_type, ce.scheduled_date,
+            ce.duration_minutes, ce.courtroom, ce.description, ce.participants,
+            ce.court_reporter, ce.is_public, ce.status, ce.notes,
+            ce.actual_start, ce.actual_end, ce.call_time,
+            ce.created_at, ce.updated_at,
+            COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM calendar_events ce
+        LEFT JOIN criminal_cases cc ON ce.case_id = cc.id
+        LEFT JOIN civil_cases cv ON ce.case_id = cv.id
+        WHERE ce.id = $1 AND ce.court_id = $2
         "#,
         id,
         court_id,
@@ -82,19 +110,44 @@ pub async fn update_status(
     let row = sqlx::query_as!(
         CalendarEvent,
         r#"
-        UPDATE calendar_events SET
-            status = $3,
-            actual_start = COALESCE($4, actual_start),
-            actual_end = COALESCE($5, actual_end),
-            notes = COALESCE($6, notes),
-            updated_at = NOW()
-        WHERE id = $1 AND court_id = $2
-        RETURNING
-            id, court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants,
-            court_reporter, is_public, status, notes,
-            actual_start, actual_end, call_time,
-            created_at, updated_at
+        WITH upd AS (
+            UPDATE calendar_events SET
+                status = $3,
+                actual_start = COALESCE($4, actual_start),
+                actual_end = COALESCE($5, actual_end),
+                notes = COALESCE($6, notes),
+                updated_at = NOW()
+            WHERE id = $1 AND court_id = $2
+            RETURNING
+                id, court_id, case_id, judge_id, event_type, scheduled_date,
+                duration_minutes, courtroom, description, participants,
+                court_reporter, is_public, status, notes,
+                actual_start, actual_end, call_time,
+                created_at, updated_at
+        )
+        SELECT upd.id as "id!",
+               upd.court_id as "court_id!",
+               upd.case_id as "case_id!",
+               upd.judge_id as "judge_id!",
+               upd.event_type as "event_type!",
+               upd.scheduled_date as "scheduled_date!",
+               upd.duration_minutes as "duration_minutes!",
+               upd.courtroom as "courtroom!",
+               upd.description as "description!",
+               upd.participants as "participants!",
+               upd.court_reporter,
+               upd.is_public as "is_public!",
+               upd.status as "status!",
+               upd.notes as "notes!",
+               upd.actual_start,
+               upd.actual_end,
+               upd.call_time,
+               upd.created_at as "created_at!",
+               upd.updated_at as "updated_at!",
+               COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM upd
+        LEFT JOIN criminal_cases cc ON upd.case_id = cc.id
+        LEFT JOIN civil_cases cv ON upd.case_id = cv.id
         "#,
         event_id,
         court_id,
@@ -138,14 +191,17 @@ pub async fn list_by_case(
         CalendarEvent,
         r#"
         SELECT
-            id, court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants,
-            court_reporter, is_public, status, notes,
-            actual_start, actual_end, call_time,
-            created_at, updated_at
-        FROM calendar_events
-        WHERE court_id = $1 AND case_id = $2
-        ORDER BY scheduled_date ASC
+            ce.id, ce.court_id, ce.case_id, ce.judge_id, ce.event_type, ce.scheduled_date,
+            ce.duration_minutes, ce.courtroom, ce.description, ce.participants,
+            ce.court_reporter, ce.is_public, ce.status, ce.notes,
+            ce.actual_start, ce.actual_end, ce.call_time,
+            ce.created_at, ce.updated_at,
+            COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM calendar_events ce
+        LEFT JOIN criminal_cases cc ON ce.case_id = cc.id
+        LEFT JOIN civil_cases cv ON ce.case_id = cv.id
+        WHERE ce.court_id = $1 AND ce.case_id = $2
+        ORDER BY ce.scheduled_date ASC
         "#,
         court_id,
         case_id,
@@ -198,20 +254,23 @@ pub async fn search(
         CalendarEvent,
         r#"
         SELECT
-            id, court_id, case_id, judge_id, event_type, scheduled_date,
-            duration_minutes, courtroom, description, participants,
-            court_reporter, is_public, status, notes,
-            actual_start, actual_end, call_time,
-            created_at, updated_at
-        FROM calendar_events
-        WHERE court_id = $1
-          AND ($2::UUID IS NULL OR judge_id = $2)
-          AND ($3::TEXT IS NULL OR courtroom = $3)
-          AND ($4::TEXT IS NULL OR event_type = $4)
-          AND ($5::TEXT IS NULL OR status = $5)
-          AND ($6::TIMESTAMPTZ IS NULL OR scheduled_date >= $6)
-          AND ($7::TIMESTAMPTZ IS NULL OR scheduled_date <= $7)
-        ORDER BY scheduled_date ASC
+            ce.id, ce.court_id, ce.case_id, ce.judge_id, ce.event_type, ce.scheduled_date,
+            ce.duration_minutes, ce.courtroom, ce.description, ce.participants,
+            ce.court_reporter, ce.is_public, ce.status, ce.notes,
+            ce.actual_start, ce.actual_end, ce.call_time,
+            ce.created_at, ce.updated_at,
+            COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM calendar_events ce
+        LEFT JOIN criminal_cases cc ON ce.case_id = cc.id
+        LEFT JOIN civil_cases cv ON ce.case_id = cv.id
+        WHERE ce.court_id = $1
+          AND ($2::UUID IS NULL OR ce.judge_id = $2)
+          AND ($3::TEXT IS NULL OR ce.courtroom = $3)
+          AND ($4::TEXT IS NULL OR ce.event_type = $4)
+          AND ($5::TEXT IS NULL OR ce.status = $5)
+          AND ($6::TIMESTAMPTZ IS NULL OR ce.scheduled_date >= $6)
+          AND ($7::TIMESTAMPTZ IS NULL OR ce.scheduled_date <= $7)
+        ORDER BY ce.scheduled_date ASC
         LIMIT $8 OFFSET $9
         "#,
         court_id,

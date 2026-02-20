@@ -28,6 +28,8 @@ pub struct CalendarEvent {
     pub call_time: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Resolved case number from LEFT JOIN criminal_cases/civil_cases.
+    pub case_number: Option<String>,
 }
 
 /// API response for a calendar entry (matches OpenAPI CalendarEntry schema).
@@ -54,6 +56,9 @@ pub struct CalendarEntryResponse {
     pub actual_end: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_time: Option<String>,
+    /// Resolved case number from criminal_cases or civil_cases.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub case_number: Option<String>,
 }
 
 impl From<CalendarEvent> for CalendarEntryResponse {
@@ -75,12 +80,13 @@ impl From<CalendarEvent> for CalendarEntryResponse {
             actual_start: e.actual_start.map(|t| t.to_rfc3339()),
             actual_end: e.actual_end.map(|t| t.to_rfc3339()),
             call_time: e.call_time.map(|t| t.to_rfc3339()),
+            case_number: e.case_number,
         }
     }
 }
 
 /// Search response for calendar entries (matches OpenAPI CalendarSearchResponse).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CalendarSearchResponse {
     pub events: Vec<CalendarEntryResponse>,
