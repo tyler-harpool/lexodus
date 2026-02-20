@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::CaseResponse;
+use shared_types::{CaseResponse, UserRole};
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Button, ButtonVariant, Card,
@@ -102,23 +102,34 @@ fn CaseDetailView(case_item: CaseResponse, id: String, show_edit: Signal<bool>, 
         PageHeader {
             PageTitle { "{case_item.title}" }
             PageActions {
-                Link { to: Route::Dashboard {},
-                    Button { variant: ButtonVariant::Secondary, "Queue" }
-                }
+                // "Back to Cases" — everyone gets this
                 Link { to: Route::CaseList {},
                     Button { variant: ButtonVariant::Secondary, "Cases" }
                 }
-                if can(&role, Action::EditCase) {
+
+                // Queue link — clerks and admin only
+                if matches!(role, UserRole::Clerk | UserRole::Admin) {
+                    Link { to: Route::Dashboard {},
+                        Button { variant: ButtonVariant::Secondary, "Queue" }
+                    }
+                }
+
+                // Edit — clerks and admin only (judges don't edit case metadata)
+                if matches!(role, UserRole::Clerk | UserRole::Admin) {
                     Button {
                         variant: ButtonVariant::Primary,
                         onclick: move |_| show_edit.set(true),
                         "Edit"
                     }
                 }
-                Button {
-                    variant: ButtonVariant::Destructive,
-                    onclick: move |_| show_delete_confirm.set(true),
-                    "Delete"
+
+                // Delete — admin only
+                if can(&role, Action::DeleteCase) {
+                    Button {
+                        variant: ButtonVariant::Destructive,
+                        onclick: move |_| show_delete_confirm.set(true),
+                        "Delete"
+                    }
                 }
             }
         }
