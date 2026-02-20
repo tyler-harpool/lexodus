@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
 use shared_types::{
-    DocketAttachmentResponse, DocketEntryResponse, DocketSearchResponse, DocumentResponse,
-    NefResponse, PartyResponse, ServiceRecordResponse, SubmitEventResponse, UserRole,
+    CreateServiceRecordRequest, DocketAttachmentResponse, DocketEntryResponse,
+    DocketSearchResponse, DocumentResponse, NefResponse, PartyListItem,
+    ServiceRecordResponse, SubmitEventRequest, SubmitEventResponse, UserRole,
     VALID_DOCUMENT_TYPES,
 };
 use shared_ui::components::{
@@ -10,7 +11,7 @@ use shared_ui::components::{
     Input, Separator, Skeleton, Textarea, Tooltip, TooltipContent, TooltipTrigger,
 };
 
-use crate::auth::{use_auth, use_user_role};
+use crate::auth::{can, use_auth, use_user_role, Action};
 use crate::CourtContext;
 
 #[component]
@@ -23,29 +24,28 @@ pub fn DocketTab(case_id: String) -> Element {
         let court = court_id.clone();
         let case = cid.clone();
         async move {
-            match server::api::get_case_docket(court, case, None, Some(100)).await {
-                Ok(json) => serde_json::from_str::<DocketSearchResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            server::api::get_case_docket(court, case, None, Some(100)).await.ok()
         }
     });
 
     let mut show_composer = use_signal(|| false);
     let role = use_user_role();
-    let can_add_entry = matches!(role, UserRole::Clerk | UserRole::Judge | UserRole::Admin);
+    let can_add_entry = can(&role, Action::CreateDocketEntry);
 
     rsx! {
         div { class: "docket-section",
             div { class: "docket-header",
                 h3 { "Docket Entries" }
                 div { class: "flex items-center gap-2",
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: move |_| {
-                            let current = *show_composer.read();
-                            show_composer.set(!current);
-                        },
-                        if *show_composer.read() { "Cancel" } else { "New Docket Event" }
+                    if can_add_entry {
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            onclick: move |_| {
+                                let current = *show_composer.read();
+                                show_composer.set(!current);
+                            },
+                            if *show_composer.read() { "Cancel" } else { "New Docket Event" }
+                        }
                     }
                 }
             }
@@ -200,10 +200,22 @@ fn EventComposer(
             }
 
             // Build the unified event request
-            let mut body = serde_json::json!({
-                "event_kind": kind,
-                "case_id": cid,
-            });
+            let mut req = SubmitEventRequest {
+                event_kind: kind.clone(),
+                case_id: cid.clone(),
+                entry_type: None,
+                description: None,
+                document_type: None,
+                title: None,
+                filed_by: None,
+                upload_id: None,
+                is_sealed: None,
+                sealing_level: None,
+                reason_code: None,
+                attachment_id: None,
+                promote_title: None,
+                promote_document_type: None,
+            };
 
             match kind.as_str() {
                 "text_entry" => {
@@ -214,11 +226,11 @@ fn EventComposer(
                         submitting.set(false);
                         return;
                     }
-                    body["entry_type"] = serde_json::json!(et);
-                    body["description"] = serde_json::json!(desc);
+                    req.entry_type = Some(et);
+                    req.description = Some(desc);
                     let fb = filed_by.read().clone();
                     if !fb.trim().is_empty() {
-                        body["filed_by"] = serde_json::json!(fb.trim());
+                        req.filed_by = Some(fb.trim().to_string());
                     }
                 }
                 "filing" => {
@@ -235,32 +247,27 @@ fn EventComposer(
                         submitting.set(false);
                         return;
                     }
-                    body["document_type"] = serde_json::json!(dt);
-                    body["title"] = serde_json::json!(t);
-                    body["filed_by"] = serde_json::json!(fb);
+                    req.document_type = Some(dt);
+                    req.title = Some(t);
+                    req.filed_by = Some(fb);
                     if let Some(ref uid) = *upload_id.read() {
-                        body["upload_id"] = serde_json::json!(uid);
+                        req.upload_id = Some(uid.clone());
                     }
                     if *is_sealed.read() {
-                        body["is_sealed"] = serde_json::json!(true);
-                        body["sealing_level"] = serde_json::json!(*sealing_level.read());
+                        req.is_sealed = Some(true);
+                        req.sealing_level = Some(sealing_level.read().clone());
                         let rc = reason_code.read().clone();
                         if !rc.is_empty() {
-                            body["reason_code"] = serde_json::json!(rc);
+                            req.reason_code = Some(rc);
                         }
                     }
                 }
                 _ => {}
             }
 
-            match server::api::submit_event(court.clone(), body.to_string()).await {
-                Ok(response_json) => {
-                    // Parse the response to show a receipt panel
-                    if let Ok(parsed) = serde_json::from_str::<SubmitEventResponse>(&response_json) {
-                        submit_result.set(Some(parsed));
-                    } else {
-                        on_submitted.call(());
-                    }
+            match server::api::submit_event(court.clone(), req).await {
+                Ok(response) => {
+                    submit_result.set(Some(response));
                 }
                 Err(e) => {
                     error_msg.set(Some(format!("Failed: {}", e)));
@@ -277,12 +284,10 @@ fn EventComposer(
             let court = ctx2.court_id.read().clone();
             spawn(async move {
                 match server::api::get_nef_by_id(court, nef_id).await {
-                    Ok(Some(json)) => {
-                        if let Ok(parsed) = serde_json::from_str::<NefResponse>(&json) {
-                            if let Some(html) = parsed.html_snapshot {
-                                nef_html.set(Some(html));
-                                show_nef_modal.set(true);
-                            }
+                    Ok(Some(nef)) => {
+                        if let Some(html) = nef.html_snapshot {
+                            nef_html.set(Some(html));
+                            show_nef_modal.set(true);
                         }
                     }
                     _ => {}
@@ -591,17 +596,29 @@ fn DocketEntryForm(case_id: String, on_created: EventHandler<()>) -> Element {
                 return;
             }
 
-            let mut body = serde_json::json!({
-                "case_id": cid,
-                "entry_type": et,
-                "description": desc.trim(),
-            });
+            let case_uuid = match uuid::Uuid::parse_str(&cid) {
+                Ok(u) => u,
+                Err(_) => {
+                    error_msg.set(Some("Invalid case ID.".to_string()));
+                    submitting.set(false);
+                    return;
+                }
+            };
 
-            if !fb.trim().is_empty() {
-                body["filed_by"] = serde_json::json!(fb.trim());
-            }
+            let req = shared_types::CreateDocketEntryRequest {
+                case_id: case_uuid,
+                entry_type: et,
+                description: desc.trim().to_string(),
+                filed_by: if fb.trim().is_empty() { None } else { Some(fb.trim().to_string()) },
+                document_id: None,
+                is_sealed: false,
+                is_ex_parte: false,
+                page_count: None,
+                related_entries: Vec::new(),
+                service_list: Vec::new(),
+            };
 
-            match server::api::create_docket_entry(court, body.to_string()).await {
+            match server::api::create_docket_entry(court, req).await {
                 Ok(_) => {
                     on_created.call(());
                 }
@@ -777,24 +794,22 @@ fn FilingForm(case_id: String, on_filed: EventHandler<()>) -> Element {
             };
 
             // Step 2: Submit filing
-            let mut body = serde_json::json!({
-                "case_id": cid,
-                "document_type": dt,
-                "title": t.trim(),
-                "filed_by": fb.trim(),
-            });
-            if sealed {
-                body["is_sealed"] = serde_json::json!(true);
-                body["sealing_level"] = serde_json::json!(seal_level);
-                if !reason.trim().is_empty() {
-                    body["reason_code"] = serde_json::json!(reason.trim());
-                }
-            }
-            if let Some(ref uid) = upload_id {
-                body["upload_id"] = serde_json::json!(uid);
-            }
+            let req = shared_types::ValidateFilingRequest {
+                case_id: cid,
+                document_type: dt,
+                title: t.trim().to_string(),
+                filed_by: fb.trim().to_string(),
+                upload_id: upload_id.clone(),
+                is_sealed: if sealed { Some(true) } else { None },
+                sealing_level: if sealed { Some(seal_level) } else { None },
+                reason_code: if sealed && !reason.trim().is_empty() {
+                    Some(reason.trim().to_string())
+                } else {
+                    None
+                },
+            };
 
-            match server::api::submit_filing(court, body.to_string()).await {
+            match server::api::submit_filing(court, req).await {
                 Ok(_) => {
                     on_filed.call(());
                 }
@@ -1014,11 +1029,9 @@ fn EntryDetailPanel(entry_id: String, case_id: String, document_id: Option<Strin
         let court = court_id.clone();
         let entry = eid.clone();
         async move {
-            match server::api::list_entry_attachments(court, entry).await {
-                Ok(json) => serde_json::from_str::<Vec<DocketAttachmentResponse>>(&json)
-                    .unwrap_or_default(),
-                Err(_) => vec![],
-            }
+            server::api::list_entry_attachments(court, entry)
+                .await
+                .unwrap_or_default()
         }
     });
 
@@ -1088,7 +1101,7 @@ fn EntryDetailPanel(entry_id: String, case_id: String, document_id: Option<Strin
         let entry = nef_eid.clone();
         async move {
             match server::api::get_nef_by_docket_entry(court, entry).await {
-                Ok(Some(json)) => serde_json::from_str::<NefResponse>(&json).ok(),
+                Ok(nef_opt) => nef_opt,
                 _ => None,
             }
         }
@@ -1104,11 +1117,9 @@ fn EntryDetailPanel(entry_id: String, case_id: String, document_id: Option<Strin
         async move {
             match doc {
                 Some(did) => {
-                    match server::api::list_document_service_records(court, did).await {
-                        Ok(json) => serde_json::from_str::<Vec<ServiceRecordResponse>>(&json)
-                            .unwrap_or_default(),
-                        Err(_) => vec![],
-                    }
+                    server::api::list_document_service_records(court, did)
+                        .await
+                        .unwrap_or_default()
                 }
                 None => vec![],
             }
@@ -1477,11 +1488,9 @@ fn ServiceRecordForm(case_id: String, document_id: String, on_created: EventHand
         let court = court_id.clone();
         let case = cid.clone();
         async move {
-            match server::api::list_case_parties(court, case).await {
-                Ok(json) => serde_json::from_str::<Vec<PartyResponse>>(&json)
-                    .unwrap_or_default(),
-                Err(_) => vec![],
-            }
+            server::api::list_case_parties(court, case)
+                .await
+                .unwrap_or_default()
         }
     });
 
@@ -1517,17 +1526,17 @@ fn ServiceRecordForm(case_id: String, document_id: String, on_created: EventHand
                 return;
             }
 
-            let mut body = serde_json::json!({
-                "document_id": doc_id,
-                "party_id": pid,
-                "service_method": method,
-                "served_by": sb.trim(),
-            });
-            if !n.trim().is_empty() {
-                body["notes"] = serde_json::json!(n.trim());
-            }
+            let req = CreateServiceRecordRequest {
+                document_id: doc_id,
+                party_id: pid,
+                service_method: method,
+                served_by: sb.trim().to_string(),
+                service_date: None,
+                notes: if n.trim().is_empty() { None } else { Some(n.trim().to_string()) },
+                certificate_of_service: None,
+            };
 
-            match server::api::create_service_record(court, body.to_string()).await {
+            match server::api::create_service_record(court, req).await {
                 Ok(_) => on_created.call(()),
                 Err(e) => error_msg.set(Some(format!("Failed: {}", e))),
             }
@@ -1738,11 +1747,9 @@ fn AttachmentRow(attachment: DocketAttachmentResponse, on_promoted: EventHandler
                                         )
                                         .await
                                         {
-                                            Ok(json) => {
-                                                if let Ok(doc) = serde_json::from_str::<DocumentResponse>(&json) {
-                                                    promoted.set(true);
-                                                    on_promoted.call(doc.id);
-                                                }
+                                            Ok(doc) => {
+                                                promoted.set(true);
+                                                on_promoted.call(doc.id);
                                             }
                                             Err(e) => {
                                                 promote_error.set(Some(format!("{}", e)));

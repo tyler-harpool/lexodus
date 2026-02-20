@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::{CaseAssignmentResponse, JudicialOrderResponse, OrderTemplateResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -9,12 +8,14 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use crate::auth::{can, use_user_role, Action};
 use crate::CourtContext;
 
 #[component]
 pub fn OrdersTab(case_id: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let toast = use_toast();
+    let role = use_user_role();
 
     let mut show_sheet = use_signal(|| false);
     let mut form_order_type = use_signal(|| "Scheduling".to_string());
@@ -30,13 +31,11 @@ pub fn OrdersTab(case_id: String) -> Element {
         let court = ctx.court_id.read().clone();
         let cid = case_id_for_judge.clone();
         async move {
-            if let Ok(json) = server::api::list_case_assignments(court, cid).await {
-                if let Ok(assignments) = serde_json::from_str::<Vec<CaseAssignmentResponse>>(&json) {
-                    if let Some(a) = assignments.first() {
-                        form_judge_id.set(a.judge_id.clone());
-                        if let Some(ref name) = a.judge_name {
-                            form_judge_name.set(name.clone());
-                        }
+            if let Ok(assignments) = server::api::list_case_assignments(court, cid).await {
+                if let Some(a) = assignments.first() {
+                    form_judge_id.set(a.judge_id.clone());
+                    if let Some(ref name) = a.judge_name {
+                        form_judge_name.set(name.clone());
                     }
                 }
             }
@@ -52,7 +51,6 @@ pub fn OrdersTab(case_id: String) -> Element {
             server::api::list_orders_by_case(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<JudicialOrderResponse>>(&json).ok())
         }
     });
 
@@ -62,7 +60,6 @@ pub fn OrdersTab(case_id: String) -> Element {
             server::api::list_active_order_templates(court)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<OrderTemplateResponse>>(&json).ok())
         }
     });
 
@@ -71,7 +68,6 @@ pub fn OrdersTab(case_id: String) -> Element {
         let cid = case_id_save.clone();
         let otype = form_order_type.read().clone();
         let title = form_title.read().clone();
-        let template = form_template_id.read().clone();
 
         spawn(async move {
             if title.trim().is_empty() {
@@ -84,17 +80,37 @@ pub fn OrdersTab(case_id: String) -> Element {
                 return;
             }
             let content = form_content.read().clone();
-            let mut body = serde_json::json!({
-                "case_id": cid,
-                "judge_id": judge,
-                "order_type": otype,
-                "title": title.trim(),
-                "content": if content.trim().is_empty() { "Draft order content pending." } else { content.trim() },
-            });
-            if !template.is_empty() {
-                body["template_id"] = serde_json::Value::String(template);
-            }
-            match server::api::create_order(court, body.to_string()).await {
+            let case_uuid = match uuid::Uuid::parse_str(&cid) {
+                Ok(u) => u,
+                Err(_) => {
+                    toast.error("Invalid case ID.".to_string(), ToastOptions::new());
+                    return;
+                }
+            };
+            let judge_uuid = match uuid::Uuid::parse_str(&judge) {
+                Ok(u) => u,
+                Err(_) => {
+                    toast.error("Invalid judge ID.".to_string(), ToastOptions::new());
+                    return;
+                }
+            };
+            let req = shared_types::CreateJudicialOrderRequest {
+                case_id: case_uuid,
+                judge_id: judge_uuid,
+                order_type: otype,
+                title: title.trim().to_string(),
+                content: if content.trim().is_empty() {
+                    "Draft order content pending.".to_string()
+                } else {
+                    content.trim().to_string()
+                },
+                status: None,
+                is_sealed: None,
+                effective_date: None,
+                expiration_date: None,
+                related_motions: Vec::new(),
+            };
+            match server::api::create_order(court, req).await {
                 Ok(_) => {
                     toast.success("Order drafted.".to_string(), ToastOptions::new());
                     show_sheet.set(false);
@@ -111,10 +127,12 @@ pub fn OrdersTab(case_id: String) -> Element {
         div {
             style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);",
             h3 { "Court Orders" }
-            Button {
-                variant: ButtonVariant::Primary,
-                onclick: move |_| show_sheet.set(true),
-                "Draft Order"
+            if can(&role, Action::EditCase) {
+                Button {
+                    variant: ButtonVariant::Primary,
+                    onclick: move |_| show_sheet.set(true),
+                    "Draft Order"
+                }
             }
         }
 

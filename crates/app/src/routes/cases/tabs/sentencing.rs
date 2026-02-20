@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::{CaseAssignmentResponse, DefendantResponse, SentencingResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardHeader,
     Collapsible, CollapsibleContent, CollapsibleTrigger,
@@ -9,6 +8,7 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use crate::auth::{can, use_user_role, Action};
 use crate::CourtContext;
 
 /// Format an Option<i32> as a display string, or "—" if None.
@@ -31,6 +31,7 @@ fn fmt_opt_f64(v: Option<f64>) -> String {
 pub fn SentencingTab(case_id: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let toast = use_toast();
+    let role = use_user_role();
 
     let mut show_sheet = use_signal(|| false);
 
@@ -61,7 +62,6 @@ pub fn SentencingTab(case_id: String) -> Element {
             server::api::list_defendants(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<DefendantResponse>>(&json).ok())
         }
     });
 
@@ -74,7 +74,6 @@ pub fn SentencingTab(case_id: String) -> Element {
             server::api::list_case_assignments(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<CaseAssignmentResponse>>(&json).ok())
                 .and_then(|v| v.into_iter().next())
         }
     });
@@ -86,7 +85,6 @@ pub fn SentencingTab(case_id: String) -> Element {
             server::api::list_sentencing_by_case(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<SentencingResponse>>(&json).ok())
         }
     });
 
@@ -129,50 +127,65 @@ pub fn SentencingTab(case_id: String) -> Element {
                 return;
             };
 
-            let mut body = serde_json::json!({
-                "case_id": cid,
-                "defendant_id": defendant_id,
-                "judge_id": judge_id,
-            });
-
-            if !sentencing_date.is_empty() {
-                body["sentencing_date"] = serde_json::Value::String(format!("{sentencing_date}T00:00:00Z"));
-            }
-            if let Ok(v) = total_offense.parse::<i32>() {
-                body["total_offense_level"] = serde_json::json!(v);
-            }
-            if !criminal_history.is_empty() {
-                body["criminal_history_category"] = serde_json::Value::String(criminal_history);
-            }
-            if let Ok(v) = custody.parse::<i32>() {
-                body["custody_months"] = serde_json::json!(v);
-            }
-            if let Ok(v) = guidelines_low.parse::<i32>() {
-                body["guidelines_range_low_months"] = serde_json::json!(v);
-            }
-            if let Ok(v) = guidelines_high.parse::<i32>() {
-                body["guidelines_range_high_months"] = serde_json::json!(v);
-            }
-            if let Ok(v) = probation.parse::<i32>() {
-                body["probation_months"] = serde_json::json!(v);
-            }
-            if let Ok(v) = fine.parse::<f64>() {
-                body["fine_amount"] = serde_json::json!(v);
-            }
-            if let Ok(v) = restitution.parse::<f64>() {
-                body["restitution_amount"] = serde_json::json!(v);
-            }
-            if let Ok(v) = supervised.parse::<i32>() {
-                body["supervised_release_months"] = serde_json::json!(v);
-            }
-            if departure_type != "None" {
-                body["departure_type"] = serde_json::Value::String(departure_type);
-                if !departure_reason.trim().is_empty() {
-                    body["departure_reason"] = serde_json::Value::String(departure_reason.trim().to_string());
+            let case_uuid = match uuid::Uuid::parse_str(&cid) {
+                Ok(u) => u,
+                Err(_) => {
+                    toast.error("Invalid case ID.".to_string(), ToastOptions::new());
+                    return;
                 }
-            }
+            };
+            let def_uuid = match uuid::Uuid::parse_str(&defendant_id) {
+                Ok(u) => u,
+                Err(_) => {
+                    toast.error("Invalid defendant ID.".to_string(), ToastOptions::new());
+                    return;
+                }
+            };
+            let judge_uuid = match uuid::Uuid::parse_str(&judge_id) {
+                Ok(u) => u,
+                Err(_) => {
+                    toast.error("Invalid judge ID.".to_string(), ToastOptions::new());
+                    return;
+                }
+            };
 
-            match server::api::create_sentencing(court, body.to_string()).await {
+            let parsed_sentencing_date = if !sentencing_date.is_empty() {
+                chrono::DateTime::parse_from_rfc3339(&format!("{sentencing_date}T00:00:00Z"))
+                    .ok()
+                    .map(|dt| dt.with_timezone(&chrono::Utc))
+            } else {
+                None
+            };
+
+            let req = shared_types::CreateSentencingRequest {
+                case_id: case_uuid,
+                defendant_id: def_uuid,
+                judge_id: judge_uuid,
+                base_offense_level: None,
+                specific_offense_level: None,
+                adjusted_offense_level: None,
+                total_offense_level: total_offense.parse::<i32>().ok(),
+                criminal_history_category: if criminal_history.is_empty() { None } else { Some(criminal_history) },
+                criminal_history_points: None,
+                guidelines_range_low_months: guidelines_low.parse::<i32>().ok(),
+                guidelines_range_high_months: guidelines_high.parse::<i32>().ok(),
+                custody_months: custody.parse::<i32>().ok(),
+                probation_months: probation.parse::<i32>().ok(),
+                fine_amount: fine.parse::<f64>().ok(),
+                restitution_amount: restitution.parse::<f64>().ok(),
+                forfeiture_amount: None,
+                special_assessment: None,
+                departure_type: if departure_type == "None" { None } else { Some(departure_type) },
+                departure_reason: if departure_reason.trim().is_empty() { None } else { Some(departure_reason.trim().to_string()) },
+                variance_type: None,
+                variance_justification: None,
+                supervised_release_months: supervised.parse::<i32>().ok(),
+                appeal_waiver: None,
+                sentencing_date: parsed_sentencing_date,
+                judgment_date: None,
+            };
+
+            match server::api::create_sentencing(court, req).await {
                 Ok(_) => {
                     toast.success("Sentencing record created.".to_string(), ToastOptions::new());
                     show_sheet.set(false);
@@ -199,10 +212,12 @@ pub fn SentencingTab(case_id: String) -> Element {
         div {
             style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);",
             h3 { "Sentencing" }
-            Button {
-                variant: ButtonVariant::Primary,
-                onclick: move |_| show_sheet.set(true),
-                "Record Sentence"
+            if can(&role, Action::EnterSentencing) {
+                Button {
+                    variant: ButtonVariant::Primary,
+                    onclick: move |_| show_sheet.set(true),
+                    "Record Sentence"
+                }
             }
         }
 

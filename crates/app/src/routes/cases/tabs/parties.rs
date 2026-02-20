@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::PartyResponse;
+use shared_types::PartyListItem;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -9,12 +9,14 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use crate::auth::{can, use_user_role, Action};
 use crate::CourtContext;
 
 #[component]
 pub fn PartiesTab(case_id: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let toast = use_toast();
+    let role = use_user_role();
 
     let mut show_sheet = use_signal(|| false);
     let mut form_name = use_signal(String::new);
@@ -30,7 +32,6 @@ pub fn PartiesTab(case_id: String) -> Element {
             server::api::list_case_parties(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<PartyResponse>>(&json).ok())
         }
     });
 
@@ -46,13 +47,26 @@ pub fn PartiesTab(case_id: String) -> Element {
                 toast.error("Name is required.".to_string(), ToastOptions::new());
                 return;
             }
-            let body = serde_json::json!({
-                "case_id": cid,
-                "name": name.trim(),
-                "party_type": ptype,
-                "role": role.trim(),
-            });
-            match server::api::create_party(court, body.to_string()).await {
+            let body = shared_types::CreatePartyRequest {
+                case_id: cid,
+                name: name.trim().to_string(),
+                party_type: ptype,
+                entity_type: "Individual".to_string(),
+                party_role: Some(role.trim().to_string()),
+                first_name: None,
+                last_name: None,
+                middle_name: None,
+                organization_name: None,
+                email: None,
+                phone: None,
+                date_of_birth: None,
+                ssn_last_four: None,
+                ein: None,
+                address: None,
+                service_method: None,
+                pro_se: None,
+            };
+            match server::api::create_party(court, body).await {
                 Ok(_) => {
                     toast.success("Party added.".to_string(), ToastOptions::new());
                     show_sheet.set(false);
@@ -69,10 +83,12 @@ pub fn PartiesTab(case_id: String) -> Element {
         div {
             style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);",
             h3 { "Case Parties" }
-            Button {
-                variant: ButtonVariant::Primary,
-                onclick: move |_| show_sheet.set(true),
-                "Add Party"
+            if can(&role, Action::CreateCase) {
+                Button {
+                    variant: ButtonVariant::Primary,
+                    onclick: move |_| show_sheet.set(true),
+                    "Add Party"
+                }
             }
         }
 
@@ -82,8 +98,6 @@ pub fn PartiesTab(case_id: String) -> Element {
                     DataTableHeader {
                         DataTableColumn { "Name" }
                         DataTableColumn { "Type" }
-                        DataTableColumn { "Role" }
-                        DataTableColumn { "Status" }
                     }
                     DataTableBody {
                         for party in parties.iter() {
@@ -92,12 +106,6 @@ pub fn PartiesTab(case_id: String) -> Element {
                                 DataTableCell {
                                     Badge { variant: BadgeVariant::Secondary,
                                         {party.party_type.clone()}
-                                    }
-                                }
-                                DataTableCell { {party.party_role.clone()} }
-                                DataTableCell {
-                                    Badge { variant: BadgeVariant::Primary,
-                                        {party.status.clone()}
                                     }
                                 }
                             }

@@ -9,12 +9,14 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, ToastOptions};
 
+use crate::auth::{can, use_user_role, Action};
 use crate::CourtContext;
 
 #[component]
 pub fn EvidenceTab(case_id: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let toast = use_toast();
+    let role = use_user_role();
 
     let mut show_create_sheet = use_signal(|| false);
     let mut show_custody_sheet = use_signal(|| false);
@@ -35,7 +37,6 @@ pub fn EvidenceTab(case_id: String) -> Element {
             server::api::list_evidence_by_case(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<EvidenceResponse>>(&json).ok())
         }
     });
 
@@ -51,13 +52,17 @@ pub fn EvidenceTab(case_id: String) -> Element {
                 toast.error("Description is required.".to_string(), ToastOptions::new());
                 return;
             }
-            let body = serde_json::json!({
-                "case_id": cid,
-                "description": desc.trim(),
-                "evidence_type": etype,
-                "location": loc.trim(),
-            });
-            match server::api::create_evidence(court, body.to_string()).await {
+            let case_uuid = uuid::Uuid::parse_str(&cid).unwrap();
+            let body = shared_types::CreateEvidenceRequest {
+                case_id: case_uuid,
+                description: desc.trim().to_string(),
+                evidence_type: etype,
+                location: Some(loc.trim().to_string()),
+                seized_date: None,
+                seized_by: None,
+                is_sealed: None,
+            };
+            match server::api::create_evidence(court, body).await {
                 Ok(_) => {
                     toast.success("Evidence added.".to_string(), ToastOptions::new());
                     show_create_sheet.set(false);
@@ -77,10 +82,12 @@ pub fn EvidenceTab(case_id: String) -> Element {
         div {
             style: "display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);",
             h3 { "Evidence" }
-            Button {
-                variant: ButtonVariant::Primary,
-                onclick: move |_| show_create_sheet.set(true),
-                "Add Evidence"
+            if can(&role, Action::ManageEvidence) {
+                Button {
+                    variant: ButtonVariant::Primary,
+                    onclick: move |_| show_create_sheet.set(true),
+                    "Add Evidence"
+                }
             }
         }
 
@@ -127,9 +134,7 @@ pub fn EvidenceTab(case_id: String) -> Element {
                                                         show_custody_sheet.set(true);
                                                         spawn(async move {
                                                             match server::api::list_custody_transfers(court, evidence_id).await {
-                                                                Ok(json) => {
-                                                                    let transfers = serde_json::from_str::<Vec<CustodyTransferResponse>>(&json)
-                                                                        .unwrap_or_default();
+                                                                Ok(transfers) => {
                                                                     custody_chain.set(Some(transfers));
                                                                 }
                                                                 Err(_) => custody_chain.set(Some(Vec::new())),
