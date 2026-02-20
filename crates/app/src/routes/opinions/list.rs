@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{JudicialOpinionResponse, PaginatedResponse, PaginationMeta};
+use shared_types::{JudicialOpinionResponse, PaginationMeta};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Input, PageActions, PageHeader,

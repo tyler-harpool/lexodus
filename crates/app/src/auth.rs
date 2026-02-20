@@ -33,6 +33,7 @@ pub fn use_auth() -> AuthState {
 }
 
 /// Hook to check if the current user has the admin role.
+#[allow(dead_code)]
 pub fn use_is_admin() -> bool {
     let auth = use_auth();
     let binding = auth.current_user.read();
@@ -118,6 +119,7 @@ pub fn use_sidebar_visibility() -> SidebarVisibility {
 
 /// Actions that can be role-gated in the UI.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum Action {
     // Court record management (clerk/admin)
     ManageAttorneys,

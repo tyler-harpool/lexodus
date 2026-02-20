@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{CaseAssignmentResponse, CaseResponse, TimelineResponse};
+use shared_types::CaseResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DetailFooter, DetailGrid,
     DetailItem, DetailList, Skeleton, Tooltip, TooltipContent, TooltipTrigger,
@@ -22,7 +22,6 @@ pub fn OverviewTab(case_item: CaseResponse) -> Element {
             server::api::list_case_assignments(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<CaseAssignmentResponse>>(&json).ok())
         }
     });
 
@@ -34,7 +33,6 @@ pub fn OverviewTab(case_item: CaseResponse) -> Element {
             server::api::get_case_timeline(court, cid, Some(0), Some(5))
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<TimelineResponse>(&json).ok())
         }
     });
 

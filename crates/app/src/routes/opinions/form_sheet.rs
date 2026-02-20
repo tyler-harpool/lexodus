@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use shared_types::{
-    CaseSearchResponse, JudgeResponse, JudicialOpinionResponse, OPINION_DISPOSITIONS,
-    OPINION_STATUSES, OPINION_TYPES,
+    CreateJudicialOpinionRequest, JudicialOpinionResponse,
+    UpdateJudicialOpinionRequest, OPINION_DISPOSITIONS, OPINION_STATUSES, OPINION_TYPES,
 };
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
@@ -50,23 +50,16 @@ pub fn OpinionFormSheet(
     let cases_for_select = use_resource(move || {
         let court = ctx.court_id.read().clone();
         async move {
-            match server::api::search_cases(court, None, None, None, None, None, Some(100)).await {
-                Ok(json) => serde_json::from_str::<CaseSearchResponse>(&json)
-                    .ok()
-                    .map(|r| r.cases),
-                Err(_) => None,
-            }
+            server::api::search_cases(court, None, None, None, None, None, Some(100))
+                .await
+                .ok()
+                .map(|r| r.cases)
         }
     });
 
     let judges_for_select = use_resource(move || {
         let court = ctx.court_id.read().clone();
-        async move {
-            match server::api::list_judges(court).await {
-                Ok(json) => serde_json::from_str::<Vec<JudgeResponse>>(&json).ok(),
-                Err(_) => None,
-            }
-        }
+        async move { server::api::list_judges(court).await.ok() }
     });
 
     // --- Hydration: sync signals from initial data ---
@@ -188,24 +181,39 @@ pub fn OpinionFormSheet(
                     return;
                 }
 
-                let body = serde_json::json!({
-                    "case_id": case_id.read().clone(),
-                    "case_name": case_name.read().clone(),
-                    "docket_number": docket_number.read().clone(),
-                    "author_judge_id": judge_id.read().clone(),
-                    "author_judge_name": judge_name.read().clone(),
-                    "opinion_type": opinion_type.read().clone(),
-                    "title": title.read().trim().to_string(),
-                    "content": content.read().clone(),
-                    "disposition": opt_str(&disposition.read()),
-                    "syllabus": opt_str(&syllabus.read()),
-                    "status": status.read().clone(),
-                    "keywords": keywords,
-                });
+                let parsed_case_id = match uuid::Uuid::parse_str(&case_id.read()) {
+                    Ok(u) => u,
+                    Err(_) => {
+                        toast.error("Invalid case ID.".to_string(), ToastOptions::new());
+                        return;
+                    }
+                };
+                let parsed_judge_id = match uuid::Uuid::parse_str(&judge_id.read()) {
+                    Ok(u) => u,
+                    Err(_) => {
+                        toast.error("Invalid judge ID.".to_string(), ToastOptions::new());
+                        return;
+                    }
+                };
+
+                let req = CreateJudicialOpinionRequest {
+                    case_id: parsed_case_id,
+                    case_name: case_name.read().clone(),
+                    docket_number: docket_number.read().clone(),
+                    author_judge_id: parsed_judge_id,
+                    author_judge_name: judge_name.read().clone(),
+                    opinion_type: opinion_type.read().clone(),
+                    title: title.read().trim().to_string(),
+                    content: content.read().clone(),
+                    disposition: opt_string(&disposition.read()),
+                    syllabus: opt_string(&syllabus.read()),
+                    status: Some(status.read().clone()),
+                    keywords,
+                };
 
                 spawn(async move {
                     in_flight.set(true);
-                    match server::api::create_opinion(court, body.to_string()).await {
+                    match server::api::create_opinion(court, req).await {
                         Ok(_) => {
                             on_saved.call(());
                             on_close.call(());
@@ -222,56 +230,53 @@ pub fn OpinionFormSheet(
                 });
             }
             FormMode::Edit => {
-                // PATCH: only send changed fields
-                let mut body = serde_json::Map::new();
+                // Build typed update request with only changed fields
+                let mut has_changes = false;
+
+                let mut req = UpdateJudicialOpinionRequest {
+                    title: None,
+                    content: None,
+                    status: None,
+                    disposition: None,
+                    syllabus: None,
+                    keywords: None,
+                };
+
                 if let Some(ref init) = initial.as_ref() {
                     if title.read().trim() != init.title {
-                        body.insert(
-                            "title".into(),
-                            serde_json::Value::String(title.read().trim().to_string()),
-                        );
+                        req.title = Some(title.read().trim().to_string());
+                        has_changes = true;
                     }
                     if *content.read() != init.content {
-                        body.insert(
-                            "content".into(),
-                            serde_json::Value::String(content.read().clone()),
-                        );
+                        req.content = Some(content.read().clone());
+                        has_changes = true;
                     }
                     if *status.read() != init.status {
-                        body.insert(
-                            "status".into(),
-                            serde_json::Value::String(status.read().clone()),
-                        );
+                        req.status = Some(status.read().clone());
+                        has_changes = true;
                     }
                     if *disposition.read() != init.disposition {
-                        body.insert("disposition".into(), opt_str(&disposition.read()));
+                        req.disposition = opt_string(&disposition.read());
+                        has_changes = true;
                     }
                     if *syllabus.read() != init.syllabus {
-                        body.insert("syllabus".into(), opt_str(&syllabus.read()));
+                        req.syllabus = opt_string(&syllabus.read());
+                        has_changes = true;
                     }
-                    let kw_changed = keywords != init.keywords;
-                    if kw_changed {
-                        body.insert(
-                            "keywords".into(),
-                            serde_json::Value::Array(
-                                keywords
-                                    .iter()
-                                    .map(|k| serde_json::Value::String(k.clone()))
-                                    .collect(),
-                            ),
-                        );
+                    if keywords != init.keywords {
+                        req.keywords = Some(keywords);
+                        has_changes = true;
                     }
                 }
 
-                if body.is_empty() {
+                if !has_changes {
                     on_close.call(());
                     return;
                 }
 
-                let payload = serde_json::Value::Object(body).to_string();
                 spawn(async move {
                     in_flight.set(true);
-                    match server::api::update_opinion(court, id, payload).await {
+                    match server::api::update_opinion(court, id, req).await {
                         Ok(_) => {
                             on_saved.call(());
                             on_close.call(());
@@ -511,10 +516,12 @@ fn snapshot(
     .to_string()
 }
 
-fn opt_str(s: &str) -> serde_json::Value {
-    if s.trim().is_empty() {
-        serde_json::Value::Null
+/// Converts an empty-or-whitespace string to `None`, otherwise `Some(trimmed)`.
+fn opt_string(s: &str) -> Option<String> {
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        None
     } else {
-        serde_json::Value::String(s.to_string())
+        Some(trimmed.to_string())
     }
 }

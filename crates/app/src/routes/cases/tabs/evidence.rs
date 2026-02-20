@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{CustodyTransferResponse, EvidenceResponse};
+use shared_types::CustodyTransferResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardHeader,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,

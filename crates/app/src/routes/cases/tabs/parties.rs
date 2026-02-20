@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::PartyListItem;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,

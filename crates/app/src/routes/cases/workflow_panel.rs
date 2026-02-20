@@ -8,6 +8,7 @@ use crate::routes::Route;
 use crate::CourtContext;
 
 /// Human-readable label for a pipeline step.
+#[allow(dead_code)]
 fn step_label(step: &str) -> &str {
     match step {
         "review" => "Review Filing",
@@ -25,7 +26,7 @@ fn step_label(step: &str) -> &str {
 pub fn WorkflowPanel(queue_id: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let court = ctx.court_id.read().clone();
-    let nav = use_navigator();
+    let _nav = use_navigator();
 
     let mut reject_reason = use_signal(|| String::new());
     let mut show_reject = use_signal(|| false);
@@ -41,7 +42,6 @@ pub fn WorkflowPanel(queue_id: String) -> Element {
             )
             .await
             .ok()
-            .and_then(|json| serde_json::from_str::<shared_types::QueueSearchResponse>(&json).ok())
             .and_then(|resp| resp.items.into_iter().find(|i| i.id == id))
         }
     });

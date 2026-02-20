@@ -1,8 +1,7 @@
 use dioxus::prelude::*;
 use shared_types::{
     CreateServiceRecordRequest, DocketAttachmentResponse, DocketEntryResponse,
-    DocketSearchResponse, DocumentResponse, NefResponse, PartyListItem,
-    ServiceRecordResponse, SubmitEventRequest, SubmitEventResponse, UserRole,
+    NefResponse, ServiceRecordResponse, SubmitEventRequest, SubmitEventResponse, UserRole,
     VALID_DOCUMENT_TYPES,
 };
 use shared_ui::components::{
