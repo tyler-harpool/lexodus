@@ -26,12 +26,7 @@ pub fn JudgeDetailPage(id: String) -> Element {
     let mut data = use_resource(move || {
         let court = court_id.clone();
         let jid = judge_id.clone();
-        async move {
-            match server::api::get_judge(court, jid).await {
-                Ok(json) => serde_json::from_str::<JudgeResponse>(&json).ok(),
-                Err(_) => None,
-            }
-        }
+        async move { server::api::get_judge(court, jid).await.ok() }
     });
 
     rsx! {
@@ -103,7 +98,7 @@ fn JudgeDetailView(
                 Link { to: Route::JudgeList {},
                     Button { variant: ButtonVariant::Secondary, "Back to List" }
                 }
-                if can(&role, Action::Edit) {
+                if can(&role, Action::ManageJudges) {
                     Button {
                         variant: ButtonVariant::Primary,
                         onclick: move |_| show_edit.set(true),

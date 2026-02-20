@@ -26,10 +26,7 @@ pub fn CaseDetailPage(id: String) -> Element {
         let court = court_id.clone();
         let cid = case_id.clone();
         async move {
-            match server::api::get_case(court, cid).await {
-                Ok(json) => serde_json::from_str::<CaseResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            server::api::get_case(court, cid).await.ok()
         }
     });
 
@@ -110,7 +107,7 @@ fn CaseDetailView(case_item: CaseResponse, id: String, show_edit: Signal<bool>) 
                 Link { to: Route::CaseList {},
                     Button { variant: ButtonVariant::Secondary, "Cases" }
                 }
-                if can(&role, Action::Edit) {
+                if can(&role, Action::EditCase) {
                     Button {
                         variant: ButtonVariant::Primary,
                         onclick: move |_| show_edit.set(true),

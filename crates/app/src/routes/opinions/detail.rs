@@ -31,12 +31,7 @@ pub fn OpinionDetailPage(id: String) -> Element {
     let mut data = use_resource(move || {
         let court = court_id.clone();
         let oid = opinion_id.clone();
-        async move {
-            match server::api::get_opinion(court, oid).await {
-                Ok(json) => serde_json::from_str::<JudicialOpinionResponse>(&json).ok(),
-                Err(_) => None,
-            }
-        }
+        async move { server::api::get_opinion(court, oid).await.ok() }
     });
 
     let detail_id = id.clone();
@@ -73,14 +68,14 @@ pub fn OpinionDetailPage(id: String) -> Element {
                             Link { to: Route::OpinionList {},
                                 Button { variant: ButtonVariant::Secondary, "Back to List" }
                             }
-                            if can(&role, Action::Edit) {
+                            if can(&role, Action::DraftOpinion) {
                                 Button {
                                     variant: ButtonVariant::Primary,
                                     onclick: move |_| show_edit.set(true),
                                     "Edit"
                                 }
                             }
-                            if can(&role, Action::Delete) {
+                            if can(&role, Action::DraftOpinion) {
                                 Button {
                                     variant: ButtonVariant::Destructive,
                                     onclick: move |_| show_delete_confirm.set(true),
@@ -194,12 +189,7 @@ fn ContentTab(opinion: JudicialOpinionResponse, opinion_id: String) -> Element {
     let headnotes = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let oid = opinion_id.clone();
-        async move {
-            match server::api::list_headnotes(court, oid).await {
-                Ok(json) => serde_json::from_str::<Vec<HeadnoteResponse>>(&json).ok(),
-                Err(_) => None,
-            }
-        }
+        async move { server::api::list_headnotes(court, oid).await.ok() }
     });
 
     rsx! {
@@ -342,12 +332,7 @@ fn VotesTab(opinion_id: String) -> Element {
     let votes = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let oid = opinion_id.clone();
-        async move {
-            match server::api::list_opinion_votes(court, oid).await {
-                Ok(json) => serde_json::from_str::<Vec<OpinionVoteResponse>>(&json).ok(),
-                Err(_) => None,
-            }
-        }
+        async move { server::api::list_opinion_votes(court, oid).await.ok() }
     });
 
     rsx! {
@@ -406,12 +391,7 @@ fn CitationsTab(opinion_id: String) -> Element {
     let citations = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let oid = opinion_id.clone();
-        async move {
-            match server::api::list_opinion_citations(court, oid).await {
-                Ok(json) => serde_json::from_str::<Vec<OpinionCitationResponse>>(&json).ok(),
-                Err(_) => None,
-            }
-        }
+        async move { server::api::list_opinion_citations(court, oid).await.ok() }
     });
 
     rsx! {
@@ -486,12 +466,7 @@ fn DraftsTab(opinion_id: String) -> Element {
     let drafts = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let oid = opinion_id.clone();
-        async move {
-            match server::api::list_opinion_drafts(court, oid).await {
-                Ok(json) => serde_json::from_str::<Vec<OpinionDraftResponse>>(&json).ok(),
-                Err(_) => None,
-            }
-        }
+        async move { server::api::list_opinion_drafts(court, oid).await.ok() }
     });
 
     rsx! {

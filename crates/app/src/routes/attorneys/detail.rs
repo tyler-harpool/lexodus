@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::AttorneyResponse;
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Button, ButtonVariant, Card,
@@ -31,10 +30,7 @@ pub fn AttorneyDetailPage(id: String) -> Element {
         let court = court_id.clone();
         let aid = attorney_id.clone();
         async move {
-            match server::api::get_attorney(court, aid).await {
-                Ok(json) => serde_json::from_str::<AttorneyResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            server::api::get_attorney(court, aid).await.ok()
         }
     });
 
@@ -67,14 +63,14 @@ pub fn AttorneyDetailPage(id: String) -> Element {
                             Link { to: Route::AttorneyList {},
                                 Button { variant: ButtonVariant::Secondary, "Back to List" }
                             }
-                            if can(&role, Action::Edit) {
+                            if can(&role, Action::ManageAttorneys) {
                                 Button {
                                     variant: ButtonVariant::Primary,
                                     onclick: move |_| show_edit.set(true),
                                     "Edit"
                                 }
                             }
-                            if can(&role, Action::Delete) {
+                            if can(&role, Action::ManageAttorneys) {
                                 Button {
                                     variant: ButtonVariant::Destructive,
                                     onclick: move |_| show_delete_confirm.set(true),

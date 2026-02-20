@@ -119,25 +119,71 @@ pub fn use_sidebar_visibility() -> SidebarVisibility {
 /// Actions that can be role-gated in the UI.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Action {
-    Create,
-    Edit,
-    Delete,
-    Sign,
-    Issue,
-    Serve,
-    Seal,
+    // Court record management (clerk/admin)
+    ManageAttorneys,
+    ManageJudges,
+    ManageRules,
+
+    // Case workflow
+    CreateCase,
+    EditCase,
+    DeleteCase,
+
+    // Docket & Filing
+    CreateDocketEntry,
+    FileFiling,
+
+    // Judicial actions
+    SignOrder,
+    IssueOrder,
+    DraftOpinion,
+
+    // Document control
+    SealDocument,
+    StrikeDocument,
+
+    // Evidence & Sentencing
+    ManageEvidence,
+    EnterSentencing,
+
+    // Universal
     GeneratePdf,
 }
 
 /// Check if a role is permitted to perform an action.
-/// v1: permissive defaults — structure exists so we don't hardcode buttons everywhere.
 pub fn can(role: &UserRole, action: Action) -> bool {
     match action {
-        Action::Sign => matches!(role, UserRole::Judge | UserRole::Admin),
-        Action::Issue | Action::Serve => matches!(role, UserRole::Clerk | UserRole::Admin),
-        Action::Seal => matches!(role, UserRole::Judge | UserRole::Clerk | UserRole::Admin),
-        Action::Create | Action::Edit | Action::Delete | Action::GeneratePdf => {
-            !matches!(role, UserRole::Public)
+        // Clerk/Admin only
+        Action::ManageAttorneys | Action::ManageJudges | Action::ManageRules => {
+            matches!(role, UserRole::Clerk | UserRole::Admin)
         }
+        Action::CreateCase | Action::CreateDocketEntry => {
+            matches!(role, UserRole::Clerk | UserRole::Admin)
+        }
+        // Admin only
+        Action::DeleteCase => matches!(role, UserRole::Admin),
+        // Clerk/Admin/Judge
+        Action::EditCase | Action::EnterSentencing => {
+            matches!(role, UserRole::Clerk | UserRole::Judge | UserRole::Admin)
+        }
+        // Attorney/Clerk/Admin
+        Action::FileFiling => {
+            matches!(role, UserRole::Attorney | UserRole::Clerk | UserRole::Admin)
+        }
+        // Judge/Admin
+        Action::SignOrder | Action::DraftOpinion => {
+            matches!(role, UserRole::Judge | UserRole::Admin)
+        }
+        // Clerk/Admin
+        Action::IssueOrder => matches!(role, UserRole::Clerk | UserRole::Admin),
+        // Judge/Clerk/Admin
+        Action::SealDocument | Action::StrikeDocument => {
+            matches!(role, UserRole::Judge | UserRole::Clerk | UserRole::Admin)
+        }
+        Action::ManageEvidence => {
+            matches!(role, UserRole::Clerk | UserRole::Admin)
+        }
+        // All except public
+        Action::GeneratePdf => !matches!(role, UserRole::Public),
     }
 }

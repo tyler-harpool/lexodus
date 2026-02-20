@@ -24,10 +24,7 @@ pub fn DeadlineDetailPage(id: String) -> Element {
         let court = court_id.clone();
         let deadline_id = dl_id.clone();
         async move {
-            match server::api::get_deadline(court, deadline_id).await {
-                Ok(json) => serde_json::from_str::<DeadlineResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            server::api::get_deadline(court, deadline_id).await.ok()
         }
     });
 
@@ -127,14 +124,14 @@ fn DeadlineDetailView(
                 Link { to: Route::DeadlineList {},
                     Button { variant: ButtonVariant::Secondary, "Back to List" }
                 }
-                if can(&role, Action::Edit) {
+                if can(&role, Action::EditCase) {
                     Button {
                         variant: ButtonVariant::Primary,
                         onclick: move |_| show_edit.set(true),
                         "Edit"
                     }
                 }
-                if can(&role, Action::Delete) {
+                if can(&role, Action::DeleteCase) {
                     Button {
                         variant: ButtonVariant::Destructive,
                         onclick: move |_| show_delete_confirm.set(true),
