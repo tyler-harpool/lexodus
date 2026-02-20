@@ -86,6 +86,7 @@ pub async fn create_rule(
         effective_date,
         &conditions,
         &actions,
+        body.triggers.as_ref(),
     )
     .await?;
 
@@ -175,6 +176,7 @@ pub async fn update_rule(
         effective_date,
         body.conditions.as_ref(),
         body.actions.as_ref(),
+        body.triggers.as_ref(),
     )
     .await?
     .ok_or_else(|| AppError::not_found(format!("Rule {} not found", id)))?;

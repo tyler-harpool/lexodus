@@ -33,6 +33,8 @@ pub struct Rule {
     pub conditions: serde_json::Value,
     /// JSON actions to perform when the rule matches.
     pub actions: serde_json::Value,
+    /// Trigger events that activate this rule (JSONB array of strings)
+    pub triggers: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -65,6 +67,7 @@ pub struct RuleResponse {
     pub supersedes_rule_id: Option<String>,
     pub conditions: serde_json::Value,
     pub actions: serde_json::Value,
+    pub triggers: serde_json::Value,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -86,6 +89,7 @@ impl From<Rule> for RuleResponse {
             supersedes_rule_id: r.supersedes_rule_id.map(|id| id.to_string()),
             conditions: r.conditions,
             actions: r.actions,
+            triggers: r.triggers,
             created_at: r.created_at.to_rfc3339(),
             updated_at: r.updated_at.to_rfc3339(),
         }
@@ -113,6 +117,8 @@ pub struct CreateRuleRequest {
     pub conditions: Option<serde_json::Value>,
     #[serde(default)]
     pub actions: Option<serde_json::Value>,
+    #[serde(default)]
+    pub triggers: Option<serde_json::Value>,
 }
 
 /// Request body for updating a rule (all fields optional).
@@ -130,6 +136,8 @@ pub struct UpdateRuleRequest {
     pub effective_date: Option<String>,
     pub conditions: Option<serde_json::Value>,
     pub actions: Option<serde_json::Value>,
+    #[serde(default)]
+    pub triggers: Option<serde_json::Value>,
 }
 
 /// Request body for evaluating rules against a context.

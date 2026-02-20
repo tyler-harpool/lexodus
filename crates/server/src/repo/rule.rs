@@ -20,21 +20,25 @@ pub async fn create(
     effective_date: Option<DateTime<Utc>>,
     conditions: &serde_json::Value,
     actions: &serde_json::Value,
+    triggers: Option<&serde_json::Value>,
 ) -> Result<Rule, AppError> {
+    let default_triggers = serde_json::Value::Array(vec![]);
+    let final_triggers = triggers.unwrap_or(&default_triggers);
+
     let row = sqlx::query_as!(
         Rule,
         r#"
         INSERT INTO rules (
             court_id, name, description, source, category,
             priority, status, jurisdiction, citation,
-            effective_date, conditions, actions
+            effective_date, conditions, actions, triggers
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING
             id, court_id, name, description, source, category,
             priority, status, jurisdiction, citation,
             effective_date, expiration_date, supersedes_rule_id,
-            conditions, actions, created_at, updated_at
+            conditions, actions, triggers, created_at, updated_at
         "#,
         court_id,
         name,
@@ -48,6 +52,7 @@ pub async fn create(
         effective_date,
         conditions,
         actions,
+        final_triggers,
     )
     .fetch_one(pool)
     .await
@@ -69,7 +74,7 @@ pub async fn find_by_id(
             id, court_id, name, description, source, category,
             priority, status, jurisdiction, citation,
             effective_date, expiration_date, supersedes_rule_id,
-            conditions, actions, created_at, updated_at
+            conditions, actions, triggers, created_at, updated_at
         FROM rules
         WHERE id = $1 AND court_id = $2
         "#,
@@ -95,7 +100,7 @@ pub async fn list_all(
             id, court_id, name, description, source, category,
             priority, status, jurisdiction, citation,
             effective_date, expiration_date, supersedes_rule_id,
-            conditions, actions, created_at, updated_at
+            conditions, actions, triggers, created_at, updated_at
         FROM rules
         WHERE court_id = $1
         ORDER BY priority DESC, name
@@ -122,7 +127,7 @@ pub async fn list_by_category(
             id, court_id, name, description, source, category,
             priority, status, jurisdiction, citation,
             effective_date, expiration_date, supersedes_rule_id,
-            conditions, actions, created_at, updated_at
+            conditions, actions, triggers, created_at, updated_at
         FROM rules
         WHERE court_id = $1 AND category = $2
         ORDER BY priority DESC, name
@@ -150,7 +155,7 @@ pub async fn list_by_trigger(
             id, court_id, name, description, source, category,
             priority, status, jurisdiction, citation,
             effective_date, expiration_date, supersedes_rule_id,
-            conditions, actions, created_at, updated_at
+            conditions, actions, triggers, created_at, updated_at
         FROM rules
         WHERE court_id = $1 AND source = $2
         ORDER BY priority DESC, name
@@ -178,7 +183,7 @@ pub async fn list_by_jurisdiction(
             id, court_id, name, description, source, category,
             priority, status, jurisdiction, citation,
             effective_date, expiration_date, supersedes_rule_id,
-            conditions, actions, created_at, updated_at
+            conditions, actions, triggers, created_at, updated_at
         FROM rules
         WHERE court_id = $1 AND jurisdiction = $2
         ORDER BY priority DESC, name
@@ -209,6 +214,7 @@ pub async fn update(
     effective_date: Option<DateTime<Utc>>,
     conditions: Option<&serde_json::Value>,
     actions: Option<&serde_json::Value>,
+    triggers: Option<&serde_json::Value>,
 ) -> Result<Option<Rule>, AppError> {
     let existing = match find_by_id(pool, court_id, id).await? {
         Some(r) => r,
@@ -226,6 +232,7 @@ pub async fn update(
     let final_effective = effective_date.or(existing.effective_date);
     let final_conditions = conditions.unwrap_or(&existing.conditions);
     let final_actions = actions.unwrap_or(&existing.actions);
+    let final_triggers = triggers.unwrap_or(&existing.triggers);
 
     let row = sqlx::query_as!(
         Rule,
@@ -234,13 +241,13 @@ pub async fn update(
             name = $3, description = $4, source = $5, category = $6,
             priority = $7, status = $8, jurisdiction = $9, citation = $10,
             effective_date = $11, conditions = $12, actions = $13,
-            updated_at = NOW()
+            triggers = $14, updated_at = NOW()
         WHERE id = $1 AND court_id = $2
         RETURNING
             id, court_id, name, description, source, category,
             priority, status, jurisdiction, citation,
             effective_date, expiration_date, supersedes_rule_id,
-            conditions, actions, created_at, updated_at
+            conditions, actions, triggers, created_at, updated_at
         "#,
         id,
         court_id,
@@ -255,6 +262,7 @@ pub async fn update(
         final_effective,
         final_conditions,
         final_actions,
+        final_triggers,
     )
     .fetch_optional(pool)
     .await
