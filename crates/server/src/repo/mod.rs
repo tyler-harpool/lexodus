@@ -112,3 +112,5 @@ pub mod signature;
 pub mod practice_area;
 #[cfg(feature = "server")]
 pub mod queue;
+#[cfg(feature = "server")]
+pub mod case_event;

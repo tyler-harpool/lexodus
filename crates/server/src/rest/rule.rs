@@ -324,46 +324,90 @@ pub async fn evaluate_rules(
     court: CourtId,
     Json(body): Json<EvaluateRulesRequest>,
 ) -> Result<Json<EvaluateRulesResponse>, AppError> {
-    let rules = crate::repo::rule::list_active(&pool, &court.0, body.category.as_deref()).await?;
+    use crate::compliance::engine;
+    use shared_types::compliance::{FilingContext, TriggerEvent};
 
-    let context_map = match &body.context {
+    // Build FilingContext from request body
+    let context_obj = match &body.context {
         serde_json::Value::Object(m) => m.clone(),
         _ => serde_json::Map::new(),
     };
 
-    let mut matched = Vec::new();
-    let mut actions = Vec::new();
+    let filing_context = FilingContext {
+        case_type: context_obj
+            .get("case_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        document_type: context_obj
+            .get("document_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        filer_role: context_obj
+            .get("filer_role")
+            .and_then(|v| v.as_str())
+            .unwrap_or("attorney")
+            .to_string(),
+        jurisdiction_id: court.0.clone(),
+        division: context_obj
+            .get("division")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        assigned_judge: context_obj
+            .get("assigned_judge")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        service_method: None,
+        metadata: body.context.clone(),
+    };
 
-    for rule in rules {
-        // A rule matches if every key in its conditions object exists in the context
-        // and the values are equal, or if the conditions object is empty.
-        let rule_conditions = match &rule.conditions {
-            serde_json::Value::Object(m) => m.clone(),
-            _ => serde_json::Map::new(),
-        };
+    // Parse trigger event from context (default to ManualEvaluation)
+    let trigger = context_obj
+        .get("trigger")
+        .and_then(|v| v.as_str())
+        .and_then(TriggerEvent::from_str_opt)
+        .unwrap_or(TriggerEvent::ManualEvaluation);
 
-        let matches = rule_conditions.is_empty()
-            || rule_conditions.iter().all(|(k, v)| {
-                context_map.get(k).map_or(false, |ctx_v| ctx_v == v)
-            });
+    // Load all active rules for the court
+    let all_rules = crate::repo::rule::list_active(&pool, &court.0, body.category.as_deref()).await?;
 
-        if matches {
-            // Collect actions from this rule
-            match &rule.actions {
-                serde_json::Value::Array(arr) => {
-                    actions.extend(arr.clone());
-                }
-                serde_json::Value::Object(_) => {
-                    actions.push(rule.actions.clone());
-                }
-                _ => {}
-            }
-            matched.push(RuleResponse::from(rule));
-        }
-    }
+    // Stage 1: Select applicable rules by jurisdiction, trigger, and in-effect status
+    let selected = engine::select_rules(&court.0, &trigger, &all_rules);
+
+    // Stage 2: Resolve priority ordering (highest weight first)
+    let prioritized = engine::resolve_priority(selected);
+
+    // Stage 3-4: Evaluate conditions and process actions into compliance report
+    let report = engine::evaluate(&filing_context, &prioritized);
+
+    // Build backward-compatible response from the compliance report
+    let matched_rules: Vec<RuleResponse> = prioritized
+        .into_iter()
+        .filter(|r| {
+            report
+                .results
+                .iter()
+                .any(|res| res.rule_id == r.id && res.matched)
+        })
+        .map(RuleResponse::from)
+        .collect();
+
+    let actions: Vec<serde_json::Value> = report
+        .results
+        .iter()
+        .filter(|r| r.matched)
+        .map(|r| {
+            serde_json::json!({
+                "rule_id": r.rule_id.to_string(),
+                "action": r.action_taken,
+                "message": r.message,
+            })
+        })
+        .collect();
 
     Ok(Json(EvaluateRulesResponse {
-        matched_rules: matched,
+        matched_rules,
         actions,
     }))
 }
