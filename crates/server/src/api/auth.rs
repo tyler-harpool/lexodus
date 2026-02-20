@@ -54,7 +54,8 @@ pub(crate) async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, Se
         r#"SELECT id, username, display_name, email, password_hash, role, tier, avatar_url,
                   email_verified, phone_number, phone_verified,
                   email_notifications_enabled, push_notifications_enabled, weekly_digest_enabled,
-                  court_roles, preferred_court_id
+                  court_roles, preferred_court_id,
+                  linked_judge_id, linked_attorney_id
            FROM users WHERE id = $1"#,
         user_id
     )
@@ -83,31 +84,15 @@ pub(crate) async fn fetch_auth_user(user_id: i64) -> Result<Option<AuthUser>, Se
                 std::collections::HashMap::new()
             };
 
-            // Resolve linked judge/attorney by email
-            let email = u.email.clone().unwrap_or_default();
-            let linked_judge_id: Option<String> = sqlx::query_scalar(
-                "SELECT id::TEXT FROM judges WHERE email = $1 LIMIT 1",
-            )
-            .bind(&email)
-            .fetch_optional(db)
-            .await
-            .ok()
-            .flatten();
-
-            let linked_attorney_id: Option<String> = sqlx::query_scalar(
-                "SELECT id::TEXT FROM attorneys WHERE email = $1 LIMIT 1",
-            )
-            .bind(&email)
-            .fetch_optional(db)
-            .await
-            .ok()
-            .flatten();
+            // Linked judge/attorney from DB columns
+            let linked_judge_id = u.linked_judge_id.map(|id| id.to_string());
+            let linked_attorney_id = u.linked_attorney_id.map(|id| id.to_string());
 
             Ok(Some(AuthUser {
                 id: u.id,
                 username: u.username,
                 display_name: u.display_name,
-                email,
+                email: u.email.unwrap_or_default(),
                 role: u.role,
                 tier: UserTier::from_str_or_default(&u.tier),
                 avatar_url: u.avatar_url,
