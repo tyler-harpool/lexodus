@@ -6760,6 +6760,7 @@ pub async fn create_rule(court_id: String, body: String) -> Result<String, Serve
         None,
         v.get("conditions").unwrap_or(&serde_json::json!({})),
         v.get("actions").unwrap_or(&serde_json::json!({})),
+        v.get("triggers"),
     )
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;

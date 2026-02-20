@@ -304,7 +304,7 @@ pub async fn list_active(
                 id, court_id, name, description, source, category,
                 priority, status, jurisdiction, citation,
                 effective_date, expiration_date, supersedes_rule_id,
-                conditions, actions, created_at, updated_at
+                conditions, actions, triggers, created_at, updated_at
             FROM rules
             WHERE court_id = $1 AND status = 'Active' AND category = $2
             ORDER BY priority DESC, name
@@ -323,7 +323,7 @@ pub async fn list_active(
                 id, court_id, name, description, source, category,
                 priority, status, jurisdiction, citation,
                 effective_date, expiration_date, supersedes_rule_id,
-                conditions, actions, created_at, updated_at
+                conditions, actions, triggers, created_at, updated_at
             FROM rules
             WHERE court_id = $1 AND status = 'Active'
             ORDER BY priority DESC, name

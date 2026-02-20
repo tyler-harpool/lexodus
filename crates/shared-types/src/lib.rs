@@ -39,7 +39,10 @@ pub use calendar::*;
 pub use case::*;
 pub use civil_case::*;
 pub use common::*;
-pub use compliance::*;
+// compliance types are NOT glob re-exported to avoid name conflicts
+// (ComplianceReport conflicts with deadline::ComplianceReport,
+//  ServiceMethod conflicts with party::ServiceMethod).
+// Use shared_types::compliance::* explicitly instead.
 pub use config::*;
 pub use deadline::*;
 pub use docket::*;
