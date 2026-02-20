@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE fee_schedule\n        SET active = false, updated_at = NOW()\n        WHERE id = $1 AND court_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "370cea5f94667568866bd64cae330353f78f0d68ac5b7854cd84eaf00d7a07be"
+}

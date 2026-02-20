@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COALESCE(\n            json_object_agg(nature_of_suit, cnt),\n            '{}'::json\n        )::TEXT as \"json!\"\n        FROM (\n            SELECT nature_of_suit, COUNT(*) as cnt\n            FROM civil_cases\n            WHERE court_id = $1\n            GROUP BY nature_of_suit\n        ) sub\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "json!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5bc98aceb92c865463e40bf259b7e069dd4106880e42150b17d16b145d97fcc3"
+}

@@ -1,0 +1,141 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO clerk_queue\n            (court_id, queue_type, priority, title, description,\n             source_type, source_id, case_id, case_number, submitted_by,\n             metadata, current_step)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n        RETURNING id, court_id, queue_type, priority, status, title,\n                  description, source_type, source_id, case_id, case_type, case_number,\n                  assigned_to, submitted_by, current_step,\n                  metadata, created_at, updated_at, completed_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "queue_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "source_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "source_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "case_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "case_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "assigned_to",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "submitted_by",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "current_step",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 16,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "completed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "064a6cab84e2155d21c646d263b1defad8cb199539092b9c6ea2faa142f56adc"
+}

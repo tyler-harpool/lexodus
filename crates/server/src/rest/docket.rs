@@ -404,12 +404,15 @@ pub async fn list_docket_by_case(
     let rows = sqlx::query_as!(
         DocketEntry,
         r#"
-        SELECT id, court_id, case_id, entry_number, date_filed, date_entered,
-               filed_by, entry_type, description, document_id,
-               is_sealed, is_ex_parte, page_count, related_entries, service_list
-        FROM docket_entries
-        WHERE court_id = $1 AND case_id = $2
-        ORDER BY entry_number ASC
+        SELECT de.id, de.court_id, de.case_id, de.entry_number, de.date_filed, de.date_entered,
+               de.filed_by, de.entry_type, de.description, de.document_id,
+               de.is_sealed, de.is_ex_parte, de.page_count, de.related_entries, de.service_list,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM docket_entries de
+        LEFT JOIN criminal_cases cc ON de.case_id = cc.id
+        LEFT JOIN civil_cases cv ON de.case_id = cv.id
+        WHERE de.court_id = $1 AND de.case_id = $2
+        ORDER BY de.entry_number ASC
         "#,
         court.0,
         uuid,
@@ -455,12 +458,15 @@ pub async fn get_docket_sheet(
     let rows = sqlx::query_as!(
         DocketEntry,
         r#"
-        SELECT id, court_id, case_id, entry_number, date_filed, date_entered,
-               filed_by, entry_type, description, document_id,
-               is_sealed, is_ex_parte, page_count, related_entries, service_list
-        FROM docket_entries
-        WHERE court_id = $1 AND case_id = $2
-        ORDER BY entry_number ASC
+        SELECT de.id, de.court_id, de.case_id, de.entry_number, de.date_filed, de.date_entered,
+               de.filed_by, de.entry_type, de.description, de.document_id,
+               de.is_sealed, de.is_ex_parte, de.page_count, de.related_entries, de.service_list,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM docket_entries de
+        LEFT JOIN criminal_cases cc ON de.case_id = cc.id
+        LEFT JOIN civil_cases cv ON de.case_id = cv.id
+        WHERE de.court_id = $1 AND de.case_id = $2
+        ORDER BY de.entry_number ASC
         "#,
         court.0,
         uuid,
@@ -513,12 +519,15 @@ pub async fn list_by_type(
     let rows = sqlx::query_as!(
         DocketEntry,
         r#"
-        SELECT id, court_id, case_id, entry_number, date_filed, date_entered,
-               filed_by, entry_type, description, document_id,
-               is_sealed, is_ex_parte, page_count, related_entries, service_list
-        FROM docket_entries
-        WHERE court_id = $1 AND case_id = $2 AND entry_type = $3
-        ORDER BY entry_number ASC
+        SELECT de.id, de.court_id, de.case_id, de.entry_number, de.date_filed, de.date_entered,
+               de.filed_by, de.entry_type, de.description, de.document_id,
+               de.is_sealed, de.is_ex_parte, de.page_count, de.related_entries, de.service_list,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM docket_entries de
+        LEFT JOIN criminal_cases cc ON de.case_id = cc.id
+        LEFT JOIN civil_cases cv ON de.case_id = cv.id
+        WHERE de.court_id = $1 AND de.case_id = $2 AND de.entry_type = $3
+        ORDER BY de.entry_number ASC
         "#,
         court.0,
         uuid,
@@ -558,12 +567,15 @@ pub async fn list_sealed(
     let rows = sqlx::query_as!(
         DocketEntry,
         r#"
-        SELECT id, court_id, case_id, entry_number, date_filed, date_entered,
-               filed_by, entry_type, description, document_id,
-               is_sealed, is_ex_parte, page_count, related_entries, service_list
-        FROM docket_entries
-        WHERE court_id = $1 AND case_id = $2 AND is_sealed = true
-        ORDER BY entry_number ASC
+        SELECT de.id, de.court_id, de.case_id, de.entry_number, de.date_filed, de.date_entered,
+               de.filed_by, de.entry_type, de.description, de.document_id,
+               de.is_sealed, de.is_ex_parte, de.page_count, de.related_entries, de.service_list,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM docket_entries de
+        LEFT JOIN criminal_cases cc ON de.case_id = cc.id
+        LEFT JOIN civil_cases cv ON de.case_id = cv.id
+        WHERE de.court_id = $1 AND de.case_id = $2 AND de.is_sealed = true
+        ORDER BY de.entry_number ASC
         "#,
         court.0,
         uuid,
@@ -605,12 +617,15 @@ pub async fn search_in_case(
     let rows = sqlx::query_as!(
         DocketEntry,
         r#"
-        SELECT id, court_id, case_id, entry_number, date_filed, date_entered,
-               filed_by, entry_type, description, document_id,
-               is_sealed, is_ex_parte, page_count, related_entries, service_list
-        FROM docket_entries
-        WHERE court_id = $1 AND case_id = $2 AND description ILIKE $3
-        ORDER BY entry_number ASC
+        SELECT de.id, de.court_id, de.case_id, de.entry_number, de.date_filed, de.date_entered,
+               de.filed_by, de.entry_type, de.description, de.document_id,
+               de.is_sealed, de.is_ex_parte, de.page_count, de.related_entries, de.service_list,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?"
+        FROM docket_entries de
+        LEFT JOIN criminal_cases cc ON de.case_id = cc.id
+        LEFT JOIN civil_cases cv ON de.case_id = cv.id
+        WHERE de.court_id = $1 AND de.case_id = $2 AND de.description ILIKE $3
+        ORDER BY de.entry_number ASC
         "#,
         court.0,
         uuid,

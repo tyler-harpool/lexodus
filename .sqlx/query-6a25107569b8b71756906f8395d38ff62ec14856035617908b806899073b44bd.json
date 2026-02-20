@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT e.id as \"id!\", e.court_id as \"court_id!\", e.case_id as \"case_id!\",\n               e.event_type as \"event_type!\",\n               e.description as \"description?: String\", c.title as \"case_title!\"\n        FROM calendar_events e\n        JOIN criminal_cases c ON c.id = e.case_id AND c.court_id = e.court_id\n        WHERE e.case_type = 'criminal'\n        UNION ALL\n        SELECT e.id as \"id!\", e.court_id as \"court_id!\", e.case_id as \"case_id!\",\n               e.event_type as \"event_type!\",\n               e.description as \"description?: String\", cv.title as \"case_title!\"\n        FROM calendar_events e\n        JOIN civil_cases cv ON cv.id = e.case_id AND cv.court_id = e.court_id\n        WHERE e.case_type = 'civil'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "event_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description?: String",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "case_title!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "6a25107569b8b71756906f8395d38ff62ec14856035617908b806899073b44bd"
+}

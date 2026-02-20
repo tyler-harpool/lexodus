@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            ce.id, ce.court_id, ce.case_id, ce.judge_id, ce.event_type, ce.scheduled_date,\n            ce.duration_minutes, ce.courtroom, ce.description, ce.participants,\n            ce.court_reporter, ce.is_public, ce.status, ce.notes,\n            ce.actual_start, ce.actual_end, ce.call_time,\n            ce.created_at, ce.updated_at,\n            COALESCE(cc.case_number, cv.case_number) as \"case_number?\"\n        FROM calendar_events ce\n        LEFT JOIN criminal_cases cc ON ce.case_id = cc.id\n        LEFT JOIN civil_cases cv ON ce.case_id = cv.id\n        WHERE ce.court_id = $1 AND ce.courtroom = $2\n        ORDER BY ce.scheduled_date ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "event_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "scheduled_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "courtroom",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "participants",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 10,
+        "name": "court_reporter",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "actual_start",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "actual_end",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "call_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "case_number?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "2072956413735e2214164ea6c7971780c139423e47178dbcd9ecc48bc1720c17"
+}

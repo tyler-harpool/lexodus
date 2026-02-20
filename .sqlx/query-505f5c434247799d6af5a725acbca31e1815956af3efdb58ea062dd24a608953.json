@@ -1,0 +1,180 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, case_number, title, description, nature_of_suit,\n               cause_of_action, jurisdiction_basis, jury_demand, class_action,\n               amount_in_controversy::FLOAT8 as \"amount_in_controversy: f64\",\n               status, priority, assigned_judge_id, district_code, location,\n               is_sealed, sealed_date, sealed_by, seal_reason, related_case_id,\n               consent_to_magistrate, pro_se, opened_at, updated_at, closed_at\n        FROM civil_cases\n        WHERE court_id = $1\n          AND ($2::TEXT IS NULL OR status = $2)\n          AND ($3::TEXT IS NULL OR nature_of_suit = $3)\n          AND ($4::TEXT IS NULL OR jurisdiction_basis = $4)\n          AND ($5::BOOL IS NULL OR class_action = $5)\n          AND ($6::UUID IS NULL OR assigned_judge_id = $6)\n          AND ($7::TEXT IS NULL OR title ILIKE $7 OR case_number ILIKE $7)\n        ORDER BY opened_at DESC\n        LIMIT $8 OFFSET $9\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "nature_of_suit",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "cause_of_action",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "jurisdiction_basis",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "jury_demand",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "class_action",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "amount_in_controversy: f64",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 11,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "priority",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "assigned_judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "district_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "is_sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "sealed_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "sealed_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "seal_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "related_case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 21,
+        "name": "consent_to_magistrate",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 22,
+        "name": "pro_se",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 23,
+        "name": "opened_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 24,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 25,
+        "name": "closed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "505f5c434247799d6af5a725acbca31e1815956af3efdb58ea062dd24a608953"
+}

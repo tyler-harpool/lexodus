@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE fee_schedule SET\n            description     = COALESCE($3, description),\n            amount_cents    = COALESCE($4, amount_cents),\n            statute         = COALESCE($5, statute),\n            waivable        = COALESCE($6, waivable),\n            waiver_form     = COALESCE($7, waiver_form),\n            cap_cents       = COALESCE($8, cap_cents),\n            cap_description = COALESCE($9, cap_description),\n            updated_at      = NOW()\n        WHERE id = $1 AND court_id = $2\n        RETURNING id, court_id, fee_id, category, description, amount_cents,\n                  statute, waivable, waiver_form, cap_cents, cap_description,\n                  effective_date, active, created_at, updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "fee_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_cents",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "statute",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "waivable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "waiver_form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "cap_cents",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "cap_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "effective_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 12,
+        "name": "active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Bool",
+        "Text",
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "066beb93b9aff7835e94de1e19618f6399ce3058a2464959c016ac5e27aa0c08"
+}

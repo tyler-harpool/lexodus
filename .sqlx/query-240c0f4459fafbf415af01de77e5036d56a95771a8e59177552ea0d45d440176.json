@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT d.id as \"id!\", d.court_id as \"court_id!\", d.case_id as \"case_id!\",\n               d.entry_number as \"entry_number!\",\n               d.entry_type as \"entry_type!\", d.description as \"description!\",\n               c.case_number as \"case_number!\"\n        FROM docket_entries d\n        JOIN criminal_cases c ON c.id = d.case_id AND c.court_id = d.court_id\n        WHERE d.case_type = 'criminal'\n        UNION ALL\n        SELECT d.id as \"id!\", d.court_id as \"court_id!\", d.case_id as \"case_id!\",\n               d.entry_number as \"entry_number!\",\n               d.entry_type as \"entry_type!\", d.description as \"description!\",\n               cv.case_number as \"case_number!\"\n        FROM docket_entries d\n        JOIN civil_cases cv ON cv.id = d.case_id AND cv.court_id = d.court_id\n        WHERE d.case_type = 'civil'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "entry_number!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "entry_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "description!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "case_number!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "240c0f4459fafbf415af01de77e5036d56a95771a8e59177552ea0d45d440176"
+}

@@ -47,6 +47,8 @@ pub struct DocketEntry {
     pub page_count: Option<i32>,
     pub related_entries: Vec<i32>,
     pub service_list: Vec<String>,
+    /// Resolved case number from LEFT JOIN criminal_cases/civil_cases.
+    pub case_number: Option<String>,
 }
 
 // ── API response types ──────────────────────────────────────────────
@@ -72,6 +74,9 @@ pub struct DocketEntryResponse {
     pub page_count: Option<i32>,
     pub related_entries: Vec<i32>,
     pub service_list: Vec<String>,
+    /// Resolved case number from criminal_cases or civil_cases.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub case_number: Option<String>,
 }
 
 impl From<DocketEntry> for DocketEntryResponse {
@@ -91,6 +96,7 @@ impl From<DocketEntry> for DocketEntryResponse {
             page_count: d.page_count,
             related_entries: d.related_entries,
             service_list: d.service_list,
+            case_number: d.case_number,
         }
     }
 }
@@ -215,13 +221,22 @@ pub struct CreateAttachmentRequest {
 }
 
 /// Response returned when a presigned upload is initiated.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateAttachmentResponse {
     pub attachment_id: String,
     pub presign_url: String,
     pub object_key: String,
     pub required_headers: std::collections::HashMap<String, String>,
+}
+
+/// Response for a presigned download URL for an attachment.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AttachmentDownloadUrlResponse {
+    pub download_url: String,
+    pub filename: String,
+    pub content_type: String,
 }
 
 // ── Docket sheet and statistics ─────────────────────────────────────

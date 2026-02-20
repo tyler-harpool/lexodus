@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT o.id as \"id!\", o.court_id as \"court_id!\", o.case_id as \"case_id!\",\n               o.title as \"title!\",\n               o.order_type as \"order_type!\", c.title as \"case_title!\"\n        FROM judicial_orders o\n        JOIN criminal_cases c ON c.id = o.case_id AND c.court_id = o.court_id\n        WHERE o.case_type = 'criminal'\n        UNION ALL\n        SELECT o.id as \"id!\", o.court_id as \"court_id!\", o.case_id as \"case_id!\",\n               o.title as \"title!\",\n               o.order_type as \"order_type!\", cv.title as \"case_title!\"\n        FROM judicial_orders o\n        JOIN civil_cases cv ON cv.id = o.case_id AND cv.court_id = o.court_id\n        WHERE o.case_type = 'civil'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "title!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "order_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "case_title!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1ae0be391a215ff52b11070fb35693e19831e2c9af0d326f38f855197bdf0cf9"
+}

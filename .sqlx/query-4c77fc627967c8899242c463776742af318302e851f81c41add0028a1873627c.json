@@ -1,0 +1,141 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH upd AS (\n            UPDATE calendar_events SET\n                status = $3,\n                actual_start = COALESCE($4, actual_start),\n                actual_end = COALESCE($5, actual_end),\n                notes = COALESCE($6, notes),\n                updated_at = NOW()\n            WHERE id = $1 AND court_id = $2\n            RETURNING\n                id, court_id, case_id, judge_id, event_type, scheduled_date,\n                duration_minutes, courtroom, description, participants,\n                court_reporter, is_public, status, notes,\n                actual_start, actual_end, call_time,\n                created_at, updated_at\n        )\n        SELECT upd.id as \"id!\",\n               upd.court_id as \"court_id!\",\n               upd.case_id as \"case_id!\",\n               upd.judge_id as \"judge_id!\",\n               upd.event_type as \"event_type!\",\n               upd.scheduled_date as \"scheduled_date!\",\n               upd.duration_minutes as \"duration_minutes!\",\n               upd.courtroom as \"courtroom!\",\n               upd.description as \"description!\",\n               upd.participants as \"participants!\",\n               upd.court_reporter,\n               upd.is_public as \"is_public!\",\n               upd.status as \"status!\",\n               upd.notes as \"notes!\",\n               upd.actual_start,\n               upd.actual_end,\n               upd.call_time,\n               upd.created_at as \"created_at!\",\n               upd.updated_at as \"updated_at!\",\n               COALESCE(cc.case_number, cv.case_number) as \"case_number?\"\n        FROM upd\n        LEFT JOIN criminal_cases cc ON upd.case_id = cc.id\n        LEFT JOIN civil_cases cv ON upd.case_id = cv.id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "judge_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "event_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "scheduled_date!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "duration_minutes!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "courtroom!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "description!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "participants!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 10,
+        "name": "court_reporter",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_public!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "status!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "notes!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "actual_start",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "actual_end",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "call_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "case_number?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "4c77fc627967c8899242c463776742af318302e851f81c41add0028a1873627c"
+}

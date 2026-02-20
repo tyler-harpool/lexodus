@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT de.id, de.court_id, de.case_id, de.entry_number, de.date_filed, de.date_entered,\n               de.filed_by, de.entry_type, de.description, de.document_id,\n               de.is_sealed, de.is_ex_parte, de.page_count, de.related_entries, de.service_list,\n               COALESCE(cc.case_number, cv.case_number) as \"case_number?\"\n        FROM docket_entries de\n        LEFT JOIN criminal_cases cc ON de.case_id = cc.id\n        LEFT JOIN civil_cases cv ON de.case_id = cv.id\n        WHERE de.court_id = $1 AND de.case_id = $2 AND de.description ILIKE $3\n        ORDER BY de.entry_number ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "entry_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "date_filed",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "date_entered",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "filed_by",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "entry_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_ex_parte",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "page_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "related_entries",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 14,
+        "name": "service_list",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 15,
+        "name": "case_number?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "44ba1f99df2ec5721e7b20d18a03cb18ba7f31653f4bda32229474147df5d89c"
+}

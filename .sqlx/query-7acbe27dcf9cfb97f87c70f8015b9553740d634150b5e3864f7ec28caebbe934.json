@@ -1,0 +1,136 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT o.id, o.court_id, o.case_id, o.judge_id,\n               j.name as judge_name,\n               COALESCE(cc.case_number, cv.case_number) as \"case_number?\",\n               o.order_type, o.title, o.content,\n               o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,\n               o.issued_at, o.effective_date, o.expiration_date, o.related_motions,\n               o.created_at, o.updated_at\n        FROM judicial_orders o\n        LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id\n        LEFT JOIN criminal_cases cc ON o.case_id = cc.id\n        LEFT JOIN civil_cases cv ON o.case_id = cv.id\n        WHERE o.court_id = $1 AND o.status = 'Pending Signature'\n        ORDER BY o.created_at ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "judge_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "case_number?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "order_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_sealed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "signer_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "signed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "signature_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "issued_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "effective_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "expiration_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "related_motions",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 18,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7acbe27dcf9cfb97f87c70f8015b9553740d634150b5e3864f7ec28caebbe934"
+}

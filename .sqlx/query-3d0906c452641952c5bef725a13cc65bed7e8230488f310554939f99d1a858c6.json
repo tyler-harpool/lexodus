@@ -1,0 +1,107 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, court_id, fee_id, category, description, amount_cents,\n               statute, waivable, waiver_form, cap_cents, cap_description,\n               effective_date, active, created_at, updated_at\n        FROM fee_schedule\n        WHERE id = $1 AND court_id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "fee_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_cents",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "statute",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "waivable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "waiver_form",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "cap_cents",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "cap_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "effective_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 12,
+        "name": "active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3d0906c452641952c5bef725a13cc65bed7e8230488f310554939f99d1a858c6"
+}

@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT ca.id, ca.court_id, ca.case_id, ca.judge_id, ca.assignment_type,\n               ca.assigned_date, ca.reason, ca.previous_judge_id, ca.reassignment_reason,\n               j.name as judge_name\n        FROM case_assignments ca\n        LEFT JOIN judges j ON ca.judge_id = j.id AND j.court_id = ca.court_id\n        WHERE ca.case_id = $1 AND ca.court_id = $2\n        ORDER BY ca.assigned_date DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "assignment_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "assigned_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "previous_judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "reassignment_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "judge_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "13c0f62ee834c092a5a7f81e4f3b3165fc205acd96b393527234588531101dc2"
+}

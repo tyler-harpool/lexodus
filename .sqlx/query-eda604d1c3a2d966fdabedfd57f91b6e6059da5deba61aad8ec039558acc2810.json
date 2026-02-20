@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH ins AS (\n            INSERT INTO case_assignments\n                (court_id, case_id, judge_id, assignment_type, reason,\n                 previous_judge_id, reassignment_reason)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            RETURNING id, court_id, case_id, judge_id, assignment_type,\n                      assigned_date, reason, previous_judge_id, reassignment_reason\n        )\n        SELECT ins.id, ins.court_id, ins.case_id, ins.judge_id, ins.assignment_type,\n               ins.assigned_date, ins.reason, ins.previous_judge_id, ins.reassignment_reason,\n               j.name as judge_name\n        FROM ins\n        LEFT JOIN judges j ON ins.judge_id = j.id AND j.court_id = ins.court_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "court_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "case_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "assignment_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "assigned_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "previous_judge_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "reassignment_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "judge_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "eda604d1c3a2d966fdabedfd57f91b6e6059da5deba61aad8ec039558acc2810"
+}
