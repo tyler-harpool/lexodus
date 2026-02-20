@@ -107,11 +107,11 @@ pub fn CalendarTab(case_id: String) -> Element {
                         for evt in events.iter() {
                             DataTableRow {
                                 DataTableCell {
-                                    {evt["scheduled_date"].as_str().map(|d| if d.len() >= 16 { &d[..16] } else { d }).unwrap_or("—")}
+                                    {evt["scheduled_date"].as_str().map(|d| crate::format_helpers::format_datetime_human(d)).unwrap_or_else(|| "—".to_string())}
                                 }
                                 DataTableCell {
                                     Badge { variant: BadgeVariant::Secondary,
-                                        {evt["event_type"].as_str().unwrap_or("—").replace('_', " ")}
+                                        {crate::format_helpers::format_snake_case_title(evt["event_type"].as_str().unwrap_or("—"))}
                                     }
                                 }
                                 DataTableCell { {evt["courtroom"].as_str().unwrap_or("—")} }
@@ -121,7 +121,7 @@ pub fn CalendarTab(case_id: String) -> Element {
                                 DataTableCell {
                                     Badge {
                                         variant: event_status_variant(evt["status"].as_str().unwrap_or("scheduled")),
-                                        {evt["status"].as_str().unwrap_or("scheduled").replace('_', " ")}
+                                        {crate::format_helpers::format_snake_case_title(evt["status"].as_str().unwrap_or("scheduled"))}
                                     }
                                 }
                             }

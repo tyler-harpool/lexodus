@@ -93,7 +93,7 @@ pub fn PartiesTab(case_id: String) -> Element {
                                         {party["party_type"].as_str().unwrap_or("—")}
                                     }
                                 }
-                                DataTableCell { {party["role"].as_str().unwrap_or("—")} }
+                                DataTableCell { {party["party_role"].as_str().unwrap_or("—")} }
                                 DataTableCell {
                                     Badge { variant: BadgeVariant::Primary,
                                         {party["status"].as_str().unwrap_or("active")}

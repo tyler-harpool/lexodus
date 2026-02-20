@@ -104,8 +104,11 @@ fn CaseDetailView(case_item: CaseResponse, id: String, show_edit: Signal<bool>) 
         PageHeader {
             PageTitle { "{case_item.title}" }
             PageActions {
+                Link { to: Route::Dashboard {},
+                    Button { variant: ButtonVariant::Secondary, "Queue" }
+                }
                 Link { to: Route::CaseList {},
-                    Button { variant: ButtonVariant::Secondary, "Back to List" }
+                    Button { variant: ButtonVariant::Secondary, "Cases" }
                 }
                 if can(&role, Action::Edit) {
                     Button {

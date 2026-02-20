@@ -192,9 +192,5 @@ pub fn priority_badge_variant(priority: &str) -> BadgeVariant {
 }
 
 pub fn format_date(date_str: &str) -> String {
-    if date_str.len() >= 10 {
-        date_str[..10].to_string()
-    } else {
-        date_str.to_string()
-    }
+    crate::format_helpers::format_date_human(date_str)
 }

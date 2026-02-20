@@ -272,22 +272,9 @@ fn status_badge_variant(status: &str) -> BadgeVariant {
 }
 
 fn format_event_type(et: &str) -> String {
-    et.split('_')
-        .map(|word| {
-            let mut chars = word.chars();
-            match chars.next() {
-                None => String::new(),
-                Some(c) => c.to_uppercase().to_string() + chars.as_str(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+    crate::format_helpers::format_snake_case_title(et)
 }
 
 fn format_scheduled_date(date_str: &str) -> String {
-    if date_str.len() >= 16 {
-        date_str[..16].replace('T', " ")
-    } else {
-        date_str.to_string()
-    }
+    crate::format_helpers::format_datetime_human(date_str)
 }

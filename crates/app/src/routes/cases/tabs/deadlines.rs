@@ -170,11 +170,11 @@ pub fn DeadlinesTab(case_id: String) -> Element {
                                     {
                                         let dl_id = dl.id.clone();
                                         let display_status = dl.status.replace('_', " ");
-                                        let due = if dl.due_at.len() >= 10 { &dl.due_at[..10] } else { &dl.due_at };
+                                        let due = crate::format_helpers::format_date_human(&dl.due_at);
                                         rsx! {
                                             DataTableRow {
                                                 DataTableCell { {dl.title.clone()} }
-                                                DataTableCell { {due.to_string()} }
+                                                DataTableCell { {due} }
                                                 DataTableCell {
                                                     Badge { variant: status_variant(&dl.status),
                                                         {display_status}

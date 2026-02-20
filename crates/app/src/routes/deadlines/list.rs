@@ -213,9 +213,5 @@ fn status_badge_variant(status: &str) -> BadgeVariant {
 }
 
 fn format_due_date(date_str: &str) -> String {
-    if date_str.len() >= 16 {
-        date_str[..16].replace('T', " ")
-    } else {
-        date_str.to_string()
-    }
+    crate::format_helpers::format_date_human(date_str)
 }
