@@ -533,6 +533,47 @@ pub async fn sign_order(
     .map_err(crate::error_convert::SqlxErrorExt::into_app_error)?
     .ok_or_else(|| AppError::not_found(format!("Order {} not found", order_id)))?;
 
+    // Auto-create clerk queue item: order is signed, clerk needs to file it
+    let _ = crate::repo::queue::create(
+        &pool,
+        &court.0,
+        "order",
+        2,
+        &format!("File signed order: {}", order.title),
+        Some("Signed by judge — ready for filing on docket"),
+        "order",
+        order.id,
+        Some(order.case_id),
+        None,
+        None,
+        None,
+        "docket",
+    )
+    .await;
+
+    // Log case event for order signing
+    let _ = crate::repo::case_event::insert(
+        &pool,
+        &court.0,
+        order.case_id,
+        "criminal",
+        "order_signed",
+        None,
+        &serde_json::json!({
+            "order_id": order.id.to_string(),
+            "order_type": order.order_type,
+            "title": order.title,
+            "signer": order.signer_name,
+        }),
+        None,
+    )
+    .await;
+
+    tracing::info!(
+        order_id = %order.id,
+        "Order signed — clerk queue item created for filing"
+    );
+
     Ok(Json(JudicialOrderResponse::from(order)))
 }
 
