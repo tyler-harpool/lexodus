@@ -180,7 +180,7 @@ pub struct JudgeConflict {
 }
 
 /// API response shape for a judge conflict.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct JudgeConflictResponse {
     pub id: String,
@@ -267,7 +267,7 @@ pub struct CaseAssignment {
 }
 
 /// API response shape for a case assignment.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CaseAssignmentResponse {
     pub id: String,
@@ -353,7 +353,7 @@ pub struct RecusalMotion {
 }
 
 /// API response shape for a recusal motion.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RecusalMotionResponse {
     pub id: String,
@@ -416,7 +416,7 @@ pub struct UpdateRecusalRulingRequest {
 // ── Judge workload ─────────────────────────────────────────────────
 
 /// Summary of a judge's current workload.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct JudgeWorkload {
     pub judge_id: String,
@@ -427,7 +427,7 @@ pub struct JudgeWorkload {
 }
 
 /// Assignment history for a judge — wraps a list of case assignments.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AssignmentHistory {
     pub entries: Vec<CaseAssignmentResponse>,

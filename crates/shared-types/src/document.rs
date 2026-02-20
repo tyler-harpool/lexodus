@@ -54,7 +54,7 @@ impl SealingLevel {
 // ---------------------------------------------------------------------------
 
 /// A document stored in the system (metadata only, no blob).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct Document {

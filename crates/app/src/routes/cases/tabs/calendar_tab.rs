@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::CalendarEntryResponse;
+use shared_types::ScheduleEventRequest;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -39,10 +39,7 @@ pub fn CalendarTab(case_id: String) -> Element {
         let court = ctx.court_id.read().clone();
         let cid = case_id.clone();
         async move {
-            server::api::list_calendar_by_case(court, cid)
-                .await
-                .ok()
-                .and_then(|json| serde_json::from_str::<Vec<CalendarEntryResponse>>(&json).ok())
+            server::api::list_calendar_by_case(court, cid).await.ok()
         }
     });
 
@@ -61,15 +58,23 @@ pub fn CalendarTab(case_id: String) -> Element {
                 return;
             }
             let duration_min: i32 = dur.parse().unwrap_or(60);
-            let body = serde_json::json!({
-                "case_id": cid,
-                "event_type": etype,
-                "scheduled_date": format!("{}:00Z", date),
-                "duration_minutes": duration_min,
-                "courtroom": courtroom.trim(),
-                "description": desc.trim(),
-            });
-            match server::api::schedule_calendar_event(court, body.to_string()).await {
+            let sched_date_str = format!("{}:00Z", date);
+            let sched_date = chrono::DateTime::parse_from_rfc3339(&sched_date_str)
+                .map(|d| d.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now());
+            let case_uuid = uuid::Uuid::parse_str(&cid).unwrap_or_default();
+            let req = ScheduleEventRequest {
+                case_id: case_uuid,
+                judge_id: uuid::Uuid::nil(),
+                event_type: etype,
+                scheduled_date: sched_date,
+                duration_minutes: duration_min,
+                courtroom: courtroom.trim().to_string(),
+                description: desc.trim().to_string(),
+                participants: Vec::new(),
+                is_public: true,
+            };
+            match server::api::schedule_calendar_event(court, req).await {
                 Ok(_) => {
                     toast.success("Event scheduled.".to_string(), ToastOptions::new());
                     show_sheet.set(false);

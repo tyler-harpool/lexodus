@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::{BarAdmissionResponse, FederalAdmissionResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -19,7 +18,6 @@ pub fn AdmissionsTab(attorney_id: String) -> Element {
             server::api::list_bar_admissions(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<BarAdmissionResponse>>(&json).ok())
         }
     });
 
@@ -31,7 +29,6 @@ pub fn AdmissionsTab(attorney_id: String) -> Element {
             server::api::list_federal_admissions(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<FederalAdmissionResponse>>(&json).ok())
         }
     });
 

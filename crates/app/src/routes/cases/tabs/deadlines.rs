@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::DeadlineSearchResponse;
+// Types are now returned directly from server functions (no manual deserialization needed)
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -45,7 +45,7 @@ pub fn DeadlinesTab(case_id: String) -> Element {
         let court = ctx.court_id.read().clone();
         let cid = case_id.clone();
         async move {
-            let result = server::api::search_deadlines(
+            server::api::search_deadlines(
                 court,
                 None,
                 Some(cid),
@@ -54,11 +54,8 @@ pub fn DeadlinesTab(case_id: String) -> Element {
                 None,
                 Some(50),
             )
-            .await;
-            match result {
-                Ok(json) => serde_json::from_str::<DeadlineSearchResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            .await
+            .ok()
         }
     });
 
@@ -86,18 +83,23 @@ pub fn DeadlinesTab(case_id: String) -> Element {
                 toast.error("Due date is required.".to_string(), ToastOptions::new());
                 return;
             }
-            let mut body = serde_json::json!({
-                "title": title.trim(),
-                "case_id": cid,
-                "due_at": format!("{due_date}T00:00:00Z"),
-            });
-            if !rule_code.trim().is_empty() {
-                body["rule_code"] = serde_json::Value::String(rule_code.trim().to_string());
-            }
-            if !notes.trim().is_empty() {
-                body["notes"] = serde_json::Value::String(notes.trim().to_string());
-            }
-            match server::api::create_deadline(court, body.to_string()).await {
+            let due_rfc3339 = format!("{due_date}T00:00:00Z");
+            let due_at = match chrono::DateTime::parse_from_rfc3339(&due_rfc3339) {
+                Ok(dt) => dt.with_timezone(&chrono::Utc),
+                Err(_) => {
+                    toast.error("Invalid due date format.".to_string(), ToastOptions::new());
+                    return;
+                }
+            };
+            let case_uuid = uuid::Uuid::parse_str(&cid).ok();
+            let req = shared_types::CreateDeadlineRequest {
+                title: title.trim().to_string(),
+                case_id: case_uuid,
+                rule_code: if rule_code.trim().is_empty() { None } else { Some(rule_code.trim().to_string()) },
+                due_at,
+                notes: if notes.trim().is_empty() { None } else { Some(notes.trim().to_string()) },
+            };
+            match server::api::create_deadline(court, req).await {
                 Ok(_) => {
                     toast.success("Deadline created.".to_string(), ToastOptions::new());
                     show_create_sheet.set(false);
@@ -123,12 +125,23 @@ pub fn DeadlinesTab(case_id: String) -> Element {
                 toast.error("Reason is required.".to_string(), ToastOptions::new());
                 return;
             }
-            let body = serde_json::json!({
-                "requested_by": "current_user",
-                "reason": reason.trim(),
-                "requested_new_date": if new_date.is_empty() { None } else { Some(format!("{new_date}T00:00:00Z")) },
-            });
-            match server::api::create_extension_request_fn(court, did, body.to_string()).await {
+            if new_date.is_empty() {
+                toast.error("New deadline date is required.".to_string(), ToastOptions::new());
+                return;
+            }
+            let requested_new_date = match chrono::DateTime::parse_from_rfc3339(&format!("{new_date}T00:00:00Z")) {
+                Ok(dt) => dt.with_timezone(&chrono::Utc),
+                Err(_) => {
+                    toast.error("Invalid date format.".to_string(), ToastOptions::new());
+                    return;
+                }
+            };
+            let req = shared_types::CreateExtensionRequest {
+                reason: reason.trim().to_string(),
+                requested_new_date,
+                requested_by: "current_user".to_string(),
+            };
+            match server::api::create_extension_request_fn(court, did, req).await {
                 Ok(_) => {
                     toast.success("Extension requested.".to_string(), ToastOptions::new());
                     show_extension_sheet.set(false);

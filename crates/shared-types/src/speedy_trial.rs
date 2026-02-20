@@ -39,7 +39,7 @@ pub struct ExcludableDelay {
 // ── Speedy Trial response / request types ─────────────────────────
 
 /// API response for a speedy trial clock.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SpeedyTrialResponse {
     pub case_id: String,
@@ -110,7 +110,7 @@ pub struct UpdateSpeedyTrialClockRequest {
 // ── Excludable Delay response / request types ─────────────────────
 
 /// API response for an excludable delay.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ExcludableDelayResponse {
     pub id: String,
@@ -139,7 +139,7 @@ impl From<ExcludableDelay> for ExcludableDelayResponse {
 }
 
 /// Speedy trial deadline check response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DeadlineCheckResponse {
     pub case_id: String,

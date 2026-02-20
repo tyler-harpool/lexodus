@@ -18,7 +18,6 @@ pub fn ConflictsTab(judge_id: String) -> Element {
             server::api::list_judge_conflicts(court, jid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<JudgeConflictResponse>>(&json).ok())
         }
     });
 
@@ -30,7 +29,6 @@ pub fn ConflictsTab(judge_id: String) -> Element {
             server::api::list_recusals_by_judge(court, jid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<RecusalMotionResponse>>(&json).ok())
         }
     });
 

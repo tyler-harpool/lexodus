@@ -9,7 +9,8 @@ use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
 use super::form_sheet::{CaseFormSheet, FormMode};
 use crate::auth::{can, use_user_role, Action};
-use crate::components::scope_toggle::{use_scope_filter, ListScope, ScopeToggle};
+use crate::auth::use_auth;
+use crate::components::scope_toggle::{resolve_scope_filter, ListScope, ScopeToggle};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -27,10 +28,12 @@ pub fn CaseListPage() -> Element {
 
     // Scope toggle: My Items vs All Court (only rendered for Judge/Attorney)
     let scope = use_signal(|| ListScope::MyItems);
+    let auth = use_auth();
 
     // Sheet state for creating cases
     let mut show_sheet = use_signal(|| false);
 
+    let resource_role = role.clone();
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let ct = case_type.read().clone();
@@ -38,7 +41,11 @@ pub fn CaseListPage() -> Element {
         let crime = filter_crime_type.read().clone();
         let q = search_query.read().clone();
         let off = *offset.read();
-        let scope_filter = use_scope_filter(*scope.read());
+        let user = auth.current_user.read();
+        let linked_attorney = user.as_ref().and_then(|u| u.linked_attorney_id.clone());
+        let linked_judge = user.as_ref().and_then(|u| u.linked_judge_id.clone());
+        let role_clone = resource_role.clone();
+        let scope_filter = resolve_scope_filter(*scope.read(), &role_clone, &linked_attorney, &linked_judge);
         async move {
             // If in "My Items" mode with an attorney_id, use the dedicated endpoint
             if let Some(attorney_id) = scope_filter.attorney_id {

@@ -117,7 +117,7 @@ impl From<QueueItem> for QueueItemResponse {
 // Search Response
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct QueueSearchResponse {
     pub items: Vec<QueueItemResponse>,
@@ -128,7 +128,7 @@ pub struct QueueSearchResponse {
 // Stats Response
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct QueueStats {
     pub pending_count: i64,

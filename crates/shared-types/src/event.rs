@@ -177,7 +177,7 @@ pub struct SubmitEventRequest {
 // ---------------------------------------------------------------------------
 
 /// Response from submitting a docket event.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SubmitEventResponse {
     pub event_kind: String,
@@ -196,7 +196,7 @@ pub struct SubmitEventResponse {
 // ---------------------------------------------------------------------------
 
 /// A single entry in the unified case timeline.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TimelineEntry {
     /// Unique ID for this timeline entry (may be docket_entry.id or document_event.id).
@@ -225,7 +225,7 @@ pub struct TimelineEntry {
 }
 
 /// Response for the unified timeline endpoint.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TimelineResponse {
     pub entries: Vec<TimelineEntry>,

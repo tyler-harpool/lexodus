@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::{CalendarSearchResponse, CaseSearchResponse, DeadlineSearchResponse, RuleResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, PageHeader, PageTitle, Separator,
     Skeleton,
@@ -232,9 +231,7 @@ fn RulesSummarySection() -> Element {
         async move {
             let result = server::api::list_rules(court).await;
             match result {
-                Ok(json) => {
-                    let rules: Vec<RuleResponse> =
-                        serde_json::from_str(&json).unwrap_or_default();
+                Ok(rules) => {
                     let total = rules.len() as i64;
                     let active = rules.iter().filter(|r| r.status == "active").count() as i64;
 
@@ -416,7 +413,7 @@ struct RulesMetrics {
 /// Fetch the total count of cases matching an optional status filter.
 /// Uses limit=1 to minimise data transfer; only the `total` field matters.
 async fn fetch_case_total(court: &str, status: Option<&str>) -> i64 {
-    let result = server::api::search_cases(
+    server::api::search_cases(
         court.to_string(),
         status.map(|s| s.to_string()),
         None,
@@ -425,18 +422,15 @@ async fn fetch_case_total(court: &str, status: Option<&str>) -> i64 {
         Some(0),
         Some(1),
     )
-    .await;
-
-    result
-        .ok()
-        .and_then(|json| serde_json::from_str::<CaseSearchResponse>(&json).ok())
-        .map(|r| r.total)
-        .unwrap_or(0)
+    .await
+    .ok()
+    .map(|r| r.total)
+    .unwrap_or(0)
 }
 
 /// Fetch the total count of deadlines matching an optional status filter.
 async fn fetch_deadline_total(court: &str, status: Option<&str>) -> i64 {
-    let result = server::api::search_deadlines(
+    server::api::search_deadlines(
         court.to_string(),
         status.map(|s| s.to_string()),
         None,
@@ -445,18 +439,15 @@ async fn fetch_deadline_total(court: &str, status: Option<&str>) -> i64 {
         Some(0),
         Some(1),
     )
-    .await;
-
-    result
-        .ok()
-        .and_then(|json| serde_json::from_str::<DeadlineSearchResponse>(&json).ok())
-        .map(|r| r.total)
-        .unwrap_or(0)
+    .await
+    .ok()
+    .map(|r| r.total)
+    .unwrap_or(0)
 }
 
 /// Fetch the total count of calendar events matching an optional status filter.
 async fn fetch_calendar_total(court: &str, status: Option<&str>) -> i64 {
-    let result = server::api::search_calendar_events(
+    server::api::search_calendar_events(
         court.to_string(),
         None,
         None,
@@ -467,11 +458,8 @@ async fn fetch_calendar_total(court: &str, status: Option<&str>) -> i64 {
         Some(0),
         Some(1),
     )
-    .await;
-
-    result
-        .ok()
-        .and_then(|json| serde_json::from_str::<CalendarSearchResponse>(&json).ok())
-        .map(|r| r.total)
-        .unwrap_or(0)
+    .await
+    .ok()
+    .map(|r| r.total)
+    .unwrap_or(0)
 }

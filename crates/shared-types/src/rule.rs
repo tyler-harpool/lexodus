@@ -7,7 +7,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 
 /// A legal rule or local court rule tracked in the system.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct Rule {
@@ -97,7 +97,7 @@ impl From<Rule> for RuleResponse {
 }
 
 /// Request body for creating a new rule.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateRuleRequest {
     pub name: String,

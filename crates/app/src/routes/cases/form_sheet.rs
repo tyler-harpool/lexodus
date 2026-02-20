@@ -128,63 +128,52 @@ pub fn CaseFormSheet(
         let court = ctx.court_id.read().clone();
         let id = initial.as_ref().map(|d| d.id.clone()).unwrap_or_default();
 
-        let body = match mode {
-            FormMode::Create => serde_json::json!({
-                "title": title.read().clone(),
-                "description": description.read().clone(),
-                "crime_type": crime_type.read().clone(),
-                "priority": priority.read().clone(),
-                "location": location.read().clone(),
-                "district_code": district_code.read().clone(),
-            }),
-            FormMode::Edit => {
-                // PATCH: only include changed fields
-                let mut map = serde_json::Map::new();
-                if *title.read() != *init_title.read() {
-                    map.insert("title".into(), serde_json::json!(title.read().clone()));
-                }
-                if *description.read() != *init_description.read() {
-                    map.insert(
-                        "description".into(),
-                        serde_json::json!(description.read().clone()),
-                    );
-                }
-                if *crime_type.read() != *init_crime_type.read() {
-                    map.insert(
-                        "crime_type".into(),
-                        serde_json::json!(crime_type.read().clone()),
-                    );
-                }
-                if *status.read() != *init_status.read() {
-                    map.insert("status".into(), serde_json::json!(status.read().clone()));
-                }
-                if *priority.read() != *init_priority.read() {
-                    map.insert(
-                        "priority".into(),
-                        serde_json::json!(priority.read().clone()),
-                    );
-                }
-                if *location.read() != *init_location.read() {
-                    map.insert(
-                        "location".into(),
-                        serde_json::json!(location.read().clone()),
-                    );
-                }
-                if *district_code.read() != *init_district_code.read() {
-                    map.insert(
-                        "district_code".into(),
-                        serde_json::json!(district_code.read().clone()),
-                    );
-                }
-                serde_json::Value::Object(map)
-            }
-        };
+        // Capture field values for the async block
+        let t = title.read().clone();
+        let d = description.read().clone();
+        let ct = crime_type.read().clone();
+        let s = status.read().clone();
+        let p = priority.read().clone();
+        let loc = location.read().clone();
+        let dc = district_code.read().clone();
+
+        // Capture initial values for PATCH diff
+        let it = init_title.read().clone();
+        let id_desc = init_description.read().clone();
+        let ict = init_crime_type.read().clone();
+        let is = init_status.read().clone();
+        let ip = init_priority.read().clone();
+        let iloc = init_location.read().clone();
+        let idc = init_district_code.read().clone();
 
         spawn(async move {
             in_flight.set(true);
-            let result = match mode {
-                FormMode::Create => server::api::create_case(court, body.to_string()).await,
-                FormMode::Edit => server::api::update_case(court, id, body.to_string()).await,
+            let result: Result<shared_types::CaseResponse, dioxus::prelude::ServerFnError> = match mode {
+                FormMode::Create => {
+                    let req = shared_types::CreateCaseRequest {
+                        title: t,
+                        description: d,
+                        crime_type: ct,
+                        district_code: dc,
+                        location: loc,
+                        priority: Some(p),
+                        assigned_judge_id: None,
+                    };
+                    server::api::create_case(court, req).await
+                }
+                FormMode::Edit => {
+                    // PATCH: only include changed fields
+                    let req = shared_types::UpdateCaseRequest {
+                        title: if t != it { Some(t) } else { None },
+                        description: if d != id_desc { Some(d) } else { None },
+                        crime_type: if ct != ict { Some(ct) } else { None },
+                        status: if s != is { Some(s) } else { None },
+                        priority: if p != ip { Some(p) } else { None },
+                        location: if loc != iloc { Some(loc) } else { None },
+                        district_code: if dc != idc { Some(dc) } else { None },
+                    };
+                    server::api::update_case(court, id, req).await
+                }
             };
             match result {
                 Ok(_) => {

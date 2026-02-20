@@ -1,7 +1,6 @@
 use crate::auth::use_auth;
 use crate::CourtContext;
 use dioxus::prelude::*;
-use shared_types::Court;
 use shared_ui::components::{
     Button, ButtonVariant, DialogContent, DialogDescription, DialogRoot, DialogTitle, FormSelect,
 };
@@ -11,11 +10,7 @@ use shared_ui::{use_toast, ToastOptions};
 fn use_all_courts() -> Resource<Vec<(String, String)>> {
     use_resource(|| async move {
         match server::api::list_courts().await {
-            Ok(json) => serde_json::from_str::<Vec<Court>>(&json)
-                .unwrap_or_default()
-                .into_iter()
-                .map(|c| (c.id, c.name))
-                .collect(),
+            Ok(courts) => courts.into_iter().map(|c| (c.id, c.name)).collect(),
             Err(_) => vec![],
         }
     })

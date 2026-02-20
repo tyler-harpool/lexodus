@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::AttorneyResponse;
+use shared_types::{Address, AttorneyResponse, CreateAttorneyRequest, UpdateAttorneyRequest};
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Form, Input, Separator, Sheet,
@@ -140,33 +140,55 @@ pub fn AttorneyFormSheet(
         let court = ctx.court_id.read().clone();
         let id = initial.as_ref().map(|d| d.id.clone()).unwrap_or_default();
 
-        let body = serde_json::json!({
-            "bar_number": bar_number.read().clone(),
-            "first_name": first_name.read().clone(),
-            "last_name": last_name.read().clone(),
-            "middle_name": opt_str(&middle_name.read()),
-            "firm_name": opt_str(&firm_name.read()),
-            "email": email.read().clone(),
-            "phone": phone.read().clone(),
-            "fax": opt_str(&fax.read()),
-            "address": {
-                "street1": street1.read().clone(),
-                "street2": opt_str(&street2.read()),
-                "city": city.read().clone(),
-                "state": state.read().clone(),
-                "zip_code": zip_code.read().clone(),
-                "country": country.read().clone(),
-            }
-        });
+        let address = Address {
+            street1: street1.read().clone(),
+            street2: opt_string(&street2.read()),
+            city: city.read().clone(),
+            state: state.read().clone(),
+            zip_code: zip_code.read().clone(),
+            country: country.read().clone(),
+        };
+
+        let bar_val = bar_number.read().clone();
+        let first_val = first_name.read().clone();
+        let last_val = last_name.read().clone();
+        let middle_val = opt_string(&middle_name.read());
+        let firm_val = opt_string(&firm_name.read());
+        let email_val = email.read().clone();
+        let phone_val = phone.read().clone();
+        let fax_val = opt_string(&fax.read());
 
         spawn(async move {
             in_flight.set(true);
             let result = match mode {
                 FormMode::Create => {
-                    server::api::create_attorney(court, body.to_string()).await
+                    let req = CreateAttorneyRequest {
+                        bar_number: bar_val,
+                        first_name: first_val,
+                        last_name: last_val,
+                        middle_name: middle_val,
+                        firm_name: firm_val,
+                        email: email_val,
+                        phone: phone_val,
+                        fax: fax_val,
+                        address,
+                    };
+                    server::api::create_attorney(court, req).await
                 }
                 FormMode::Edit => {
-                    server::api::update_attorney(court, id, body.to_string()).await
+                    let req = UpdateAttorneyRequest {
+                        bar_number: Some(bar_val),
+                        first_name: Some(first_val),
+                        last_name: Some(last_val),
+                        middle_name: middle_val,
+                        firm_name: firm_val,
+                        email: Some(email_val),
+                        phone: Some(phone_val),
+                        fax: fax_val,
+                        address: Some(address),
+                        ..Default::default()
+                    };
+                    server::api::update_attorney(court, id, req).await
                 }
             };
             match result {
@@ -383,11 +405,12 @@ fn snapshot(
     .to_string()
 }
 
-/// Return `serde_json::Value::Null` for empty strings, or the string value.
-fn opt_str(s: &str) -> serde_json::Value {
-    if s.trim().is_empty() {
-        serde_json::Value::Null
+/// Return `None` for empty/whitespace strings, or `Some(trimmed_string)`.
+fn opt_string(s: &str) -> Option<String> {
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        None
     } else {
-        serde_json::Value::String(s.to_string())
+        Some(trimmed.to_string())
     }
 }

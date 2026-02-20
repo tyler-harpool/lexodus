@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{CalendarEntryResponse, CalendarSearchResponse};
+use shared_types::CalendarEntryResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -19,7 +19,6 @@ pub fn JudgeCalendarTab(judge_id: String) -> Element {
             )
             .await
             .ok()
-            .and_then(|json| serde_json::from_str::<CalendarSearchResponse>(&json).ok())
             .map(|resp| resp.events)
         }
     });

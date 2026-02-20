@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use shared_types::UserRole;
 use shared_ui::components::{Button, ButtonVariant};
 
-use crate::auth::{use_auth, use_user_role};
+use crate::auth::use_user_role;
 
 /// Data scope for list pages: either "My Items" (filtered to current user)
 /// or "All Court" (no user filter).
@@ -16,7 +16,7 @@ pub enum ListScope {
 
 /// The resolved filter IDs extracted from the current user's auth state.
 /// Used by list pages to decide which filter parameters to pass to the server.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ScopeFilter {
     /// If Some, filter by this attorney_id (for Attorney role in MyItems mode)
     pub attorney_id: Option<String>,
@@ -68,30 +68,32 @@ pub fn ScopeToggle(scope: Signal<ListScope>) -> Element {
 
 /// Resolve the current scope into concrete filter IDs for server queries.
 ///
+/// This is a plain function (NOT a hook). Call it anywhere — including inside
+/// `use_resource` closures. The caller must pass the role and auth user data.
+///
 /// When scope is MyItems:
 /// - For Attorneys: returns the linked_attorney_id
 /// - For Judges: returns the linked_judge_id
 ///
 /// When scope is AllCourt, returns empty (no filter).
-pub fn use_scope_filter(scope: ListScope) -> ScopeFilter {
-    let role = use_user_role();
-    let auth = use_auth();
-
+pub fn resolve_scope_filter(
+    scope: ListScope,
+    role: &UserRole,
+    linked_attorney_id: &Option<String>,
+    linked_judge_id: &Option<String>,
+) -> ScopeFilter {
     if scope == ListScope::AllCourt {
         return ScopeFilter::default();
     }
 
-    let user = auth.current_user.read();
-    let user_ref = user.as_ref();
-
     match role {
         UserRole::Attorney => ScopeFilter {
-            attorney_id: user_ref.and_then(|u| u.linked_attorney_id.clone()),
+            attorney_id: linked_attorney_id.clone(),
             judge_id: None,
         },
         UserRole::Judge => ScopeFilter {
             attorney_id: None,
-            judge_id: user_ref.and_then(|u| u.linked_judge_id.clone()),
+            judge_id: linked_judge_id.clone(),
         },
         _ => ScopeFilter::default(),
     }

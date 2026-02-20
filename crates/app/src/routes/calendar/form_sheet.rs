@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{CalendarEntryResponse, CaseSearchResponse, JudgeResponse};
+use shared_types::{CalendarEntryResponse, ScheduleEventRequest};
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Form, FormSelect, Input, Separator,
@@ -47,23 +47,16 @@ pub fn CalendarFormSheet(
     let cases_for_select = use_resource(move || {
         let court = ctx.court_id.read().clone();
         async move {
-            match server::api::search_cases(court, None, None, None, None, None, Some(100)).await {
-                Ok(json) => serde_json::from_str::<CaseSearchResponse>(&json)
-                    .ok()
-                    .map(|r| r.cases),
-                Err(_) => None,
-            }
+            server::api::search_cases(court, None, None, None, None, None, Some(100))
+                .await
+                .ok()
+                .map(|r| r.cases)
         }
     });
 
     let judges_for_select = use_resource(move || {
         let court = ctx.court_id.read().clone();
-        async move {
-            match server::api::list_judges(court).await {
-                Ok(json) => serde_json::from_str::<Vec<JudgeResponse>>(&json).ok(),
-                Err(_) => None,
-            }
-        }
+        async move { server::api::list_judges(court).await.ok() }
     });
 
     // --- Hydration ---
@@ -158,21 +151,27 @@ pub fn CalendarFormSheet(
             .filter(|s| !s.is_empty())
             .collect();
 
-        let body = serde_json::json!({
-            "case_id": case_id.read().clone(),
-            "judge_id": judge_id.read().clone(),
-            "event_type": event_type.read().clone(),
-            "scheduled_date": scheduled_date.read().clone(),
-            "duration_minutes": duration.read().parse::<i32>().unwrap_or(60),
-            "courtroom": courtroom.read().clone(),
-            "description": description.read().clone(),
-            "participants": participants_vec,
-            "is_public": true,
-        });
+        let case_uuid = uuid::Uuid::parse_str(&case_id.read()).unwrap_or_default();
+        let judge_uuid = uuid::Uuid::parse_str(&judge_id.read()).unwrap_or_default();
+        let sched_date = chrono::DateTime::parse_from_rfc3339(&scheduled_date.read())
+            .map(|d| d.with_timezone(&chrono::Utc))
+            .unwrap_or_else(|_| chrono::Utc::now());
+
+        let req = ScheduleEventRequest {
+            case_id: case_uuid,
+            judge_id: judge_uuid,
+            event_type: event_type.read().clone(),
+            scheduled_date: sched_date,
+            duration_minutes: duration.read().parse::<i32>().unwrap_or(60),
+            courtroom: courtroom.read().clone(),
+            description: description.read().clone(),
+            participants: participants_vec,
+            is_public: true,
+        };
 
         spawn(async move {
             in_flight.set(true);
-            match server::api::schedule_calendar_event(court, body.to_string()).await {
+            match server::api::schedule_calendar_event(court, req).await {
                 Ok(_) => {
                     on_saved.call(());
                     on_close.call(());

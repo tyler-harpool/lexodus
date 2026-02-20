@@ -7,7 +7,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 
 /// A feature flag for toggling functionality.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct FeatureFlag {
@@ -20,7 +20,7 @@ pub struct FeatureFlag {
 }
 
 /// A stored electronic signature for a judge.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct JudgeSignature {
@@ -32,7 +32,7 @@ pub struct JudgeSignature {
 }
 
 /// A configuration override scoped to a district or judge.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct ConfigOverride {
@@ -52,7 +52,7 @@ pub struct ConfigOverride {
 // ---------------------------------------------------------------------------
 
 /// API response for a configuration override.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ConfigOverrideResponse {
     pub id: String,
@@ -91,7 +91,7 @@ pub struct SetConfigOverrideRequest {
 // ---------------------------------------------------------------------------
 
 /// API response for a judge signature.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct JudgeSignatureResponse {
     pub id: String,
@@ -124,7 +124,7 @@ pub struct CreateSignatureRequest {
 // ---------------------------------------------------------------------------
 
 /// API response for a feature flag.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FeatureFlagResponse {
     pub id: String,
@@ -168,7 +168,7 @@ pub struct SetFeatureOverrideRequest {
 }
 
 /// Response for a feature-enabled status check.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FeatureStatusResponse {
     pub feature_path: String,

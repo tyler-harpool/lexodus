@@ -60,6 +60,8 @@ mod tests {
             court_roles: std::collections::HashMap::new(),
             court_tiers: std::collections::HashMap::new(),
             preferred_court_id: None,
+            linked_judge_id: None,
+            linked_attorney_id: None,
         }
     }
 

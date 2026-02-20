@@ -26,10 +26,7 @@ pub fn RuleDetailPage(id: String) -> Element {
         let court = court_id.clone();
         let rid = rule_id.clone();
         async move {
-            match server::api::get_rule(court, rid).await {
-                Ok(json) => serde_json::from_str::<RuleResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            server::api::get_rule(court, rid).await.ok()
         }
     });
 

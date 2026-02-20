@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{AttorneyResponse, EcfRegistrationResponse, PracticeAreaResponse};
+use shared_types::AttorneyResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DetailGrid, DetailItem,
     DetailList, Skeleton,
@@ -19,7 +19,6 @@ pub fn ProfileTab(attorney: AttorneyResponse, attorney_id: String) -> Element {
             server::api::list_practice_areas(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<PracticeAreaResponse>>(&json).ok())
         }
     });
 
@@ -31,7 +30,7 @@ pub fn ProfileTab(attorney: AttorneyResponse, attorney_id: String) -> Element {
             server::api::get_ecf_registration(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<EcfRegistrationResponse>(&json).ok())
+                .flatten()
         }
     });
 

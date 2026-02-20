@@ -53,7 +53,7 @@ pub struct Party {
 }
 
 /// An attorney's representation of a party in a case.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct Representation {
@@ -80,7 +80,7 @@ pub struct Representation {
 }
 
 /// Record of service of process or documents on a party.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct ServiceRecord {
@@ -219,7 +219,7 @@ pub const VALID_WITHDRAWAL_REASONS: &[&str] = &[
 // ---------------------------------------------------------------------------
 
 /// Request body for creating a new party.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreatePartyRequest {
     pub case_id: String,
@@ -242,7 +242,7 @@ pub struct CreatePartyRequest {
 }
 
 /// Request body for updating a party (all fields optional — read-modify-write pattern).
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UpdatePartyRequest {
     pub party_type: Option<String>,
@@ -270,6 +270,15 @@ pub struct UpdatePartyRequest {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct UpdatePartyStatusRequest {
     pub status: String,
+}
+
+/// Lightweight party item for dropdowns and lists.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct PartyListItem {
+    pub id: String,
+    pub name: String,
+    pub party_type: String,
 }
 
 /// API response for a party.
@@ -354,7 +363,7 @@ impl From<Party> for PartyResponse {
 // ---------------------------------------------------------------------------
 
 /// Request body for creating a representation.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateRepresentationRequest {
     pub attorney_id: String,
@@ -438,7 +447,7 @@ impl From<Representation> for RepresentationResponse {
 // ---------------------------------------------------------------------------
 
 /// Request body for creating a new service record.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CreateServiceRecordRequest {
     pub document_id: String,
@@ -534,7 +543,7 @@ pub struct ConflictCheck {
 // ---------------------------------------------------------------------------
 
 /// API response for a conflict check.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ConflictCheckResponse {
     pub id: String,

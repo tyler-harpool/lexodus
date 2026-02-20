@@ -15,7 +15,7 @@ pub struct Address {
 }
 
 /// Paginated response wrapper.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PaginatedResponse<T> {
     pub data: Vec<T>,
@@ -59,7 +59,7 @@ impl<T> PaginatedResponse<T> {
 }
 
 /// Court/tenant record.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "server", derive(sqlx::FromRow))]
 pub struct Court {
@@ -77,7 +77,7 @@ fn default_tier() -> String {
 }
 
 /// Tenant statistics response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TenantStats {
     pub court_id: String,

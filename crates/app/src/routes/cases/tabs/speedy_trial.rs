@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::{ExcludableDelayResponse, SpeedyTrialResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -35,7 +34,6 @@ pub fn SpeedyTrialTab(case_id: String) -> Element {
             server::api::get_speedy_trial(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<SpeedyTrialResponse>(&json).ok())
         }
     });
 
@@ -46,7 +44,6 @@ pub fn SpeedyTrialTab(case_id: String) -> Element {
             server::api::list_speedy_trial_delays(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<ExcludableDelayResponse>>(&json).ok())
         }
     });
 
@@ -64,14 +61,29 @@ pub fn SpeedyTrialTab(case_id: String) -> Element {
                 toast.error("Reason and start date required.".to_string(), ToastOptions::new());
                 return;
             }
-            let body = serde_json::json!({
-                "start_date": format!("{start}T00:00:00Z"),
-                "end_date": if end.is_empty() { None } else { Some(format!("{end}T00:00:00Z")) },
-                "reason": reason.trim(),
-                "statutory_reference": stat_ref.trim(),
-                "days_excluded": days,
-            });
-            match server::api::create_speedy_trial_delay(court, cid, body.to_string()).await {
+            let start_date = match chrono::DateTime::parse_from_rfc3339(&format!("{start}T00:00:00Z")) {
+                Ok(dt) => dt.with_timezone(&chrono::Utc),
+                Err(_) => {
+                    toast.error("Invalid start date.".to_string(), ToastOptions::new());
+                    return;
+                }
+            };
+            let end_date = if end.is_empty() {
+                None
+            } else {
+                chrono::DateTime::parse_from_rfc3339(&format!("{end}T00:00:00Z"))
+                    .ok()
+                    .map(|dt| dt.with_timezone(&chrono::Utc))
+            };
+            let req = shared_types::CreateExcludableDelayRequest {
+                start_date,
+                end_date,
+                reason: reason.trim().to_string(),
+                statutory_reference: if stat_ref.trim().is_empty() { None } else { Some(stat_ref.trim().to_string()) },
+                days_excluded: Some(days),
+                order_reference: None,
+            };
+            match server::api::create_speedy_trial_delay(court, cid, req).await {
                 Ok(_) => {
                     toast.success("Exclusion added.".to_string(), ToastOptions::new());
                     show_sheet.set(false);

@@ -242,7 +242,7 @@ pub struct BarAdmission {
 }
 
 /// API response shape for a bar admission.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct BarAdmissionResponse {
     pub id: String,
@@ -297,7 +297,7 @@ pub struct FederalAdmission {
 }
 
 /// API response shape for a federal admission.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FederalAdmissionResponse {
     pub id: String,
@@ -352,7 +352,7 @@ pub struct DisciplineRecord {
 }
 
 /// API response shape for a discipline record.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DisciplineRecordResponse {
     pub id: String,
@@ -417,7 +417,7 @@ pub struct ProHacVice {
 }
 
 /// API response shape for a pro hac vice admission.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ProHacViceResponse {
     pub id: String,
@@ -484,7 +484,7 @@ pub struct CjaAppointment {
 }
 
 /// API response shape for a CJA appointment.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CjaAppointmentResponse {
     pub id: String,
@@ -541,7 +541,7 @@ pub struct EcfRegistration {
 }
 
 /// API response shape for an ECF registration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct EcfRegistrationResponse {
     pub id: String,
@@ -662,7 +662,7 @@ pub struct PracticeArea {
 }
 
 /// API response shape for a practice area.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct PracticeAreaResponse {
     pub id: String,

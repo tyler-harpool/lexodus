@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::CjaAppointmentResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -18,7 +17,6 @@ pub fn CjaTab(attorney_id: String) -> Element {
             server::api::list_cja_appointments(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<CjaAppointmentResponse>>(&json).ok())
         }
     });
 

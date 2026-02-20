@@ -26,6 +26,7 @@ pub mod sentencing;
 pub mod todo;
 pub mod speedy_trial;
 pub mod queue;
+pub mod search;
 pub mod victim;
 
 pub use error::*;
@@ -57,4 +58,5 @@ pub use sentencing::*;
 pub use todo::*;
 pub use speedy_trial::*;
 pub use queue::*;
+pub use search::*;
 pub use victim::*;

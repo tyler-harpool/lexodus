@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
-use shared_types::{JudgeResponse, JUDGE_STATUSES, JUDGE_TITLES};
+use shared_types::{
+    CreateJudgeRequest, JudgeResponse, UpdateJudgeRequest, JUDGE_STATUSES, JUDGE_TITLES,
+};
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Form, FormSelect, Input, Separator,
@@ -121,34 +123,38 @@ pub fn JudgeFormSheet(
             .filter(|s| !s.is_empty())
             .collect();
 
-        let body = match mode {
-            FormMode::Create => serde_json::json!({
-                "name": name.read().clone(),
-                "title": title.read().clone(),
-                "district": district.read().clone(),
-                "courtroom": opt_str(&courtroom.read()),
-                "max_caseload": parsed_caseload,
-                "specializations": parsed_specs,
-            }),
-            FormMode::Edit => serde_json::json!({
-                "name": name.read().clone(),
-                "title": title.read().clone(),
-                "district": district.read().clone(),
-                "status": status.read().clone(),
-                "courtroom": opt_str(&courtroom.read()),
-                "max_caseload": parsed_caseload,
-                "specializations": parsed_specs,
-            }),
-        };
+        let courtroom_val = opt_string(&courtroom.read());
 
         spawn(async move {
             in_flight.set(true);
             let result = match mode {
                 FormMode::Create => {
-                    server::api::create_judge(court, body.to_string()).await
+                    let req = CreateJudgeRequest {
+                        name: name.read().clone(),
+                        title: title.read().clone(),
+                        district: district.read().clone(),
+                        appointed_date: None,
+                        status: None,
+                        senior_status_date: None,
+                        courtroom: courtroom_val,
+                        max_caseload: Some(parsed_caseload),
+                        specializations: parsed_specs,
+                    };
+                    server::api::create_judge(court, req).await
                 }
                 FormMode::Edit => {
-                    server::api::update_judge(court, id, body.to_string()).await
+                    let req = UpdateJudgeRequest {
+                        name: Some(name.read().clone()),
+                        title: Some(title.read().clone()),
+                        district: Some(district.read().clone()),
+                        appointed_date: None,
+                        status: Some(status.read().clone()),
+                        senior_status_date: None,
+                        courtroom: courtroom_val,
+                        max_caseload: Some(parsed_caseload),
+                        specializations: Some(parsed_specs),
+                    };
+                    server::api::update_judge(court, id, req).await
                 }
             };
             match result {
@@ -323,10 +329,12 @@ fn snapshot(
     .to_string()
 }
 
-fn opt_str(s: &str) -> serde_json::Value {
-    if s.trim().is_empty() {
-        serde_json::Value::Null
+/// Converts an empty-or-whitespace string to `None`, otherwise `Some(trimmed)`.
+fn opt_string(s: &str) -> Option<String> {
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        None
     } else {
-        serde_json::Value::String(s.to_string())
+        Some(trimmed.to_string())
     }
 }

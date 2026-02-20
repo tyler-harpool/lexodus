@@ -466,6 +466,8 @@ pub async fn register(
         court_roles,
         court_tiers: Default::default(),
         preferred_court_id: None,
+        linked_judge_id: None,
+        linked_attorney_id: None,
     };
 
     Ok((
@@ -594,6 +596,8 @@ pub async fn login(
         court_roles,
         court_tiers: Default::default(),
         preferred_court_id: None,
+        linked_judge_id: None,
+        linked_attorney_id: None,
     };
 
     Ok(Json(AuthResponse {
@@ -782,6 +786,8 @@ pub async fn upload_avatar(
         court_roles: std::collections::HashMap::new(),
         court_tiers: Default::default(),
         preferred_court_id: None,
+        linked_judge_id: None,
+        linked_attorney_id: None,
     }))
 }
 
@@ -1238,6 +1244,8 @@ pub async fn verify_phone(
         court_roles: std::collections::HashMap::new(),
         court_tiers: Default::default(),
         preferred_court_id: None,
+        linked_judge_id: None,
+        linked_attorney_id: None,
     }))
 }
 
@@ -1438,6 +1446,8 @@ pub async fn poll_device(
                 court_roles,
                 court_tiers: Default::default(),
                 preferred_court_id: None,
+                linked_judge_id: None,
+                linked_attorney_id: None,
             };
 
             Ok(Json(DeviceFlowPollResponse {

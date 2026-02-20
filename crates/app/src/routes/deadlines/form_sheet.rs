@@ -106,7 +106,6 @@ pub fn DeadlineFormSheet(
         let d = due_at.read().clone();
         let r = rule_code.read().clone();
         let n = notes.read().clone();
-        let s = status.read().clone();
 
         if t.trim().is_empty() || d.trim().is_empty() {
             toast.error(
@@ -118,28 +117,38 @@ pub fn DeadlineFormSheet(
 
         // Convert HTML datetime-local to RFC3339
         let due_rfc3339 = format!("{}:00Z", d);
-
-        let body = match mode {
-            FormMode::Create => serde_json::json!({
-                "title": t.trim(),
-                "due_at": due_rfc3339,
-                "rule_code": opt_str(&r),
-                "notes": opt_str(&n),
-            }),
-            FormMode::Edit => serde_json::json!({
-                "title": t.trim(),
-                "due_at": due_rfc3339,
-                "status": s,
-                "rule_code": opt_str(&r),
-                "notes": opt_str(&n),
-            }),
-        };
+        let due_at_parsed = chrono::DateTime::parse_from_rfc3339(&due_rfc3339)
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .ok();
 
         spawn(async move {
             in_flight.set(true);
-            let result = match mode {
-                FormMode::Create => server::api::create_deadline(court, body.to_string()).await,
-                FormMode::Edit => server::api::update_deadline(court, id, body.to_string()).await,
+            let result: Result<shared_types::DeadlineResponse, dioxus::prelude::ServerFnError> = match mode {
+                FormMode::Create => {
+                    let Some(due_at) = due_at_parsed else {
+                        toast.error("Invalid due date format.".to_string(), ToastOptions::new());
+                        in_flight.set(false);
+                        return;
+                    };
+                    let req = shared_types::CreateDeadlineRequest {
+                        title: t.trim().to_string(),
+                        case_id: None,
+                        rule_code: opt_str_val(&r),
+                        due_at,
+                        notes: opt_str_val(&n),
+                    };
+                    server::api::create_deadline(court, req).await
+                }
+                FormMode::Edit => {
+                    let req = shared_types::UpdateDeadlineRequest {
+                        title: Some(t.trim().to_string()),
+                        case_id: None,
+                        rule_code: opt_str_val(&r),
+                        due_at: due_at_parsed,
+                        notes: opt_str_val(&n),
+                    };
+                    server::api::update_deadline(court, id, req).await
+                }
             };
             match result {
                 Ok(_) => {
@@ -276,12 +285,12 @@ pub fn DeadlineFormSheet(
     }
 }
 
-/// Returns `Value::Null` for empty strings, otherwise the string value.
-fn opt_str(s: &str) -> serde_json::Value {
+/// Returns `None` for empty strings, otherwise the trimmed string value.
+fn opt_str_val(s: &str) -> Option<String> {
     if s.trim().is_empty() {
-        serde_json::Value::Null
+        None
     } else {
-        serde_json::json!(s.trim())
+        Some(s.trim().to_string())
     }
 }
 

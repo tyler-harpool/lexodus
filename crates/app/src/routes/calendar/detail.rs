@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use shared_types::CalendarEntryResponse;
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Badge, BadgeVariant, Button,
@@ -23,10 +22,7 @@ pub fn CalendarDetailPage(id: String) -> Element {
         let court = court_id.clone();
         let eid = event_id.clone();
         async move {
-            match server::api::get_calendar_event(court, eid).await {
-                Ok(json) => serde_json::from_str::<CalendarEntryResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            server::api::get_calendar_event(court, eid).await.ok()
         }
     });
 
