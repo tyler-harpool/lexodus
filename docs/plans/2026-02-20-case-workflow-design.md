@@ -15,6 +15,7 @@ Every user action (filing, ruling, signing, scheduling) creates a DB record, fir
 - **Inline actions**: Judges rule and sign without navigating away from their dashboard.
 - **Queue-driven clerk work**: All clerk tasks arrive as auto-created queue items.
 - **Compliance-first filing**: Every filing is evaluated by the engine before acceptance.
+- **PDF-native documents**: All orders and filings produce real court documents via Typst templates.
 
 ---
 
@@ -341,20 +342,98 @@ Extend the existing 9 RuleAction types:
 
 ---
 
-## 7. Implementation Priority
+## 7. Typst PDF Integration
+
+### Existing Infrastructure
+- In-process Typst compiler (`LexodusWorld` implementing `typst::World`) in `crates/server/src/typst.rs`
+- `compile_typst(source) -> Result<Vec<u8>>` — async compilation, returns PDF bytes
+- `generate_order_pdf(court_id, order_id, signed)` server function — queries order + case, renders via template, returns base64
+- `DocumentParams` struct: court_name, doc_type, case_id, title, content_body, show_signature, signer_id, document_date
+- Template binding: `#let` variables prepended to `.typ` template source
+
+### Existing Templates (6)
+| Template | Used For |
+|----------|----------|
+| `court-order.typ` | Court orders with optional signature block |
+| `civil-judgment.typ` | Civil case judgments |
+| `civil-scheduling-order.typ` | Civil scheduling orders |
+| `civil-summons.typ` | Civil summons |
+| `document.typ` | Generic document |
+| `js-44-cover-sheet.typ` | JS-44 civil cover sheet |
+
+### New Criminal Workflow Templates Needed
+| Template | Trigger | Content |
+|----------|---------|---------|
+| `motion-ruling-order.typ` | `motion_ruled` | Order granting/denying motion with ruling text, briefing summary |
+| `detention-order.typ` | Arraignment | Order of detention with conditions, bail amount |
+| `release-order.typ` | Arraignment | Order of release with conditions |
+| `scheduling-order.typ` | `case_assigned` | Criminal scheduling order with discovery/motions/trial deadlines |
+| `minute-entry.typ` | `hearing_completed` | Hearing minute entry with attendees, rulings, next actions |
+| `judgment-commitment.typ` | Sentencing | Judgment & Commitment order (AO 245B equivalent) |
+
+### PDF Generation Points in Workflow
+
+**Motion Ruling (Workflow 3B):**
+```
+Judge rules on motion
+  -> Engine fires "motion_ruled"
+  -> GenerateOrder action creates order record
+  -> System calls generate_order_pdf(order_id, signed=false)
+  -> PDF attached to order as draft
+  -> Queue item for judge: "Review and sign order"
+  -> Judge signs -> regenerate PDF with signature (signed=true)
+  -> Queue item for clerk: "File signed order"
+```
+
+**Order Signing (Workflow 3C):**
+```
+Judge clicks [Sign] on pending order
+  -> generate_order_pdf(order_id, signed=true) with judge's signature
+  -> PDF stored, order status -> "signed"
+  -> Queue item for clerk to file
+  -> Clerk files -> docket entry includes PDF link
+```
+
+**Hearing Completion:**
+```
+Judge marks hearing complete with notes
+  -> System generates minute-entry PDF
+  -> Auto-docketed as minute_order
+```
+
+**Sentencing:**
+```
+Judge enters sentence
+  -> System generates judgment-commitment PDF from sentencing record
+  -> Queue item for clerk review before filing
+```
+
+### `GenerateOrder` Rule Action Spec
+When the engine encounters a `GenerateOrder` action:
+1. Select template based on trigger context (motion ruling → `motion-ruling-order.typ`, etc.)
+2. Build `DocumentParams` from trigger context (case info, judge, ruling text)
+3. Call `compile_typst()` to produce PDF bytes
+4. Create `judicial_orders` record with PDF stored as base64 in `content` or as attachment
+5. Set order status to `pending_signature` (auto-generated) or `draft` (clerk-drafted)
+6. Create queue item for next step (judge signature or clerk review)
+
+---
+
+## 8. Implementation Priority
 
 ### Phase 1: Motion Ruling Workflow (Judge's #1 need)
 - Add ruling UI to judge dashboard (inline grant/deny/etc.)
 - Fire `motion_ruled` trigger
-- Auto-draft order from ruling
+- Auto-draft order from ruling + generate PDF via `motion-ruling-order.typ` template
 - Seed rules for `motion_filed`, `motion_ruled` triggers
 - Fix permission gating (remove Edit/Delete/Queue from judge view)
 
 ### Phase 2: Order Signing Pipeline (Judge + Clerk handoff)
 - Add [Sign] button on judge dashboard orders
-- Fire `order_signed` trigger -> auto-create clerk queue item
-- Clerk [File on Docket] action fires `order_filed`
+- Fire `order_signed` trigger -> regenerate PDF with signature -> auto-create clerk queue item
+- Clerk [File on Docket] action fires `order_filed`, docket entry links to PDF
 - Seed rules for `order_signed`, `order_filed` triggers
+- Create `scheduling-order.typ` + `detention-order.typ` + `release-order.typ` templates
 
 ### Phase 3: Filing Workflow (Attorney -> Clerk)
 - Attorney filing form with compliance engine pre-check
@@ -366,6 +445,7 @@ Extend the existing 9 RuleAction types:
 - `case_events` table + migration
 - Log every trigger event with actor and context
 - Case detail timeline shows events (not just docket entries)
+- `minute-entry.typ` template for auto-generated hearing minutes
 
 ### Phase 5: Notifications + Deadline Escalation
 - In-app notification system
@@ -377,3 +457,4 @@ Extend the existing 9 RuleAction types:
 - [File Response] / [File Motion] / [Request Extension] inline actions
 - Recent Orders section
 - Filing compliance feedback (engine blocks/warnings shown in form)
+- `judgment-commitment.typ` template for sentencing workflow
