@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{AttorneyResponse, PaginatedResponse, PaginationMeta};
+use shared_types::{AttorneyResponse, PaginationMeta};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Input, PageActions, PageHeader,
@@ -8,12 +8,14 @@ use shared_ui::components::{
 use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
 use super::form_sheet::{AttorneyFormSheet, FormMode};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn AttorneyListPage() -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
     let mut page = use_signal(|| 1i64);
     let mut search_query = use_signal(String::new);
     let mut search_input = use_signal(String::new);
@@ -30,12 +32,7 @@ pub fn AttorneyListPage() -> Element {
                 server::api::search_attorneys(court, q, Some(p), Some(20)).await
             };
 
-            match result {
-                Ok(json) => {
-                    serde_json::from_str::<PaginatedResponse<AttorneyResponse>>(&json).ok()
-                }
-                Err(_) => None,
-            }
+            result.ok()
         }
     });
 
@@ -55,10 +52,12 @@ pub fn AttorneyListPage() -> Element {
             PageHeader {
                 PageTitle { "Attorneys" }
                 PageActions {
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: move |_| show_sheet.set(true),
-                        "New Attorney"
+                    if can(&role, Action::ManageAttorneys) {
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            onclick: move |_| show_sheet.set(true),
+                            "New Attorney"
+                        }
                     }
                 }
             }

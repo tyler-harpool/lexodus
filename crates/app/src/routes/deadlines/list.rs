@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{DeadlineResponse, DeadlineSearchResponse};
+use shared_types::DeadlineResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, FormSelect,
@@ -8,12 +8,14 @@ use shared_ui::components::{
 use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
 use super::form_sheet::{DeadlineFormSheet, FormMode};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn DeadlineListPage() -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
 
     let mut offset = use_signal(|| 0i64);
     let mut search_status = use_signal(String::new);
@@ -25,7 +27,7 @@ pub fn DeadlineListPage() -> Element {
         let st = search_status.read().clone();
         let off = *offset.read();
         async move {
-            let result = server::api::search_deadlines(
+            server::api::search_deadlines(
                 court,
                 if st.is_empty() { None } else { Some(st) },
                 None, // case_id
@@ -34,12 +36,8 @@ pub fn DeadlineListPage() -> Element {
                 Some(off),
                 Some(limit),
             )
-            .await;
-
-            match result {
-                Ok(json) => serde_json::from_str::<DeadlineSearchResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            .await
+            .ok()
         }
     });
 
@@ -53,10 +51,12 @@ pub fn DeadlineListPage() -> Element {
             PageHeader {
                 PageTitle { "Deadlines" }
                 PageActions {
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: move |_| show_sheet.set(true),
-                        "New Deadline"
+                    if can(&role, Action::CreateCase) {
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            onclick: move |_| show_sheet.set(true),
+                            "New Deadline"
+                        }
                     }
                 }
             }

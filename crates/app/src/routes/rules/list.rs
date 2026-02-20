@@ -8,6 +8,7 @@ use shared_ui::components::{
 };
 use shared_ui::{use_toast, HoverCard, HoverCardContent, HoverCardTrigger, ToastOptions};
 
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -20,6 +21,7 @@ const RULE_STATUSES: &[&str] = &["Active", "Superseded", "Repealed"];
 #[component]
 pub fn RuleListPage() -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
     let toast = use_toast();
 
     let mut search_input = use_signal(String::new);
@@ -38,10 +40,7 @@ pub fn RuleListPage() -> Element {
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
         async move {
-            match server::api::list_rules(court).await {
-                Ok(json) => serde_json::from_str::<Vec<RuleResponse>>(&json).ok(),
-                Err(_) => None,
-            }
+            server::api::list_rules(court).await.ok()
         }
     });
 
@@ -70,19 +69,23 @@ pub fn RuleListPage() -> Element {
 
         let priority_val: i32 = form_priority.read().parse().unwrap_or(0);
 
-        let body = serde_json::json!({
-            "name": form_name.read().clone(),
-            "description": form_description.read().clone(),
-            "source": form_source.read().clone(),
-            "category": form_category.read().clone(),
-            "priority": priority_val,
-            "status": form_status.read().clone(),
-            "jurisdiction": opt_str(&form_jurisdiction.read()),
-            "citation": opt_str(&form_citation.read()),
-        });
+        let body = shared_types::CreateRuleRequest {
+            name: form_name.read().clone(),
+            description: form_description.read().clone(),
+            source: form_source.read().clone(),
+            category: form_category.read().clone(),
+            priority: priority_val,
+            status: Some(form_status.read().clone()),
+            jurisdiction: opt_str_option(&form_jurisdiction.read()),
+            citation: opt_str_option(&form_citation.read()),
+            effective_date: None,
+            conditions: None,
+            actions: None,
+            triggers: None,
+        };
 
         spawn(async move {
-            match server::api::create_rule(court, body.to_string()).await {
+            match server::api::create_rule(court, body).await {
                 Ok(_) => {
                     data.restart();
                     show_sheet.set(false);
@@ -103,10 +106,12 @@ pub fn RuleListPage() -> Element {
             PageHeader {
                 PageTitle { "Rules" }
                 PageActions {
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: open_create,
-                        "New Rule"
+                    if can(&role, Action::ManageRules) {
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            onclick: open_create,
+                            "New Rule"
+                        }
                     }
                 }
             }
@@ -382,11 +387,11 @@ fn status_badge_variant(status: &str) -> BadgeVariant {
     }
 }
 
-/// Convert an empty string to JSON null, otherwise wrap in a JSON string.
-fn opt_str(s: &str) -> serde_json::Value {
+/// Convert an empty string to None, otherwise wrap in Some.
+fn opt_str_option(s: &str) -> Option<String> {
     if s.trim().is_empty() {
-        serde_json::Value::Null
+        None
     } else {
-        serde_json::Value::String(s.to_string())
+        Some(s.to_string())
     }
 }

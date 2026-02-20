@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{CaseResponse, CaseSearchResponse, CivilCaseSearchResponse};
+use shared_types::{CaseResponse, CaseSearchResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, FormSelect, Input, PageActions,
@@ -8,12 +8,14 @@ use shared_ui::components::{
 use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
 use super::form_sheet::{CaseFormSheet, FormMode};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn CaseListPage() -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
 
     let mut offset = use_signal(|| 0i64);
     let mut case_type = use_signal(|| "criminal".to_string());
@@ -48,49 +50,43 @@ pub fn CaseListPage() -> Element {
                 .await;
 
                 match result {
-                    Ok(json) => {
-                        if let Ok(civil_resp) =
-                            serde_json::from_str::<CivilCaseSearchResponse>(&json)
-                        {
-                            // Map civil cases into the unified CaseSearchResponse format
-                            // so the same table component can render both types
-                            let cases = civil_resp
-                                .cases
-                                .into_iter()
-                                .map(|c| CaseResponse {
-                                    id: c.id,
-                                    case_number: c.case_number,
-                                    title: c.title,
-                                    description: c.description,
-                                    case_type: "civil".to_string(),
-                                    crime_type: c.nature_of_suit,
-                                    status: c.status,
-                                    priority: c.priority,
-                                    assigned_judge_id: c.assigned_judge_id,
-                                    district_code: c.district_code,
-                                    location: c.location,
-                                    is_sealed: c.is_sealed,
-                                    sealed_by: c.sealed_by,
-                                    sealed_date: c.sealed_date,
-                                    seal_reason: c.seal_reason,
-                                    opened_at: c.opened_at,
-                                    updated_at: c.updated_at,
-                                    closed_at: c.closed_at,
-                                    jurisdiction_basis: Some(c.jurisdiction_basis),
-                                    jury_demand: Some(c.jury_demand),
-                                    class_action: Some(c.class_action),
-                                    amount_in_controversy: c.amount_in_controversy,
-                                    consent_to_magistrate: Some(c.consent_to_magistrate),
-                                    pro_se: Some(c.pro_se),
-                                })
-                                .collect();
-                            Some(CaseSearchResponse {
-                                cases,
-                                total: civil_resp.total,
+                    Ok(civil_resp) => {
+                        // Map civil cases into the unified CaseSearchResponse format
+                        // so the same table component can render both types
+                        let cases = civil_resp
+                            .cases
+                            .into_iter()
+                            .map(|c| CaseResponse {
+                                id: c.id,
+                                case_number: c.case_number,
+                                title: c.title,
+                                description: c.description,
+                                case_type: "civil".to_string(),
+                                crime_type: c.nature_of_suit,
+                                status: c.status,
+                                priority: c.priority,
+                                assigned_judge_id: c.assigned_judge_id,
+                                district_code: c.district_code,
+                                location: c.location,
+                                is_sealed: c.is_sealed,
+                                sealed_by: c.sealed_by,
+                                sealed_date: c.sealed_date,
+                                seal_reason: c.seal_reason,
+                                opened_at: c.opened_at,
+                                updated_at: c.updated_at,
+                                closed_at: c.closed_at,
+                                jurisdiction_basis: Some(c.jurisdiction_basis),
+                                jury_demand: Some(c.jury_demand),
+                                class_action: Some(c.class_action),
+                                amount_in_controversy: c.amount_in_controversy,
+                                consent_to_magistrate: Some(c.consent_to_magistrate),
+                                pro_se: Some(c.pro_se),
                             })
-                        } else {
-                            None
-                        }
+                            .collect();
+                        Some(CaseSearchResponse {
+                            cases,
+                            total: civil_resp.total,
+                        })
                     }
                     Err(_) => None,
                 }
@@ -107,10 +103,7 @@ pub fn CaseListPage() -> Element {
                 )
                 .await;
 
-                match result {
-                    Ok(json) => serde_json::from_str::<CaseSearchResponse>(&json).ok(),
-                    Err(_) => None,
-                }
+                result.ok()
             }
         }
     });
@@ -134,10 +127,12 @@ pub fn CaseListPage() -> Element {
             PageHeader {
                 PageTitle { "Cases" }
                 PageActions {
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: move |_| show_sheet.set(true),
-                        if is_civil { "New Civil Case" } else { "New Case" }
+                    if can(&role, Action::CreateCase) {
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            onclick: move |_| show_sheet.set(true),
+                            if is_civil { "New Civil Case" } else { "New Case" }
+                        }
                     }
                 }
             }

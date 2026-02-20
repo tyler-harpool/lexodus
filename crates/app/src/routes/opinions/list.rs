@@ -8,12 +8,14 @@ use shared_ui::components::{
 use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
 use super::form_sheet::{FormMode, OpinionFormSheet};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn OpinionListPage() -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
 
     let mut page = use_signal(|| 1i64);
     let mut search_query = use_signal(String::new);
@@ -26,12 +28,9 @@ pub fn OpinionListPage() -> Element {
         let p = *page.read();
         async move {
             let search = if q.is_empty() { None } else { Some(q) };
-            match server::api::list_all_opinions(court, search, Some(p), Some(20)).await {
-                Ok(json) => {
-                    serde_json::from_str::<PaginatedResponse<JudicialOpinionResponse>>(&json).ok()
-                }
-                Err(_) => None,
-            }
+            server::api::list_all_opinions(court, search, Some(p), Some(20))
+                .await
+                .ok()
         }
     });
 
@@ -51,10 +50,12 @@ pub fn OpinionListPage() -> Element {
             PageHeader {
                 PageTitle { "Opinions" }
                 PageActions {
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: move |_| show_create.set(true),
-                        "New Opinion"
+                    if can(&role, Action::DraftOpinion) {
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            onclick: move |_| show_create.set(true),
+                            "New Opinion"
+                        }
                     }
                 }
             }

@@ -8,12 +8,14 @@ use shared_ui::components::{
 use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
 use super::form_sheet::{JudgeFormSheet, FormMode};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn JudgeListPage() -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
 
     let mut search_query = use_signal(String::new);
     let mut search_input = use_signal(String::new);
@@ -23,15 +25,10 @@ pub fn JudgeListPage() -> Element {
         let court = ctx.court_id.read().clone();
         let q = search_query.read().clone();
         async move {
-            let result = if q.is_empty() {
-                server::api::list_judges(court).await
+            if q.is_empty() {
+                server::api::list_judges(court).await.ok()
             } else {
-                server::api::search_judges(court, q).await
-            };
-
-            match result {
-                Ok(json) => serde_json::from_str::<Vec<JudgeResponse>>(&json).ok(),
-                Err(_) => None,
+                server::api::search_judges(court, q).await.ok()
             }
         }
     });
@@ -50,10 +47,12 @@ pub fn JudgeListPage() -> Element {
             PageHeader {
                 PageTitle { "Judges" }
                 PageActions {
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: move |_| show_sheet.set(true),
-                        "New Judge"
+                    if can(&role, Action::ManageJudges) {
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            onclick: move |_| show_sheet.set(true),
+                            "New Judge"
+                        }
                     }
                 }
             }

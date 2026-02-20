@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{CalendarEntryResponse, CalendarSearchResponse};
+use shared_types::CalendarEntryResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, FormSelect,
@@ -11,12 +11,14 @@ use shared_ui::{
 };
 
 use super::form_sheet::{CalendarFormSheet, FormMode};
+use crate::auth::{can, use_user_role, Action};
 use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
 pub fn CalendarListPage() -> Element {
     let ctx = use_context::<CourtContext>();
+    let role = use_user_role();
 
     let mut offset = use_signal(|| 0i64);
     let mut search_event_type = use_signal(String::new);
@@ -48,10 +50,7 @@ pub fn CalendarListPage() -> Element {
             )
             .await;
 
-            match result {
-                Ok(json) => serde_json::from_str::<CalendarSearchResponse>(&json).ok(),
-                Err(_) => None,
-            }
+            result.ok()
         }
     });
 
@@ -66,13 +65,15 @@ pub fn CalendarListPage() -> Element {
             PageHeader {
                 PageTitle { "Calendar" }
                 PageActions {
-                    Button {
-                        variant: ButtonVariant::Primary,
-                        onclick: move |_| {
-                            prefill_date.set(None);
-                            show_sheet.set(true);
-                        },
-                        "Schedule Event"
+                    if can(&role, Action::CreateCase) {
+                        Button {
+                            variant: ButtonVariant::Primary,
+                            onclick: move |_| {
+                                prefill_date.set(None);
+                                show_sheet.set(true);
+                            },
+                            "Schedule Event"
+                        }
                     }
                 }
             }
