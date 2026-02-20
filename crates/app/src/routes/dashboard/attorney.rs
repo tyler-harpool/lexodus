@@ -277,7 +277,7 @@ fn AppearancesSection(events: Vec<CalendarEntryResponse>) -> Element {
                                     div {
                                         class: "attorney-appearance-item",
                                         onclick: move |_| {
-                                            nav.push(Route::CaseDetail { id: id.clone() });
+                                            nav.push(Route::CaseDetail { id: id.clone(), tab: Some("scheduling".to_string()) });
                                         },
                                         div { class: "attorney-appearance-item-main",
                                             span { class: "attorney-appearance-item-type", "{display_type}" }
@@ -329,7 +329,7 @@ fn CasesSection(cases: Vec<CaseResponse>) -> Element {
                                     div {
                                         class: "attorney-case-item",
                                         onclick: move |_| {
-                                            nav.push(Route::CaseDetail { id: id.clone() });
+                                            nav.push(Route::CaseDetail { id: id.clone(), tab: None });
                                         },
                                         div { class: "attorney-case-item-main",
                                             span { class: "attorney-case-item-number", "{case_item.case_number}" }

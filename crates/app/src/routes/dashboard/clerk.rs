@@ -48,7 +48,6 @@ pub fn ClerkDashboard() -> Element {
             server::api::get_queue_stats(court, None)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<shared_types::QueueStats>(&json).ok())
         }
     });
 
@@ -64,9 +63,6 @@ pub fn ClerkDashboard() -> Element {
             server::api::search_queue(court, status_opt, type_opt, pri, None, None, None, Some(50))
                 .await
                 .ok()
-                .and_then(|json| {
-                    serde_json::from_str::<shared_types::QueueSearchResponse>(&json).ok()
-                })
         }
     });
 
@@ -264,7 +260,7 @@ fn QueueItemRow(item: QueueItemResponse) -> Element {
                                 match server::api::claim_queue_item_fn(court, qid, 1).await {
                                     Ok(_) => {
                                         if let Some(cid) = cid {
-                                            nav.push(Route::CaseDetail { id: cid });
+                                            nav.push(Route::CaseDetail { id: cid, tab: None });
                                         }
                                     }
                                     Err(e) => {
@@ -280,7 +276,7 @@ fn QueueItemRow(item: QueueItemResponse) -> Element {
                         variant: ButtonVariant::Secondary,
                         onclick: move |_| {
                             if let Some(ref cid) = case_id_continue {
-                                nav.push(Route::CaseDetail { id: cid.clone() });
+                                nav.push(Route::CaseDetail { id: cid.clone(), tab: None });
                             }
                         },
                         "Continue"

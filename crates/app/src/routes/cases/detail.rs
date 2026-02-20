@@ -17,7 +17,7 @@ use crate::routes::Route;
 use crate::CourtContext;
 
 #[component]
-pub fn CaseDetailPage(id: String) -> Element {
+pub fn CaseDetailPage(id: String, #[props(default = "overview".to_string())] tab: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let court_id = ctx.court_id.read().clone();
     let case_id = id.clone();
@@ -36,7 +36,7 @@ pub fn CaseDetailPage(id: String) -> Element {
         div { class: "container",
             match &*data.read() {
                 Some(Some(c)) => rsx! {
-                    CaseDetailView { case_item: c.clone(), id: id.clone(), show_edit: show_edit }
+                    CaseDetailView { case_item: c.clone(), id: id.clone(), show_edit: show_edit, tab: tab.clone() }
                     CaseFormSheet {
                         mode: FormMode::Edit,
                         initial: Some(c.clone()),
@@ -72,9 +72,10 @@ pub fn CaseDetailPage(id: String) -> Element {
 }
 
 #[component]
-fn CaseDetailView(case_item: CaseResponse, id: String, show_edit: Signal<bool>) -> Element {
+fn CaseDetailView(case_item: CaseResponse, id: String, show_edit: Signal<bool>, tab: String) -> Element {
     let ctx = use_context::<CourtContext>();
     let role = use_user_role();
+    let active_tab = if tab.is_empty() { "overview".to_string() } else { tab };
 
     let mut show_delete_confirm = use_signal(|| false);
     let mut deleting = use_signal(|| false);
@@ -141,7 +142,7 @@ fn CaseDetailView(case_item: CaseResponse, id: String, show_edit: Signal<bool>) 
             }
         }
 
-        Tabs { default_value: "overview", horizontal: true,
+        Tabs { default_value: "{active_tab}", horizontal: true,
             TabList {
                 TabTrigger { value: "overview", index: 0usize, "Overview" }
                 TabTrigger { value: "docket", index: 1usize, "Docket" }

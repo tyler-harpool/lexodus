@@ -196,14 +196,14 @@ fn OrderRow(order: JudicialOrderResponse) -> Element {
     rsx! {
         DataTableRow {
             DataTableCell {
-                Link { to: Route::CaseDetail { id: case_id.clone() },
+                Link { to: Route::CaseDetail { id: case_id.clone(), tab: Some("docket".to_string()) },
                     span { class: "judge-link", "{case_display}" }
                 }
             }
             DataTableCell { "{order.title}" }
             DataTableCell { "{submitted}" }
             DataTableCell {
-                Link { to: Route::CaseDetail { id: case_id },
+                Link { to: Route::CaseDetail { id: case_id, tab: Some("docket".to_string()) },
                     Badge { variant: BadgeVariant::Primary, "Review" }
                 }
             }
@@ -279,7 +279,7 @@ fn HearingRow(event: CalendarEntryResponse) -> Element {
         DataTableRow {
             DataTableCell { "{datetime}" }
             DataTableCell {
-                Link { to: Route::CaseDetail { id: case_id },
+                Link { to: Route::CaseDetail { id: case_id, tab: Some("scheduling".to_string()) },
                     span { class: "judge-link", "{case_display}" }
                 }
             }
@@ -360,7 +360,7 @@ fn MotionRow(motion: MotionResponse) -> Element {
     rsx! {
         DataTableRow {
             DataTableCell {
-                Link { to: Route::CaseDetail { id: case_id },
+                Link { to: Route::CaseDetail { id: case_id, tab: None },
                     span { class: "judge-link", "{case_display}" }
                 }
             }

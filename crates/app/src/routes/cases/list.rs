@@ -375,7 +375,7 @@ fn CaseRow(case_item: CaseResponse) -> Element {
         DataTableRow {
             onclick: move |_| {
                 let nav = navigator();
-                nav.push(Route::CaseDetail { id: id.clone() });
+                nav.push(Route::CaseDetail { id: id.clone(), tab: None });
             },
             DataTableCell {
                 HoverCard {

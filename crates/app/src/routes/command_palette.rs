@@ -1,26 +1,13 @@
 use dioxus::prelude::*;
 use dioxus_free_icons::icons::ld_icons::LdSearch;
 use dioxus_free_icons::Icon;
-use serde::Deserialize;
+use shared_types::SearchResult;
 
 use crate::routes::Route;
 use crate::CourtContext;
 
 /// Maximum number of search results to fetch from the server.
 const SEARCH_RESULT_LIMIT: usize = 10;
-
-/// Client-side mirror of `server::search::SearchResult`.
-/// Deserialized from the JSON string returned by `global_search`.
-#[derive(Debug, Clone, Deserialize)]
-struct SearchResult {
-    id: String,
-    entity_type: String,
-    title: String,
-    subtitle: String,
-    /// For child entities (docket, calendar, deadline, order), the parent case ID.
-    #[serde(default)]
-    parent_id: Option<String>,
-}
 
 /// Human-readable group labels keyed by entity_type values from the search index.
 const ENTITY_TYPE_LABELS: &[(&str, &str)] = &[
@@ -40,6 +27,7 @@ fn route_for_result(result: &SearchResult) -> Route {
     match result.entity_type.as_str() {
         "case" | "civil_case" => Route::CaseDetail {
             id: result.id.clone(),
+            tab: None,
         },
         "attorney" => Route::AttorneyDetail {
             id: result.id.clone(),
@@ -54,9 +42,16 @@ fn route_for_result(result: &SearchResult) -> Route {
         // parent_id carries the case UUID from the search index.
         "docket" | "calendar" | "deadline" | "order" => Route::CaseDetail {
             id: result.parent_id.clone().unwrap_or_else(|| result.id.clone()),
+            tab: match result.entity_type.as_str() {
+                "docket" => Some("docket".to_string()),
+                "calendar" => Some("scheduling".to_string()),
+                "order" => Some("docket".to_string()),
+                _ => None,
+            },
         },
         _ => Route::CaseDetail {
             id: result.id.clone(),
+            tab: None,
         },
     }
 }
@@ -213,10 +208,8 @@ pub fn CommandPalette(show: Signal<bool>) -> Element {
                             )
                             .await
                             {
-                                Ok(json) => {
-                                    let parsed: Vec<SearchResult> =
-                                        serde_json::from_str(&json).unwrap_or_default();
-                                    results.set(parsed);
+                                Ok(items) => {
+                                    results.set(items);
                                 }
                                 Err(_) => {
                                     results.set(Vec::new());

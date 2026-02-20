@@ -93,8 +93,8 @@ pub enum Route {
     CalendarDetail { id: String },
     #[route("/cases")]
     CaseList {},
-    #[route("/cases/:id")]
-    CaseDetail { id: String },
+    #[route("/cases/:id?:tab")]
+    CaseDetail { id: String, tab: Option<String> },
     #[route("/deadlines")]
     DeadlineList {},
     #[route("/deadlines/:id")]
@@ -514,8 +514,8 @@ fn CaseList() -> Element {
 }
 
 #[component]
-fn CaseDetail(id: String) -> Element {
-    rsx! { cases::detail::CaseDetailPage { id: id } }
+fn CaseDetail(id: String, tab: Option<String>) -> Element {
+    rsx! { cases::detail::CaseDetailPage { id: id, tab: tab.unwrap_or_default() } }
 }
 
 #[component]
