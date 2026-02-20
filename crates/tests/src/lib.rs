@@ -210,3 +210,6 @@ mod condition_evaluator_tests;
 
 #[cfg(test)]
 mod rules_engine_tests;
+
+#[cfg(test)]
+mod compliance_wiring_tests;

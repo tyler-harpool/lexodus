@@ -41,7 +41,7 @@ pub async fn test_app() -> (Router, Pool<Postgres>, tokio::sync::MutexGuard<'sta
         .expect("Failed to run migrations");
 
     // Truncate all data and re-seed
-    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, civil_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue, case_events, fee_schedule CASCADE")
+    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, civil_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue, case_events, fee_schedule, rules CASCADE")
         .execute(&pool)
         .await
         .expect("Failed to truncate");
@@ -257,7 +257,7 @@ pub async fn test_app_rate_limited(
         .await
         .expect("Failed to run migrations");
 
-    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, civil_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue, case_events, fee_schedule CASCADE")
+    sqlx::query("TRUNCATE attorneys, attorney_bar_admissions, attorney_federal_admissions, attorney_practice_areas, attorney_discipline_history, calendar_events, deadlines, docket_attachments, docket_entries, criminal_cases, civil_cases, judges, service_records, documents, document_events, parties, filings, filing_uploads, nefs, court_role_requests, clerk_queue, case_events, fee_schedule, rules CASCADE")
         .execute(&pool)
         .await
         .expect("Failed to truncate");
