@@ -2,7 +2,8 @@ use dioxus::prelude::*;
 use shared_types::{
     CaseAssignmentResponse, CreateCaseAssignmentRequest, CreateJudgeConflictRequest,
     CreateJudgeRequest, CreateRecusalMotionRequest, JudgeConflictResponse, JudgeResponse,
-    MotionResponse, RecusalMotionResponse, UpdateJudgeRequest, UpdateRecusalRulingRequest,
+    JudicialOrderResponse, MotionResponse, RecusalMotionResponse, UpdateJudgeRequest,
+    UpdateRecusalRulingRequest,
 };
 
 // ── Judge Server Functions ─────────────────────────────
@@ -313,4 +314,32 @@ pub async fn list_pending_motions_for_judge(
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
     Ok(rows)
+}
+
+// ── Rule on Motion ─────────────────────────────────────
+
+/// Judge rules on a motion — updates status, creates order.
+#[server]
+pub async fn rule_on_motion(
+    court_id: String,
+    motion_id: String,
+    disposition: String,
+    ruling_text: Option<String>,
+    judge_id: String,
+    judge_name: String,
+) -> Result<JudicialOrderResponse, ServerFnError> {
+    use crate::db::get_db;
+    use shared_types::RuleMotionRequest;
+
+    let pool = get_db().await;
+    let body = RuleMotionRequest {
+        disposition,
+        ruling_text,
+        judge_id,
+        judge_name,
+    };
+
+    crate::rest::motion::rule_motion_inner(pool, &court_id, &motion_id, body)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))
 }

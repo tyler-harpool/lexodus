@@ -108,6 +108,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/motions", post(motion::create_motion))
         .route("/api/cases/{case_id}/motions", get(motion::list_motions_by_case))
         .route("/api/motions/{id}", get(motion::get_motion).put(motion::update_motion).delete(motion::delete_motion))
+        .route("/api/motions/{id}/rule", post(motion::rule_motion))
         // Evidence
         .route("/api/evidence", post(evidence::create_evidence))
         .route("/api/cases/{case_id}/evidence", get(evidence::list_evidence_by_case))
