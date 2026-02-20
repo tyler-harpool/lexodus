@@ -163,7 +163,10 @@ fn OrdersPendingSignature(
                             }
                             DataTableBody {
                                 for order in orders.iter() {
-                                    OrderRow { order: order.clone() }
+                                    OrderRow {
+                                        order: order.clone(),
+                                        on_signed: move |_| data.restart(),
+                                    }
                                 }
                             }
                         }
@@ -182,9 +185,12 @@ fn OrdersPendingSignature(
     }
 }
 
-/// A single order row in the pending signature table.
+/// A single order row with inline signing action.
 #[component]
-fn OrderRow(order: JudicialOrderResponse) -> Element {
+fn OrderRow(order: JudicialOrderResponse, on_signed: EventHandler<()>) -> Element {
+    let ctx = use_context::<CourtContext>();
+    let auth = use_auth();
+
     let case_id = order.case_id.clone();
     let case_display = order
         .case_number
@@ -192,6 +198,36 @@ fn OrderRow(order: JudicialOrderResponse) -> Element {
         .unwrap_or_else(|| truncate_id(&order.case_id));
 
     let submitted = format_date_short(&order.created_at);
+
+    let mut signing = use_signal(|| false);
+    let mut error_msg = use_signal(|| Option::<String>::None);
+
+    let order_id = order.id.clone();
+
+    let handle_sign = move |_: MouseEvent| {
+        let court = ctx.court_id.read().clone();
+        let oid = order_id.clone();
+        let user = auth.current_user.read().clone();
+
+        if let Some(user) = user {
+            let signer_name = user.display_name.clone();
+            spawn(async move {
+                signing.set(true);
+                error_msg.set(None);
+                let result = server::api::sign_order_action(court, oid, signer_name).await;
+                signing.set(false);
+                match result {
+                    Ok(_) => {
+                        on_signed.call(());
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to sign order: {}", e);
+                        error_msg.set(Some(e.to_string()));
+                    }
+                }
+            });
+        }
+    };
 
     rsx! {
         DataTableRow {
@@ -203,8 +239,19 @@ fn OrderRow(order: JudicialOrderResponse) -> Element {
             DataTableCell { "{order.title}" }
             DataTableCell { "{submitted}" }
             DataTableCell {
-                Link { to: Route::CaseDetail { id: case_id, tab: Some("docket".to_string()) },
-                    Badge { variant: BadgeVariant::Primary, "Review" }
+                div { class: "judge-order-actions",
+                    Button {
+                        variant: ButtonVariant::Primary,
+                        onclick: handle_sign,
+                        disabled: *signing.read(),
+                        if *signing.read() { "Signing..." } else { "Sign" }
+                    }
+                    Link { to: Route::CaseDetail { id: case_id, tab: Some("docket".to_string()) },
+                        Button { variant: ButtonVariant::Secondary, "Review" }
+                    }
+                }
+                if let Some(err) = error_msg.read().as_ref() {
+                    p { class: "judge-error-text", "{err}" }
                 }
             }
         }
