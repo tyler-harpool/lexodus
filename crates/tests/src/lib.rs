@@ -204,3 +204,6 @@ mod judge_name_tests;
 
 #[cfg(test)]
 mod deadline_engine_tests;
+
+#[cfg(test)]
+mod condition_evaluator_tests;
