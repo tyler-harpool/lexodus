@@ -269,6 +269,12 @@ pub struct AuthUser {
     /// Last-selected court district (cross-platform persistence).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preferred_court_id: Option<String>,
+    /// UUID of the judge record linked to this user (matched by email).
+    #[serde(default)]
+    pub linked_judge_id: Option<String>,
+    /// UUID of the attorney record linked to this user (matched by email).
+    #[serde(default)]
+    pub linked_attorney_id: Option<String>,
 }
 
 fn default_true() -> bool {
