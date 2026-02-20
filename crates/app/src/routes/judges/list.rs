@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::JudgeResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Input, PageActions, PageHeader,
@@ -29,7 +30,7 @@ pub fn JudgeListPage() -> Element {
             };
 
             match result {
-                Ok(json) => serde_json::from_str::<Vec<serde_json::Value>>(&json).ok(),
+                Ok(json) => serde_json::from_str::<Vec<JudgeResponse>>(&json).ok(),
                 Err(_) => None,
             }
         }
@@ -106,7 +107,7 @@ pub fn JudgeListPage() -> Element {
 }
 
 #[component]
-fn JudgeTable(judges: Vec<serde_json::Value>) -> Element {
+fn JudgeTable(judges: Vec<JudgeResponse>) -> Element {
     rsx! {
         DataTable {
             DataTableHeader {
@@ -126,25 +127,15 @@ fn JudgeTable(judges: Vec<serde_json::Value>) -> Element {
 }
 
 #[component]
-fn JudgeRow(judge: serde_json::Value) -> Element {
-    let id = judge["id"].as_str().unwrap_or("").to_string();
-    let name = judge["name"].as_str().unwrap_or("—").to_string();
-    let title = judge["title"].as_str().unwrap_or("—").to_string();
-    let status = judge["status"].as_str().unwrap_or("—").to_string();
-    let courtroom = judge["courtroom"].as_str().unwrap_or("—").to_string();
-    let current = judge["current_caseload"].as_i64().unwrap_or(0);
-    let max = judge["max_caseload"].as_i64().unwrap_or(0);
-    let caseload_display = format!("{}/{}", current, max);
+fn JudgeRow(judge: JudgeResponse) -> Element {
+    let id = judge.id.clone();
+    let name = judge.name.clone();
+    let title = judge.title.clone();
+    let status = judge.status.clone();
+    let courtroom = judge.courtroom.clone().unwrap_or_else(|| "—".to_string());
+    let caseload_display = format!("{}/{}", judge.current_caseload, judge.max_caseload);
 
-    let specializations = judge["specializations"]
-        .as_array()
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        })
-        .unwrap_or_default();
+    let specializations = judge.specializations.join(", ");
 
     let badge_variant = status_badge_variant(&status);
     let nav_id = id.clone();

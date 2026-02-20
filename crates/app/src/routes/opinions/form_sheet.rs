@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use shared_types::{
-    CaseSearchResponse, JudicialOpinionResponse, OPINION_DISPOSITIONS, OPINION_STATUSES,
-    OPINION_TYPES,
+    CaseSearchResponse, JudgeResponse, JudicialOpinionResponse, OPINION_DISPOSITIONS,
+    OPINION_STATUSES, OPINION_TYPES,
 };
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
@@ -63,7 +63,7 @@ pub fn OpinionFormSheet(
         let court = ctx.court_id.read().clone();
         async move {
             match server::api::list_judges(court).await {
-                Ok(json) => serde_json::from_str::<Vec<serde_json::Value>>(&json).ok(),
+                Ok(json) => serde_json::from_str::<Vec<JudgeResponse>>(&json).ok(),
                 Err(_) => None,
             }
         }
@@ -398,12 +398,8 @@ pub fn OpinionFormSheet(
                                     let selected_id = e.value().to_string();
                                     judge_id.set(selected_id.clone());
                                     if let Some(Some(judges)) = &*judges_for_select.read() {
-                                        if let Some(j) = judges.iter().find(|j| {
-                                            j["id"].as_str().unwrap_or("") == selected_id
-                                        }) {
-                                            judge_name.set(
-                                                j["name"].as_str().unwrap_or("").to_string(),
-                                            );
+                                        if let Some(j) = judges.iter().find(|j| j.id == selected_id) {
+                                            judge_name.set(j.name.clone());
                                         }
                                     }
                                 },
@@ -412,8 +408,8 @@ pub fn OpinionFormSheet(
                                     Some(Some(judges)) => rsx! {
                                         for j in judges.iter() {
                                             option {
-                                                value: j["id"].as_str().unwrap_or(""),
-                                                {j["name"].as_str().unwrap_or("Unknown")}
+                                                value: "{j.id}",
+                                                "{j.name}"
                                             }
                                         }
                                     },

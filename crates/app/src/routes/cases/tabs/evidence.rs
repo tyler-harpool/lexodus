@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{CustodyTransferResponse, EvidenceResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardHeader,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -18,7 +19,7 @@ pub fn EvidenceTab(case_id: String) -> Element {
     let mut show_create_sheet = use_signal(|| false);
     let mut show_custody_sheet = use_signal(|| false);
     let mut selected_evidence_id = use_signal(String::new);
-    let mut custody_chain = use_signal(|| Option::<Vec<serde_json::Value>>::None);
+    let mut custody_chain = use_signal(|| Option::<Vec<CustodyTransferResponse>>::None);
 
     let mut form_description = use_signal(String::new);
     let mut form_evidence_type = use_signal(|| "Documentary".to_string());
@@ -34,7 +35,7 @@ pub fn EvidenceTab(case_id: String) -> Element {
             server::api::list_evidence_by_case(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<EvidenceResponse>>(&json).ok())
         }
     });
 
@@ -96,18 +97,18 @@ pub fn EvidenceTab(case_id: String) -> Element {
                     DataTableBody {
                         for item in items.iter() {
                             {
-                                let eid = item["id"].as_str().unwrap_or("").to_string();
+                                let eid = item.id.clone();
                                 rsx! {
                                     DataTableRow {
-                                        DataTableCell { {item["description"].as_str().unwrap_or("—")} }
+                                        DataTableCell { {item.description.clone()} }
                                         DataTableCell {
                                             Badge { variant: BadgeVariant::Secondary,
-                                                {item["evidence_type"].as_str().unwrap_or("—")}
+                                                {item.evidence_type.clone()}
                                             }
                                         }
-                                        DataTableCell { {item["location"].as_str().unwrap_or("—")} }
+                                        DataTableCell { {item.location.clone()} }
                                         DataTableCell {
-                                            if item["is_sealed"].as_bool().unwrap_or(false) {
+                                            if item.is_sealed {
                                                 Badge { variant: BadgeVariant::Destructive, "Sealed" }
                                             } else {
                                                 Badge { variant: BadgeVariant::Secondary, "Open" }
@@ -127,7 +128,7 @@ pub fn EvidenceTab(case_id: String) -> Element {
                                                         spawn(async move {
                                                             match server::api::list_custody_transfers(court, evidence_id).await {
                                                                 Ok(json) => {
-                                                                    let transfers = serde_json::from_str::<Vec<serde_json::Value>>(&json)
+                                                                    let transfers = serde_json::from_str::<Vec<CustodyTransferResponse>>(&json)
                                                                         .unwrap_or_default();
                                                                     custody_chain.set(Some(transfers));
                                                                 }
@@ -220,27 +221,32 @@ pub fn EvidenceTab(case_id: String) -> Element {
                     match &*custody_chain.read() {
                         Some(transfers) if !transfers.is_empty() => rsx! {
                             for (i, t) in transfers.iter().enumerate() {
-                                Card {
-                                    CardHeader {
-                                        "Transfer #{i + 1}"
-                                    }
-                                    CardContent {
-                                        div { style: "display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);",
-                                            div {
-                                                span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "From" }
-                                                p { {t["transferred_from"].as_str().unwrap_or("—")} }
+                                {
+                                    let date_short = t.date.get(..10).unwrap_or(&t.date);
+                                    rsx! {
+                                        Card {
+                                            CardHeader {
+                                                "Transfer #{i + 1}"
                                             }
-                                            div {
-                                                span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "To" }
-                                                p { {t["transferred_to"].as_str().unwrap_or("—")} }
-                                            }
-                                            div {
-                                                span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "Date" }
-                                                p { {t["date"].as_str().map(|d| if d.len() >= 10 { &d[..10] } else { d }).unwrap_or("—")} }
-                                            }
-                                            div {
-                                                span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "Condition" }
-                                                p { {t["condition"].as_str().unwrap_or("—")} }
+                                            CardContent {
+                                                div { style: "display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);",
+                                                    div {
+                                                        span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "From" }
+                                                        p { {t.transferred_from.clone()} }
+                                                    }
+                                                    div {
+                                                        span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "To" }
+                                                        p { {t.transferred_to.clone()} }
+                                                    }
+                                                    div {
+                                                        span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "Date" }
+                                                        p { {date_short.to_string()} }
+                                                    }
+                                                    div {
+                                                        span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "Condition" }
+                                                        p { {t.condition.clone()} }
+                                                    }
+                                                }
                                             }
                                         }
                                     }

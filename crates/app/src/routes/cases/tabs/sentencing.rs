@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{CaseAssignmentResponse, DefendantResponse, SentencingResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardHeader,
     Collapsible, CollapsibleContent, CollapsibleTrigger,
@@ -10,12 +11,19 @@ use shared_ui::{use_toast, ToastOptions};
 
 use crate::CourtContext;
 
-/// Format an optional i32 value as a string, or "—" if None.
-fn fmt_opt(v: &serde_json::Value) -> String {
+/// Format an Option<i32> as a display string, or "—" if None.
+fn fmt_opt_i32(v: Option<i32>) -> String {
     match v {
-        serde_json::Value::Number(n) => n.to_string(),
-        serde_json::Value::String(s) => s.clone(),
-        _ => "—".to_string(),
+        Some(n) => n.to_string(),
+        None => "—".to_string(),
+    }
+}
+
+/// Format an Option<f64> as a display string, or "—" if None.
+fn fmt_opt_f64(v: Option<f64>) -> String {
+    match v {
+        Some(n) => n.to_string(),
+        None => "—".to_string(),
     }
 }
 
@@ -53,7 +61,7 @@ pub fn SentencingTab(case_id: String) -> Element {
             server::api::list_defendants(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<DefendantResponse>>(&json).ok())
         }
     });
 
@@ -66,7 +74,7 @@ pub fn SentencingTab(case_id: String) -> Element {
             server::api::list_case_assignments(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<CaseAssignmentResponse>>(&json).ok())
                 .and_then(|v| v.into_iter().next())
         }
     });
@@ -78,7 +86,7 @@ pub fn SentencingTab(case_id: String) -> Element {
             server::api::list_sentencing_by_case(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<SentencingResponse>>(&json).ok())
         }
     });
 
@@ -104,14 +112,12 @@ pub fn SentencingTab(case_id: String) -> Element {
             .as_ref()
             .and_then(|d| d.as_ref())
             .and_then(|defs| defs.first())
-            .and_then(|d| d["id"].as_str())
-            .map(|s| s.to_string());
+            .map(|d| d.id.clone());
         let judge_id = judge_data
             .read()
             .as_ref()
             .and_then(|d| d.as_ref())
-            .and_then(|a| a["judge_id"].as_str())
-            .map(|s| s.to_string());
+            .map(|a| a.judge_id.clone());
 
         spawn(async move {
             let Some(defendant_id) = defendant_id else {
@@ -208,7 +214,7 @@ pub fn SentencingTab(case_id: String) -> Element {
                             div { style: "display: flex; justify-content: space-between; align-items: center; width: 100%;",
                                 span { "Sentencing Record" }
                                 Badge { variant: BadgeVariant::Primary,
-                                    {record["sentencing_date"].as_str().map(|d| if d.len() >= 10 { &d[..10] } else { d }).unwrap_or("Pending")}
+                                    {record.sentencing_date.as_deref().and_then(|d| d.get(..10)).unwrap_or("Pending")}
                                 }
                             }
                         }
@@ -216,43 +222,43 @@ pub fn SentencingTab(case_id: String) -> Element {
                             div { style: "display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-md);",
                                 div {
                                     span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted); font-weight: 500;", "Offense Level" }
-                                    p { {fmt_opt(&record["total_offense_level"])} }
+                                    p { {fmt_opt_i32(record.total_offense_level)} }
                                 }
                                 div {
                                     span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted); font-weight: 500;", "Criminal History" }
-                                    p { {record["criminal_history_category"].as_str().unwrap_or("—")} }
+                                    p { {record.criminal_history_category.as_deref().unwrap_or("—")} }
                                 }
                                 div {
                                     span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted); font-weight: 500;", "Guidelines Range" }
                                     p {
                                         {format!(
                                             "{} — {} months",
-                                            fmt_opt(&record["guidelines_range_low_months"]),
-                                            fmt_opt(&record["guidelines_range_high_months"]),
+                                            fmt_opt_i32(record.guidelines_range_low_months),
+                                            fmt_opt_i32(record.guidelines_range_high_months),
                                         )}
                                     }
                                 }
                                 div {
                                     span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted); font-weight: 500;", "Custody" }
-                                    p { {format!("{} months", fmt_opt(&record["custody_months"]))} }
+                                    p { {format!("{} months", fmt_opt_i32(record.custody_months))} }
                                 }
                                 div {
                                     span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted); font-weight: 500;", "Probation" }
-                                    p { {format!("{} months", fmt_opt(&record["probation_months"]))} }
+                                    p { {format!("{} months", fmt_opt_i32(record.probation_months))} }
                                 }
                                 div {
                                     span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted); font-weight: 500;", "Fine" }
-                                    p { {fmt_opt(&record["fine_amount"])} }
+                                    p { {fmt_opt_f64(record.fine_amount)} }
                                 }
                             }
 
-                            if record["departure_type"].as_str().is_some() {
+                            if record.departure_type.is_some() {
                                 div { style: "margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border);",
                                     div { style: "display: flex; gap: var(--space-md); align-items: center;",
                                         Badge { variant: BadgeVariant::Destructive,
-                                            {format!("Departure: {}", record["departure_type"].as_str().unwrap_or(""))}
+                                            {format!("Departure: {}", record.departure_type.as_deref().unwrap_or(""))}
                                         }
-                                        if let Some(reason) = record["departure_reason"].as_str() {
+                                        if let Some(reason) = record.departure_reason.as_deref() {
                                             span { style: "color: var(--color-on-surface-muted);", "{reason}" }
                                         }
                                     }
@@ -294,8 +300,8 @@ pub fn SentencingTab(case_id: String) -> Element {
                         {
                             match &*judge_data.read() {
                                 Some(Some(assignment)) => {
-                                    let judge_display = assignment["judge_name"].as_str()
-                                        .unwrap_or(assignment["judge_id"].as_str().unwrap_or("—"));
+                                    let judge_display = assignment.judge_name.as_deref()
+                                        .unwrap_or(&assignment.judge_id);
                                     rsx! {
                                         div { class: "form-field",
                                             label { class: "form-label", "Sentencing Judge" }
@@ -311,9 +317,7 @@ pub fn SentencingTab(case_id: String) -> Element {
                         {
                             match &*defendants_data.read() {
                                 Some(Some(defs)) if !defs.is_empty() => {
-                                    let name = defs[0]["name"].as_str()
-                                        .or_else(|| defs[0]["full_name"].as_str())
-                                        .unwrap_or("—");
+                                    let name = &defs[0].name;
                                     rsx! {
                                         div { class: "form-field",
                                             label { class: "form-label", "Defendant" }

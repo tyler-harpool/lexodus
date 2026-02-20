@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::CaseAssignmentResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -16,7 +17,7 @@ pub fn CaseloadTab(judge_id: String) -> Element {
             server::api::list_assignments_by_judge(court, jid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<CaseAssignmentResponse>>(&json).ok())
         }
     });
 
@@ -35,16 +36,7 @@ pub fn CaseloadTab(judge_id: String) -> Element {
                             }
                             DataTableBody {
                                 for row in rows.iter() {
-                                    DataTableRow {
-                                        DataTableCell { {row["case_id"].as_str().unwrap_or("—").chars().take(8).collect::<String>()} }
-                                        DataTableCell {
-                                            Badge { variant: BadgeVariant::Secondary,
-                                                {row["assignment_type"].as_str().unwrap_or("—")}
-                                            }
-                                        }
-                                        DataTableCell { {row["assigned_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
-                                        DataTableCell { {row["reason"].as_str().unwrap_or("—")} }
-                                    }
+                                    {render_assignment_row(row)}
                                 }
                             }
                         }
@@ -53,6 +45,25 @@ pub fn CaseloadTab(judge_id: String) -> Element {
                     None => rsx! { Skeleton { width: "100%", height: "200px" } },
                 }
             }
+        }
+    }
+}
+
+fn render_assignment_row(assignment: &CaseAssignmentResponse) -> Element {
+    let case_display = assignment.case_id.chars().take(8).collect::<String>();
+    let date_display = assignment.assigned_date.chars().take(10).collect::<String>();
+    let reason_display = assignment.reason.as_deref().unwrap_or("—").to_string();
+
+    rsx! {
+        DataTableRow {
+            DataTableCell { "{case_display}" }
+            DataTableCell {
+                Badge { variant: BadgeVariant::Secondary,
+                    {assignment.assignment_type.as_str()}
+                }
+            }
+            DataTableCell { "{date_display}" }
+            DataTableCell { "{reason_display}" }
         }
     }
 }

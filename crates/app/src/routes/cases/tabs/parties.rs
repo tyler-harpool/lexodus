@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::PartyResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -29,7 +30,7 @@ pub fn PartiesTab(case_id: String) -> Element {
             server::api::list_case_parties(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<PartyResponse>>(&json).ok())
         }
     });
 
@@ -87,16 +88,16 @@ pub fn PartiesTab(case_id: String) -> Element {
                     DataTableBody {
                         for party in parties.iter() {
                             DataTableRow {
-                                DataTableCell { {party["name"].as_str().unwrap_or("—")} }
+                                DataTableCell { {party.name.clone()} }
                                 DataTableCell {
                                     Badge { variant: BadgeVariant::Secondary,
-                                        {party["party_type"].as_str().unwrap_or("—")}
+                                        {party.party_type.clone()}
                                     }
                                 }
-                                DataTableCell { {party["party_role"].as_str().unwrap_or("—")} }
+                                DataTableCell { {party.party_role.clone()} }
                                 DataTableCell {
                                     Badge { variant: BadgeVariant::Primary,
-                                        {party["status"].as_str().unwrap_or("active")}
+                                        {party.status.clone()}
                                     }
                                 }
                             }

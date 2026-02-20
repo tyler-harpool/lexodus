@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::DisciplineRecordResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -17,7 +18,7 @@ pub fn DisciplineTab(attorney_id: String) -> Element {
             server::api::list_discipline_records(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<DisciplineRecordResponse>>(&json).ok())
         }
     });
 
@@ -39,12 +40,12 @@ pub fn DisciplineTab(attorney_id: String) -> Element {
                                     DataTableRow {
                                         DataTableCell {
                                             Badge { variant: BadgeVariant::Destructive,
-                                                {row["action_type"].as_str().unwrap_or("—")}
+                                                {row.action_type.as_str()}
                                             }
                                         }
-                                        DataTableCell { {row["jurisdiction"].as_str().unwrap_or("—")} }
-                                        DataTableCell { {row["action_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
-                                        DataTableCell { {row["description"].as_str().unwrap_or("—")} }
+                                        DataTableCell { {row.jurisdiction.as_str()} }
+                                        DataTableCell { {row.action_date.chars().take(10).collect::<String>()} }
+                                        DataTableCell { {row.description.as_str()} }
                                     }
                                 }
                             }

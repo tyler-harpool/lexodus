@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{ExcludableDelayResponse, SpeedyTrialResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -34,7 +35,7 @@ pub fn SpeedyTrialTab(case_id: String) -> Element {
             server::api::get_speedy_trial(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
+                .and_then(|json| serde_json::from_str::<SpeedyTrialResponse>(&json).ok())
         }
     });
 
@@ -45,7 +46,7 @@ pub fn SpeedyTrialTab(case_id: String) -> Element {
             server::api::list_speedy_trial_delays(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<ExcludableDelayResponse>>(&json).ok())
         }
     });
 
@@ -99,10 +100,10 @@ pub fn SpeedyTrialTab(case_id: String) -> Element {
         // Clock status card
         match &*clock_data.read() {
             Some(Some(clock)) => {
-                let days_elapsed = clock["days_elapsed"].as_i64().unwrap_or(0);
-                let days_remaining = clock["days_remaining"].as_i64().unwrap_or(SPEEDY_TRIAL_LIMIT_DAYS);
-                let is_tolled = clock["is_tolled"].as_bool().unwrap_or(false);
-                let waived = clock["waived"].as_bool().unwrap_or(false);
+                let days_elapsed = clock.days_elapsed;
+                let days_remaining = clock.days_remaining;
+                let is_tolled = clock.is_tolled;
+                let waived = clock.waived;
                 let progress_pct = ((days_elapsed as f64 / SPEEDY_TRIAL_LIMIT_DAYS as f64) * 100.0).min(100.0);
 
                 let status_text = if waived {
@@ -149,22 +150,22 @@ pub fn SpeedyTrialTab(case_id: String) -> Element {
 
                             // Key dates
                             div { style: "display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-md); margin-top: var(--space-md);",
-                                if let Some(date) = clock["arrest_date"].as_str() {
+                                if let Some(date) = clock.arrest_date.as_deref() {
                                     div {
                                         span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "Arrest Date" }
-                                        p { {if date.len() >= 10 { &date[..10] } else { date }} }
+                                        p { {date.get(..10).unwrap_or(date)} }
                                     }
                                 }
-                                if let Some(date) = clock["indictment_date"].as_str() {
+                                if let Some(date) = clock.indictment_date.as_deref() {
                                     div {
                                         span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "Indictment Date" }
-                                        p { {if date.len() >= 10 { &date[..10] } else { date }} }
+                                        p { {date.get(..10).unwrap_or(date)} }
                                     }
                                 }
-                                if let Some(date) = clock["trial_start_deadline"].as_str() {
+                                if let Some(date) = clock.trial_start_deadline.get(..10) {
                                     div {
                                         span { style: "font-size: var(--font-size-sm); color: var(--color-on-surface-muted);", "Trial Deadline" }
-                                        p { {if date.len() >= 10 { &date[..10] } else { date }} }
+                                        p { {date} }
                                     }
                                 }
                             }
@@ -199,18 +200,18 @@ pub fn SpeedyTrialTab(case_id: String) -> Element {
                     DataTableBody {
                         for delay in delays.iter() {
                             DataTableRow {
-                                DataTableCell { {delay["reason"].as_str().unwrap_or("—").replace('_', " ")} }
+                                DataTableCell { {delay.reason.replace('_', " ")} }
                                 DataTableCell {
-                                    {delay["start_date"].as_str().map(|d| if d.len() >= 10 { &d[..10] } else { d }).unwrap_or("—")}
+                                    {delay.start_date.get(..10).unwrap_or(&delay.start_date)}
                                 }
                                 DataTableCell {
-                                    {delay["end_date"].as_str().map(|d| if d.len() >= 10 { &d[..10] } else { d }).unwrap_or("Ongoing")}
+                                    {delay.end_date.as_deref().and_then(|d| d.get(..10)).unwrap_or("Ongoing")}
                                 }
                                 DataTableCell {
-                                    {delay["days_excluded"].as_i64().map(|d| d.to_string()).unwrap_or_else(|| "—".to_string())}
+                                    {delay.days_excluded.to_string()}
                                 }
                                 DataTableCell {
-                                    {delay["statutory_reference"].as_str().unwrap_or("—")}
+                                    {delay.statutory_reference.as_str()}
                                 }
                             }
                         }

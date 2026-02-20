@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::CjaAppointmentResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -17,7 +18,7 @@ pub fn CjaTab(attorney_id: String) -> Element {
             server::api::list_cja_appointments(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<CjaAppointmentResponse>>(&json).ok())
         }
     });
 
@@ -38,17 +39,17 @@ pub fn CjaTab(attorney_id: String) -> Element {
                             DataTableBody {
                                 for row in rows.iter() {
                                     DataTableRow {
-                                        DataTableCell { {row["case_id"].as_str().unwrap_or("—").chars().take(8).collect::<String>()} }
-                                        DataTableCell { {row["appointment_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
-                                        DataTableCell { {row["termination_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
+                                        DataTableCell { {row.case_id.as_deref().unwrap_or("—").chars().take(8).collect::<String>()} }
+                                        DataTableCell { {row.appointment_date.chars().take(10).collect::<String>()} }
+                                        DataTableCell { {row.termination_date.as_deref().and_then(|d| d.get(..10)).unwrap_or("—")} }
                                         DataTableCell {
                                             Badge {
-                                                variant: voucher_status_variant(row["voucher_status"].as_str().unwrap_or("")),
-                                                {row["voucher_status"].as_str().unwrap_or("—")}
+                                                variant: voucher_status_variant(&row.voucher_status),
+                                                {row.voucher_status.as_str()}
                                             }
                                         }
                                         DataTableCell {
-                                            if let Some(amt) = row["voucher_amount"].as_f64() {
+                                            if let Some(amt) = row.voucher_amount {
                                                 {format!("${:.2}", amt)}
                                             } else {
                                                 {"—"}

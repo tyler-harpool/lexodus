@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::JudicialOpinionResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -16,7 +17,7 @@ pub fn OpinionsTab(judge_id: String) -> Element {
             server::api::list_opinions_by_judge(court, jid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<JudicialOpinionResponse>>(&json).ok())
         }
     });
 
@@ -35,25 +36,7 @@ pub fn OpinionsTab(judge_id: String) -> Element {
                             }
                             DataTableBody {
                                 for row in rows.iter() {
-                                    DataTableRow {
-                                        DataTableCell { {row["title"].as_str().unwrap_or("—")} }
-                                        DataTableCell {
-                                            Badge { variant: BadgeVariant::Secondary,
-                                                {row["opinion_type"].as_str().unwrap_or("—")}
-                                            }
-                                        }
-                                        DataTableCell {
-                                            Badge {
-                                                variant: match row["status"].as_str().unwrap_or("") {
-                                                    "Published" => BadgeVariant::Primary,
-                                                    "Draft" => BadgeVariant::Secondary,
-                                                    _ => BadgeVariant::Outline,
-                                                },
-                                                {row["status"].as_str().unwrap_or("—")}
-                                            }
-                                        }
-                                        DataTableCell { {row["filed_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
-                                    }
+                                    OpinionRow { opinion: row.clone() }
                                 }
                             }
                         }
@@ -62,6 +45,38 @@ pub fn OpinionsTab(judge_id: String) -> Element {
                     None => rsx! { Skeleton { width: "100%", height: "200px" } },
                 }
             }
+        }
+    }
+}
+
+#[component]
+fn OpinionRow(opinion: JudicialOpinionResponse) -> Element {
+    let filed_display = opinion.filed_at
+        .as_deref()
+        .map(|d| d.chars().take(10).collect::<String>())
+        .unwrap_or_else(|| "—".to_string());
+
+    let status_variant = match opinion.status.as_str() {
+        "Published" => BadgeVariant::Primary,
+        "Draft" => BadgeVariant::Secondary,
+        _ => BadgeVariant::Outline,
+    };
+
+    rsx! {
+        DataTableRow {
+            DataTableCell { {opinion.title.as_str()} }
+            DataTableCell {
+                Badge { variant: BadgeVariant::Secondary,
+                    {opinion.opinion_type.as_str()}
+                }
+            }
+            DataTableCell {
+                Badge {
+                    variant: status_variant,
+                    {opinion.status.as_str()}
+                }
+            }
+            DataTableCell { "{filed_display}" }
         }
     }
 }

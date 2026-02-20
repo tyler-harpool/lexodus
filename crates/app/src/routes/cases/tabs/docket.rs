@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
 use shared_types::{
     DocketAttachmentResponse, DocketEntryResponse, DocketSearchResponse, DocumentResponse,
-    NefResponse, ServiceRecordResponse, UserRole, VALID_DOCUMENT_TYPES,
+    NefResponse, PartyResponse, ServiceRecordResponse, SubmitEventResponse, UserRole,
+    VALID_DOCUMENT_TYPES,
 };
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardHeader, DataTable,
@@ -122,7 +123,7 @@ fn EventComposer(
     // Filing fields
     let mut document_type = use_signal(|| "Motion".to_string());
     let mut title = use_signal(String::new);
-    let mut filed_by = use_signal(move || current_user_name.clone());
+    let filed_by = use_signal(move || current_user_name.clone());
     let mut is_sealed = use_signal(|| false);
     let mut sealing_level = use_signal(|| "SealedCourtOnly".to_string());
     let mut reason_code = use_signal(String::new);
@@ -137,7 +138,7 @@ fn EventComposer(
     let mut error_msg = use_signal(|| None::<String>);
     let mut submitting = use_signal(|| false);
     // After successful submit, holds the parsed response for the receipt panel
-    let mut submit_result = use_signal(|| None::<serde_json::Value>);
+    let mut submit_result = use_signal(|| None::<SubmitEventResponse>);
     let mut show_nef_modal = use_signal(|| false);
     let mut nef_html = use_signal(|| None::<String>);
 
@@ -255,7 +256,7 @@ fn EventComposer(
             match server::api::submit_event(court.clone(), body.to_string()).await {
                 Ok(response_json) => {
                     // Parse the response to show a receipt panel
-                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&response_json) {
+                    if let Ok(parsed) = serde_json::from_str::<SubmitEventResponse>(&response_json) {
                         submit_result.set(Some(parsed));
                     } else {
                         on_submitted.call(());
@@ -277,9 +278,9 @@ fn EventComposer(
             spawn(async move {
                 match server::api::get_nef_by_id(court, nef_id).await {
                     Ok(Some(json)) => {
-                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&json) {
-                            if let Some(html) = parsed["html_snapshot"].as_str() {
-                                nef_html.set(Some(html.to_string()));
+                        if let Ok(parsed) = serde_json::from_str::<NefResponse>(&json) {
+                            if let Some(html) = parsed.html_snapshot {
+                                nef_html.set(Some(html));
                                 show_nef_modal.set(true);
                             }
                         }
@@ -295,15 +296,15 @@ fn EventComposer(
     // If submit succeeded, show receipt instead of form
     if let Some(result) = &*submit_result.read() {
         let result = result.clone();
-        let kind_label = match result["event_kind"].as_str().unwrap_or("") {
+        let kind_label = match result.event_kind.as_str() {
             "text_entry" => "Text Entry",
             "filing" => "Filing",
             "promote_attachment" => "Promote Attachment",
             _ => "Event",
         };
-        let entry_number = result["entry_number"].as_i64().unwrap_or(0);
-        let has_nef = result["nef_id"].is_string();
-        let nef_id_val = result["nef_id"].as_str().unwrap_or("").to_string();
+        let entry_number = result.entry_number;
+        let has_nef = result.nef_id.is_some();
+        let nef_id_val = result.nef_id.clone().unwrap_or_default();
 
         return rsx! {
             Card {
@@ -319,7 +320,7 @@ fn EventComposer(
                             span { class: "font-medium", "{entry_number}" }
                             span { class: "text-muted", "Event Type:" }
                             span { class: "font-medium", "{kind_label}" }
-                            if let Some(doc_id) = result["document_id"].as_str() {
+                            if let Some(ref doc_id) = result.document_id {
                                 span { class: "text-muted", "Document ID:" }
                                 span { class: "font-mono text-xs", "{doc_id}" }
                             }
@@ -397,11 +398,9 @@ fn EventComposer(
                                 }
                             }
                             div { class: "form-group",
-                                Input {
-                                    label: "Filed By",
-                                    value: filed_by.read().clone(),
-                                    on_input: move |evt: FormEvent| filed_by.set(evt.value().to_string()),
-                                    placeholder: "e.g., Courtroom Deputy",
+                                div { class: "form-field",
+                                    label { class: "form-label", "Filed By" }
+                                    p { class: "form-static-value", "{filed_by}" }
                                 }
                             }
                         }
@@ -429,11 +428,9 @@ fn EventComposer(
                                 }
                             }
                             div { class: "form-group",
-                                Input {
-                                    label: "Filed By *",
-                                    value: filed_by.read().clone(),
-                                    on_input: move |evt: FormEvent| filed_by.set(evt.value().to_string()),
-                                    placeholder: "e.g., Attorney Jones",
+                                div { class: "form-field",
+                                    label { class: "form-label", "Filed By" }
+                                    p { class: "form-static-value", "{filed_by}" }
                                 }
                             }
                         }
@@ -572,7 +569,7 @@ fn DocketEntryForm(case_id: String, on_created: EventHandler<()>) -> Element {
 
     let mut entry_type = use_signal(|| "motion".to_string());
     let mut description = use_signal(String::new);
-    let mut filed_by = use_signal(String::new);
+    let filed_by = use_signal(String::new);
     let mut error_msg = use_signal(|| None::<String>);
     let mut submitting = use_signal(|| false);
 
@@ -664,11 +661,9 @@ fn DocketEntryForm(case_id: String, on_created: EventHandler<()>) -> Element {
                     }
 
                     div { class: "form-group",
-                        Input {
-                            label: "Filed By",
-                            value: filed_by.read().clone(),
-                            on_input: move |evt: FormEvent| filed_by.set(evt.value().to_string()),
-                            placeholder: "e.g., Defense Counsel",
+                        div { class: "form-field",
+                            label { class: "form-label", "Filed By" }
+                            p { class: "form-static-value", "{filed_by}" }
                         }
                     }
 
@@ -695,7 +690,7 @@ fn FilingForm(case_id: String, on_filed: EventHandler<()>) -> Element {
 
     let mut document_type = use_signal(|| "Motion".to_string());
     let mut title = use_signal(String::new);
-    let mut filed_by = use_signal(String::new);
+    let filed_by = use_signal(String::new);
     let mut is_sealed = use_signal(|| false);
     let mut sealing_level = use_signal(|| "SealedCourtOnly".to_string());
     let mut reason_code = use_signal(String::new);
@@ -831,11 +826,9 @@ fn FilingForm(case_id: String, on_filed: EventHandler<()>) -> Element {
                             }
                         }
                         div { class: "form-group",
-                            Input {
-                                label: "Filed By *",
-                                value: filed_by.read().clone(),
-                                on_input: move |evt: FormEvent| filed_by.set(evt.value().to_string()),
-                                placeholder: "e.g., Attorney Jones",
+                            div { class: "form-field",
+                                label { class: "form-label", "Filed By" }
+                                p { class: "form-static-value", "{filed_by}" }
                             }
                         }
                     }
@@ -1485,7 +1478,7 @@ fn ServiceRecordForm(case_id: String, document_id: String, on_created: EventHand
         let case = cid.clone();
         async move {
             match server::api::list_case_parties(court, case).await {
-                Ok(json) => serde_json::from_str::<Vec<serde_json::Value>>(&json)
+                Ok(json) => serde_json::from_str::<Vec<PartyResponse>>(&json)
                     .unwrap_or_default(),
                 Err(_) => vec![],
             }
@@ -1559,10 +1552,8 @@ fn ServiceRecordForm(case_id: String, document_id: String, on_created: EventHand
                                 Some(parties) if !parties.is_empty() => rsx! {
                                     for p in parties.iter() {
                                         {
-                                            let pid = p["id"].as_str().unwrap_or_default().to_string();
-                                            let pname = p["name"].as_str().unwrap_or("Unknown");
-                                            let ptype = p["party_type"].as_str().unwrap_or("");
-                                            let label = format!("{} ({})", pname, ptype);
+                                            let pid = p.id.clone();
+                                            let label = format!("{} ({})", p.name, p.party_type);
                                             rsx! { option { value: "{pid}", "{label}" } }
                                         }
                                     }

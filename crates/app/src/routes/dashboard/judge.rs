@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{CaseSearchResponse, DeadlineSearchResponse};
 use shared_ui::components::{
     Card, CardContent, CardHeader, PageHeader, PageTitle, Skeleton,
 };
@@ -25,8 +26,8 @@ pub fn JudgeDashboard() -> Element {
             .await;
             let active_cases = cases_result
                 .ok()
-                .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
-                .and_then(|v| v["pagination"]["total"].as_i64())
+                .and_then(|json| serde_json::from_str::<CaseSearchResponse>(&json).ok())
+                .map(|resp| resp.total)
                 .unwrap_or(0);
 
             let deadlines_result = server::api::search_deadlines(
@@ -41,8 +42,8 @@ pub fn JudgeDashboard() -> Element {
             .await;
             let upcoming_deadlines = deadlines_result
                 .ok()
-                .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
-                .and_then(|v| v["pagination"]["total"].as_i64())
+                .and_then(|json| serde_json::from_str::<DeadlineSearchResponse>(&json).ok())
+                .map(|resp| resp.total)
                 .unwrap_or(0);
 
             (active_cases, upcoming_deadlines)

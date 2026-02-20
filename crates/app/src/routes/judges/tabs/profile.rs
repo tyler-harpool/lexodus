@@ -1,32 +1,33 @@
 use dioxus::prelude::*;
+use shared_types::JudgeResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DetailGrid, DetailItem,
     DetailList,
 };
 
 #[component]
-pub fn JudgeProfileTab(judge: serde_json::Value) -> Element {
+pub fn JudgeProfileTab(judge: JudgeResponse) -> Element {
     rsx! {
         DetailGrid {
             Card {
                 CardHeader { CardTitle { "Biographical Information" } }
                 CardContent {
                     DetailList {
-                        DetailItem { label: "Name", value: judge["name"].as_str().unwrap_or("—").to_string() }
-                        DetailItem { label: "Title", value: judge["title"].as_str().unwrap_or("—").to_string() }
-                        DetailItem { label: "District", value: judge["district"].as_str().unwrap_or("—").to_string() }
+                        DetailItem { label: "Name", value: judge.name.clone() }
+                        DetailItem { label: "Title", value: judge.title.clone() }
+                        DetailItem { label: "District", value: judge.district.clone() }
                         DetailItem { label: "Status",
                             Badge {
-                                variant: match judge["status"].as_str().unwrap_or("") {
+                                variant: match judge.status.as_str() {
                                     "Active" => BadgeVariant::Primary,
                                     "Senior" => BadgeVariant::Secondary,
                                     "Retired" => BadgeVariant::Outline,
                                     _ => BadgeVariant::Secondary,
                                 },
-                                {judge["status"].as_str().unwrap_or("—")}
+                                {judge.status.as_str()}
                             }
                         }
-                        if let Some(d) = judge["appointed_date"].as_str() {
+                        if let Some(ref d) = judge.appointed_date {
                             DetailItem { label: "Appointed", value: d.chars().take(10).collect::<String>() }
                         }
                     }
@@ -37,14 +38,16 @@ pub fn JudgeProfileTab(judge: serde_json::Value) -> Element {
                 CardHeader { CardTitle { "Chambers" } }
                 CardContent {
                     DetailList {
-                        if let Some(cr) = judge["courtroom"].as_str() {
-                            DetailItem { label: "Courtroom", value: cr.to_string() }
+                        if let Some(ref cr) = judge.courtroom {
+                            DetailItem { label: "Courtroom", value: cr.clone() }
                         }
                         DetailItem {
                             label: "Specializations",
-                            value: judge["specializations"].as_array()
-                                .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", "))
-                                .unwrap_or_else(|| "None".to_string())
+                            value: if judge.specializations.is_empty() {
+                                "None".to_string()
+                            } else {
+                                judge.specializations.join(", ")
+                            }
                         }
                     }
                 }
@@ -56,10 +59,7 @@ pub fn JudgeProfileTab(judge: serde_json::Value) -> Element {
                     DetailList {
                         DetailItem {
                             label: "Current / Max",
-                            value: format!("{} / {}",
-                                judge["current_caseload"].as_i64().unwrap_or(0),
-                                judge["max_caseload"].as_i64().unwrap_or(0)
-                            )
+                            value: format!("{} / {}", judge.current_caseload, judge.max_caseload)
                         }
                     }
                 }

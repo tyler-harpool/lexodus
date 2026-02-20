@@ -28,7 +28,7 @@ pub fn JudgeDetailPage(id: String) -> Element {
         let jid = judge_id.clone();
         async move {
             match server::api::get_judge(court, jid).await {
-                Ok(json) => serde_json::from_str::<serde_json::Value>(&json).ok(),
+                Ok(json) => serde_json::from_str::<JudgeResponse>(&json).ok(),
                 Err(_) => None,
             }
         }
@@ -38,7 +38,6 @@ pub fn JudgeDetailPage(id: String) -> Element {
         div { class: "container",
             match &*data.read() {
                 Some(Some(judge)) => {
-                    let judge_resp: Option<JudgeResponse> = serde_json::from_value(judge.clone()).ok();
                     rsx! {
                         JudgeDetailView {
                             judge: judge.clone(),
@@ -49,7 +48,7 @@ pub fn JudgeDetailPage(id: String) -> Element {
 
                         JudgeFormSheet {
                             mode: FormMode::Edit,
-                            initial: judge_resp,
+                            initial: Some(judge.clone()),
                             open: show_edit(),
                             on_close: move |_| show_edit.set(false),
                             on_saved: move |_| data.restart(),
@@ -84,14 +83,14 @@ pub fn JudgeDetailPage(id: String) -> Element {
 
 #[component]
 fn JudgeDetailView(
-    judge: serde_json::Value,
+    judge: JudgeResponse,
     id: String,
     role: shared_types::UserRole,
     show_edit: Signal<bool>,
 ) -> Element {
-    let name = judge["name"].as_str().unwrap_or("Unknown Judge").to_string();
-    let title = judge["title"].as_str().unwrap_or("").to_string();
-    let status = judge["status"].as_str().unwrap_or("").to_string();
+    let name = judge.name.clone();
+    let title = judge.title.clone();
+    let status = judge.status.clone();
 
     rsx! {
         PageHeader {
@@ -140,7 +139,7 @@ fn JudgeDetailView(
                 ConflictsTab { judge_id: id.clone() }
             }
             TabContent { value: "workload", index: 5usize,
-                WorkloadTab { judge_id: id.clone(), judge: judge.clone() }
+                WorkloadTab { judge_id: id.clone(), judge: judge }
             }
             TabContent { value: "vacation", index: 6usize,
                 VacationTab { judge_id: id.clone() }

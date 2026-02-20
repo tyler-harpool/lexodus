@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{CaseAssignmentResponse, JudicialOrderResponse, OrderTemplateResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -16,7 +17,7 @@ pub fn OrdersTab(case_id: String) -> Element {
     let toast = use_toast();
 
     let mut show_sheet = use_signal(|| false);
-    let mut form_order_type = use_signal(|| "scheduling_order".to_string());
+    let mut form_order_type = use_signal(|| "Scheduling".to_string());
     let mut form_title = use_signal(String::new);
     let mut form_content = use_signal(String::new);
     let mut form_judge_id = use_signal(String::new);
@@ -30,13 +31,11 @@ pub fn OrdersTab(case_id: String) -> Element {
         let cid = case_id_for_judge.clone();
         async move {
             if let Ok(json) = server::api::list_case_assignments(court, cid).await {
-                if let Ok(assignments) = serde_json::from_str::<Vec<serde_json::Value>>(&json) {
+                if let Ok(assignments) = serde_json::from_str::<Vec<CaseAssignmentResponse>>(&json) {
                     if let Some(a) = assignments.first() {
-                        if let Some(jid) = a["judge_id"].as_str() {
-                            form_judge_id.set(jid.to_string());
-                        }
-                        if let Some(name) = a["judge_name"].as_str() {
-                            form_judge_name.set(name.to_string());
+                        form_judge_id.set(a.judge_id.clone());
+                        if let Some(ref name) = a.judge_name {
+                            form_judge_name.set(name.clone());
                         }
                     }
                 }
@@ -53,7 +52,7 @@ pub fn OrdersTab(case_id: String) -> Element {
             server::api::list_orders_by_case(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<JudicialOrderResponse>>(&json).ok())
         }
     });
 
@@ -63,7 +62,7 @@ pub fn OrdersTab(case_id: String) -> Element {
             server::api::list_active_order_templates(court)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<OrderTemplateResponse>>(&json).ok())
         }
     });
 
@@ -126,27 +125,34 @@ pub fn OrdersTab(case_id: String) -> Element {
                         DataTableColumn { "Title" }
                         DataTableColumn { "Judge" }
                         DataTableColumn { "Order Type" }
-                        DataTableColumn { "Date Issued" }
+                        DataTableColumn { "Date" }
                         DataTableColumn { "Status" }
                     }
                     DataTableBody {
                         for order in orders.iter() {
-                            DataTableRow {
-                                DataTableCell { {order["title"].as_str().unwrap_or("—")} }
-                                DataTableCell {
-                                    {order["judge_name"].as_str().unwrap_or("—")}
-                                }
-                                DataTableCell {
-                                    Badge { variant: BadgeVariant::Secondary,
-                                        {order["order_type"].as_str().unwrap_or("—").replace('_', " ")}
-                                    }
-                                }
-                                DataTableCell {
-                                    {order["date_issued"].as_str().map(|d| &d[..10]).unwrap_or("—")}
-                                }
-                                DataTableCell {
-                                    Badge { variant: BadgeVariant::Primary,
-                                        {order["status"].as_str().unwrap_or("draft").replace('_', " ")}
+                            {
+                                let date_display = order.issued_at.as_deref()
+                                    .unwrap_or(&order.created_at);
+                                let date_short = date_display.get(..10).unwrap_or(date_display);
+                                rsx! {
+                                    DataTableRow {
+                                        DataTableCell { {order.title.clone()} }
+                                        DataTableCell {
+                                            {order.judge_name.as_deref().unwrap_or("\u{2014}")}
+                                        }
+                                        DataTableCell {
+                                            Badge { variant: BadgeVariant::Secondary,
+                                                {order.order_type.replace('_', " ")}
+                                            }
+                                        }
+                                        DataTableCell {
+                                            {date_short.to_string()}
+                                        }
+                                        DataTableCell {
+                                            Badge { variant: BadgeVariant::Primary,
+                                                {order.status.replace('_', " ")}
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -187,11 +193,19 @@ pub fn OrdersTab(case_id: String) -> Element {
                             label: "Order Type",
                             value: "{form_order_type}",
                             onchange: move |e: Event<FormData>| form_order_type.set(e.value()),
-                            option { value: "scheduling_order", "Scheduling Order" }
-                            option { value: "protective_order", "Protective Order" }
-                            option { value: "sealing_order", "Sealing Order" }
-                            option { value: "minute_order", "Minute Order" }
-                            option { value: "standing_order", "Standing Order" }
+                            option { value: "Scheduling", "Scheduling Order" }
+                            option { value: "Protective", "Protective Order" }
+                            option { value: "Sealing", "Sealing Order" }
+                            option { value: "Procedural", "Minute Order" }
+                            option { value: "Standing", "Standing Order" }
+                            option { value: "Discovery", "Discovery Order" }
+                            option { value: "Dismissal", "Dismissal Order" }
+                            option { value: "Sentencing", "Sentencing Order" }
+                            option { value: "Detention", "Detention Order" }
+                            option { value: "Release", "Release Order" }
+                            option { value: "Restraining", "Restraining Order" }
+                            option { value: "Contempt", "Contempt Order" }
+                            option { value: "Other", "Other" }
                         }
 
                         // Judge (auto-populated from case assignment)
@@ -231,8 +245,8 @@ pub fn OrdersTab(case_id: String) -> Element {
                                         option { value: "", "No template" }
                                         for tpl in templates.iter() {
                                             option {
-                                                value: tpl["id"].as_str().unwrap_or(""),
-                                                {tpl["name"].as_str().unwrap_or("Unnamed")}
+                                                value: "{tpl.id}",
+                                                {tpl.name.clone()}
                                             }
                                         }
                                     }

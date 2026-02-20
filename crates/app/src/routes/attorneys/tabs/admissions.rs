@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{BarAdmissionResponse, FederalAdmissionResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -18,7 +19,7 @@ pub fn AdmissionsTab(attorney_id: String) -> Element {
             server::api::list_bar_admissions(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<BarAdmissionResponse>>(&json).ok())
         }
     });
 
@@ -30,7 +31,7 @@ pub fn AdmissionsTab(attorney_id: String) -> Element {
             server::api::list_federal_admissions(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<FederalAdmissionResponse>>(&json).ok())
         }
     });
 
@@ -51,12 +52,12 @@ pub fn AdmissionsTab(attorney_id: String) -> Element {
                                 DataTableBody {
                                     for row in rows.iter() {
                                         DataTableRow {
-                                            DataTableCell { {row["state"].as_str().unwrap_or("—")} }
-                                            DataTableCell { {row["bar_number"].as_str().unwrap_or("—")} }
-                                            DataTableCell { {row["admission_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
+                                            DataTableCell { {row.state.as_str()} }
+                                            DataTableCell { {row.bar_number.as_str()} }
+                                            DataTableCell { {row.admission_date.chars().take(10).collect::<String>()} }
                                             DataTableCell {
                                                 Badge { variant: BadgeVariant::Primary,
-                                                    {row["status"].as_str().unwrap_or("active")}
+                                                    {row.status.as_str()}
                                                 }
                                             }
                                         }
@@ -86,11 +87,11 @@ pub fn AdmissionsTab(attorney_id: String) -> Element {
                                 DataTableBody {
                                     for row in rows.iter() {
                                         DataTableRow {
-                                            DataTableCell { {row["court_name"].as_str().unwrap_or("—")} }
-                                            DataTableCell { {row["admission_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
+                                            DataTableCell { {row.court_name.as_str()} }
+                                            DataTableCell { {row.admission_date.chars().take(10).collect::<String>()} }
                                             DataTableCell {
                                                 Badge { variant: BadgeVariant::Primary,
-                                                    {row["status"].as_str().unwrap_or("active")}
+                                                    {row.status.as_str()}
                                                 }
                                             }
                                         }

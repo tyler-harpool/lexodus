@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{CaseResponse, TimelineResponse};
+use shared_types::{CaseAssignmentResponse, CaseResponse, TimelineResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DetailFooter, DetailGrid,
     DetailItem, DetailList, Skeleton, Tooltip, TooltipContent, TooltipTrigger,
@@ -22,7 +22,7 @@ pub fn OverviewTab(case_item: CaseResponse) -> Element {
             server::api::list_case_assignments(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<CaseAssignmentResponse>>(&json).ok())
         }
     });
 
@@ -82,21 +82,21 @@ pub fn OverviewTab(case_item: CaseResponse) -> Element {
                         match &*judge_data.read() {
                             Some(Some(assignments)) if !assignments.is_empty() => {
                                 let a = &assignments[0];
-                                let judge_display = a["judge_name"].as_str()
-                                    .unwrap_or(a["judge_id"].as_str().unwrap_or("\u{2014}"));
+                                let judge_display = a.judge_name.as_deref()
+                                    .unwrap_or(&a.judge_id);
+                                let assigned_date_short = a.assigned_date.get(..10)
+                                    .unwrap_or(&a.assigned_date);
                                 rsx! {
                                     DetailItem { label: "Assigned Judge",
                                         Tooltip {
                                             TooltipTrigger { "{judge_display}" }
                                             TooltipContent {
-                                                {a["judge_id"].as_str().unwrap_or("\u{2014}")}
+                                                "{a.judge_id}"
                                             }
                                         }
                                     }
-                                    if let Some(date) = a["assigned_date"].as_str() {
-                                        DetailItem { label: "Assigned Date",
-                                            {if date.len() >= 10 { &date[..10] } else { date }}
-                                        }
+                                    DetailItem { label: "Assigned Date",
+                                        {assigned_date_short.to_string()}
                                     }
                                 }
                             },

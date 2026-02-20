@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{CalendarSearchResponse, DeadlineSearchResponse};
 use shared_ui::components::{Card, CardContent, CardHeader, PageHeader, PageTitle, Skeleton};
 
 use crate::CourtContext;
@@ -23,8 +24,8 @@ pub fn AttorneyDashboard() -> Element {
             .await;
             let upcoming_deadlines = deadlines_result
                 .ok()
-                .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
-                .and_then(|v| v["pagination"]["total"].as_i64())
+                .and_then(|json| serde_json::from_str::<DeadlineSearchResponse>(&json).ok())
+                .map(|r| r.total)
                 .unwrap_or(0);
 
             let calendar_result = server::api::search_calendar_events(
@@ -41,8 +42,8 @@ pub fn AttorneyDashboard() -> Element {
             .await;
             let upcoming_events = calendar_result
                 .ok()
-                .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
-                .and_then(|v| v["pagination"]["total"].as_i64())
+                .and_then(|json| serde_json::from_str::<CalendarSearchResponse>(&json).ok())
+                .map(|r| r.total)
                 .unwrap_or(0);
 
             (upcoming_deadlines, upcoming_events)

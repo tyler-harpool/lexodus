@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::ProHacViceResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -17,7 +18,7 @@ pub fn ProHacViceTab(attorney_id: String) -> Element {
             server::api::list_pro_hac_vice(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<ProHacViceResponse>>(&json).ok())
         }
     });
 
@@ -37,15 +38,15 @@ pub fn ProHacViceTab(attorney_id: String) -> Element {
                             DataTableBody {
                                 for row in rows.iter() {
                                     DataTableRow {
-                                        DataTableCell { {row["case_id"].as_str().unwrap_or("—").chars().take(8).collect::<String>()} }
+                                        DataTableCell { {row.case_id.chars().take(8).collect::<String>()} }
                                         DataTableCell {
                                             Badge {
-                                                variant: phv_status_variant(row["status"].as_str().unwrap_or("")),
-                                                {row["status"].as_str().unwrap_or("—")}
+                                                variant: phv_status_variant(&row.status),
+                                                {row.status.as_str()}
                                             }
                                         }
-                                        DataTableCell { {row["admission_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
-                                        DataTableCell { {row["expiration_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
+                                        DataTableCell { {row.admission_date.chars().take(10).collect::<String>()} }
+                                        DataTableCell { {row.expiration_date.as_deref().and_then(|d| d.get(..10)).unwrap_or("—")} }
                                     }
                                 }
                             }

@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::AttorneyResponse;
+use shared_types::{AttorneyResponse, EcfRegistrationResponse, PracticeAreaResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DetailGrid, DetailItem,
     DetailList, Skeleton,
@@ -19,7 +19,7 @@ pub fn ProfileTab(attorney: AttorneyResponse, attorney_id: String) -> Element {
             server::api::list_practice_areas(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<PracticeAreaResponse>>(&json).ok())
         }
     });
 
@@ -31,7 +31,7 @@ pub fn ProfileTab(attorney: AttorneyResponse, attorney_id: String) -> Element {
             server::api::get_ecf_registration(court, aid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
+                .and_then(|json| serde_json::from_str::<EcfRegistrationResponse>(&json).ok())
         }
     });
 
@@ -99,7 +99,7 @@ pub fn ProfileTab(attorney: AttorneyResponse, attorney_id: String) -> Element {
                             div { class: "badge-group",
                                 for area in areas.iter() {
                                     Badge { variant: BadgeVariant::Secondary,
-                                        {area["area"].as_str().unwrap_or("—")}
+                                        {area.area.as_str()}
                                     }
                                 }
                             }
@@ -114,20 +114,20 @@ pub fn ProfileTab(attorney: AttorneyResponse, attorney_id: String) -> Element {
                 CardHeader { CardTitle { "ECF Registration" } }
                 CardContent {
                     match &*ecf.read() {
-                        Some(Some(reg)) if !reg.is_null() => rsx! {
+                        Some(Some(reg)) => rsx! {
                             DetailList {
                                 DetailItem { label: "Status",
                                     Badge { variant: BadgeVariant::Primary,
-                                        {reg["status"].as_str().unwrap_or("unknown")}
+                                        {reg.status.as_str()}
                                     }
                                 }
                                 DetailItem {
                                     label: "Registered",
-                                    value: reg["registration_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()
+                                    value: reg.registration_date.chars().take(10).collect::<String>()
                                 }
                             }
                         },
-                        Some(_) => rsx! { p { class: "text-muted", "Not registered for ECF." } },
+                        Some(None) => rsx! { p { class: "text-muted", "Not registered for ECF." } },
                         None => rsx! { Skeleton {} },
                     }
                 }

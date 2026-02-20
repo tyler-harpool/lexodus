@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::CalendarEntryResponse;
 use shared_ui::components::{
     Badge, BadgeVariant, Button, ButtonVariant,
     DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
@@ -41,7 +42,7 @@ pub fn CalendarTab(case_id: String) -> Element {
             server::api::list_calendar_by_case(court, cid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<CalendarEntryResponse>>(&json).ok())
         }
     });
 
@@ -107,21 +108,21 @@ pub fn CalendarTab(case_id: String) -> Element {
                         for evt in events.iter() {
                             DataTableRow {
                                 DataTableCell {
-                                    {evt["scheduled_date"].as_str().map(|d| crate::format_helpers::format_datetime_human(d)).unwrap_or_else(|| "—".to_string())}
+                                    {crate::format_helpers::format_datetime_human(&evt.scheduled_date)}
                                 }
                                 DataTableCell {
                                     Badge { variant: BadgeVariant::Secondary,
-                                        {crate::format_helpers::format_snake_case_title(evt["event_type"].as_str().unwrap_or("—"))}
+                                        {crate::format_helpers::format_snake_case_title(&evt.event_type)}
                                     }
                                 }
-                                DataTableCell { {evt["courtroom"].as_str().unwrap_or("—")} }
+                                DataTableCell { {evt.courtroom.clone()} }
                                 DataTableCell {
-                                    {format!("{} min", evt["duration_minutes"].as_i64().unwrap_or(0))}
+                                    {format!("{} min", evt.duration_minutes)}
                                 }
                                 DataTableCell {
                                     Badge {
-                                        variant: event_status_variant(evt["status"].as_str().unwrap_or("scheduled")),
-                                        {crate::format_helpers::format_snake_case_title(evt["status"].as_str().unwrap_or("scheduled"))}
+                                        variant: event_status_variant(&evt.status),
+                                        {crate::format_helpers::format_snake_case_title(&evt.status)}
                                     }
                                 }
                             }

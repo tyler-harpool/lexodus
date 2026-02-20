@@ -1,12 +1,13 @@
 use dioxus::prelude::*;
+use shared_types::JudgeResponse;
 use shared_ui::components::{
     Card, CardContent, CardHeader, CardTitle, DetailGrid, DetailItem, DetailList,
 };
 
 #[component]
-pub fn WorkloadTab(judge_id: String, judge: serde_json::Value) -> Element {
-    let current = judge["current_caseload"].as_i64().unwrap_or(0);
-    let max = judge["max_caseload"].as_i64().unwrap_or(1);
+pub fn WorkloadTab(judge_id: String, judge: JudgeResponse) -> Element {
+    let current = judge.current_caseload as i64;
+    let max = judge.max_caseload as i64;
     let utilization = if max > 0 { current as f64 / max as f64 * 100.0 } else { 0.0 };
 
     rsx! {
@@ -26,8 +27,8 @@ pub fn WorkloadTab(judge_id: String, judge: serde_json::Value) -> Element {
                 CardHeader { CardTitle { "Performance" } }
                 CardContent {
                     DetailList {
-                        DetailItem { label: "Status", value: judge["status"].as_str().unwrap_or("—").to_string() }
-                        if let Some(d) = judge["appointed_date"].as_str() {
+                        DetailItem { label: "Status", value: judge.status.clone() }
+                        if let Some(ref d) = judge.appointed_date {
                             DetailItem { label: "Years on Bench", value: d.chars().take(4).collect::<String>() }
                         }
                     }

@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{CalendarEntryResponse, CalendarSearchResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -18,10 +19,8 @@ pub fn JudgeCalendarTab(judge_id: String) -> Element {
             )
             .await
             .ok()
-            .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).ok())
-            .and_then(|v| {
-                v["data"].as_array().map(|arr| arr.clone())
-            })
+            .and_then(|json| serde_json::from_str::<CalendarSearchResponse>(&json).ok())
+            .map(|resp| resp.events)
         }
     });
 
@@ -40,26 +39,36 @@ pub fn JudgeCalendarTab(judge_id: String) -> Element {
                             }
                             DataTableBody {
                                 for row in rows.iter() {
-                                    DataTableRow {
-                                        DataTableCell { {row["event_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
-                                        DataTableCell {
-                                            Badge { variant: BadgeVariant::Secondary,
-                                                {row["event_type"].as_str().unwrap_or("—")}
-                                            }
-                                        }
-                                        DataTableCell { {row["case_id"].as_str().unwrap_or("—").chars().take(8).collect::<String>()} }
-                                        DataTableCell {
-                                            Badge { variant: BadgeVariant::Primary,
-                                                {row["status"].as_str().unwrap_or("—")}
-                                            }
-                                        }
-                                    }
+                                    CalendarEventRow { event: row.clone() }
                                 }
                             }
                         }
                     },
                     Some(_) => rsx! { p { class: "text-muted", "No scheduled events." } },
                     None => rsx! { Skeleton { width: "100%", height: "200px" } },
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn CalendarEventRow(event: CalendarEntryResponse) -> Element {
+    let date_display = event.scheduled_date.chars().take(10).collect::<String>();
+    let case_display = event.case_id.chars().take(8).collect::<String>();
+
+    rsx! {
+        DataTableRow {
+            DataTableCell { "{date_display}" }
+            DataTableCell {
+                Badge { variant: BadgeVariant::Secondary,
+                    {event.event_type.as_str()}
+                }
+            }
+            DataTableCell { "{case_display}" }
+            DataTableCell {
+                Badge { variant: BadgeVariant::Primary,
+                    {event.status.as_str()}
                 }
             }
         }

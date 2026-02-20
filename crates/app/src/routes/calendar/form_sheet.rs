@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use shared_types::{CalendarEntryResponse, CaseSearchResponse};
+use shared_types::{CalendarEntryResponse, CaseSearchResponse, JudgeResponse};
 use shared_ui::components::{
     AlertDialogAction, AlertDialogActions, AlertDialogCancel, AlertDialogContent,
     AlertDialogDescription, AlertDialogRoot, AlertDialogTitle, Form, FormSelect, Input, Separator,
@@ -60,7 +60,7 @@ pub fn CalendarFormSheet(
         let court = ctx.court_id.read().clone();
         async move {
             match server::api::list_judges(court).await {
-                Ok(json) => serde_json::from_str::<Vec<serde_json::Value>>(&json).ok(),
+                Ok(json) => serde_json::from_str::<Vec<JudgeResponse>>(&json).ok(),
                 Err(_) => None,
             }
         }
@@ -276,8 +276,8 @@ pub fn CalendarFormSheet(
                                 Some(Some(judges)) => rsx! {
                                     for j in judges.iter() {
                                         option {
-                                            value: j["id"].as_str().unwrap_or(""),
-                                            {j["name"].as_str().unwrap_or("Unknown")}
+                                            value: "{j.id}",
+                                            "{j.name}"
                                         }
                                     }
                                 },

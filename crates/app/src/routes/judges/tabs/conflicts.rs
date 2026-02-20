@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use shared_types::{JudgeConflictResponse, RecusalMotionResponse};
 use shared_ui::components::{
     Badge, BadgeVariant, Card, CardContent, CardHeader, CardTitle, DataTable, DataTableBody,
     DataTableCell, DataTableColumn, DataTableHeader, DataTableRow, Skeleton,
@@ -17,7 +18,7 @@ pub fn ConflictsTab(judge_id: String) -> Element {
             server::api::list_judge_conflicts(court, jid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<JudgeConflictResponse>>(&json).ok())
         }
     });
 
@@ -29,7 +30,7 @@ pub fn ConflictsTab(judge_id: String) -> Element {
             server::api::list_recusals_by_judge(court, jid)
                 .await
                 .ok()
-                .and_then(|json| serde_json::from_str::<Vec<serde_json::Value>>(&json).ok())
+                .and_then(|json| serde_json::from_str::<Vec<RecusalMotionResponse>>(&json).ok())
         }
     });
 
@@ -49,16 +50,7 @@ pub fn ConflictsTab(judge_id: String) -> Element {
                                 }
                                 DataTableBody {
                                     for row in rows.iter() {
-                                        DataTableRow {
-                                            DataTableCell { {row["conflicting_party"].as_str().unwrap_or("—")} }
-                                            DataTableCell {
-                                                Badge { variant: BadgeVariant::Destructive,
-                                                    {row["conflict_type"].as_str().unwrap_or("—")}
-                                                }
-                                            }
-                                            DataTableCell { {row["start_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
-                                            DataTableCell { {row["notes"].as_str().unwrap_or("—")} }
-                                        }
+                                        {render_conflict_row(row)}
                                     }
                                 }
                             }
@@ -85,22 +77,7 @@ pub fn ConflictsTab(judge_id: String) -> Element {
                                 }
                                 DataTableBody {
                                     for row in rows.iter() {
-                                        DataTableRow {
-                                            DataTableCell { {row["case_id"].as_str().unwrap_or("—").chars().take(8).collect::<String>()} }
-                                            DataTableCell { {row["reason"].as_str().unwrap_or("—")} }
-                                            DataTableCell {
-                                                Badge {
-                                                    variant: match row["status"].as_str().unwrap_or("") {
-                                                        "Granted" => BadgeVariant::Primary,
-                                                        "Denied" => BadgeVariant::Destructive,
-                                                        "Pending" => BadgeVariant::Secondary,
-                                                        _ => BadgeVariant::Outline,
-                                                    },
-                                                    {row["status"].as_str().unwrap_or("—")}
-                                                }
-                                            }
-                                            DataTableCell { {row["filed_date"].as_str().unwrap_or("—").chars().take(10).collect::<String>()} }
-                                        }
+                                        {render_recusal_row(row)}
                                     }
                                 }
                             }
@@ -110,6 +87,69 @@ pub fn ConflictsTab(judge_id: String) -> Element {
                     }
                 }
             }
+        }
+    }
+}
+
+/// Builds a display string for the conflicting party from available fields.
+fn conflicting_party_display(conflict: &JudgeConflictResponse) -> String {
+    let parts: Vec<&str> = [
+        conflict.party_name.as_deref(),
+        conflict.law_firm.as_deref(),
+        conflict.corporation.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+
+    if parts.is_empty() {
+        "—".to_string()
+    } else {
+        parts.join(", ")
+    }
+}
+
+fn render_conflict_row(conflict: &JudgeConflictResponse) -> Element {
+    let party_display = conflicting_party_display(conflict);
+    let start_display = conflict.start_date.chars().take(10).collect::<String>();
+    let notes_display = conflict.notes.as_deref().unwrap_or("—").to_string();
+
+    rsx! {
+        DataTableRow {
+            DataTableCell { "{party_display}" }
+            DataTableCell {
+                Badge { variant: BadgeVariant::Destructive,
+                    {conflict.conflict_type.as_str()}
+                }
+            }
+            DataTableCell { "{start_display}" }
+            DataTableCell { "{notes_display}" }
+        }
+    }
+}
+
+fn render_recusal_row(recusal: &RecusalMotionResponse) -> Element {
+    let case_display = recusal.case_id.chars().take(8).collect::<String>();
+    let filed_display = recusal.filed_date.chars().take(10).collect::<String>();
+
+    let status_variant = match recusal.status.as_str() {
+        "Granted" => BadgeVariant::Primary,
+        "Denied" => BadgeVariant::Destructive,
+        "Pending" => BadgeVariant::Secondary,
+        _ => BadgeVariant::Outline,
+    };
+
+    rsx! {
+        DataTableRow {
+            DataTableCell { "{case_display}" }
+            DataTableCell { {recusal.reason.as_str()} }
+            DataTableCell {
+                Badge {
+                    variant: status_variant,
+                    {recusal.status.as_str()}
+                }
+            }
+            DataTableCell { "{filed_display}" }
         }
     }
 }
