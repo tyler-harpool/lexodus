@@ -115,6 +115,30 @@ pub async fn create_case(
         .await;
     }
 
+    // Advance case status if rules produced status changes (best-effort)
+    for sc in &report.status_changes {
+        tracing::info!(
+            case_id = %case.id,
+            new_status = %sc.new_status,
+            rule = %sc.rule_name,
+            "Compliance engine advancing case status"
+        );
+        let _ = crate::repo::case::update_status(&pool, &court.0, case.id, &sc.new_status).await;
+    }
+
+    // Start Speedy Trial clock if rules require it (best-effort)
+    if report.start_speedy_trial {
+        tracing::info!(case_id = %case.id, "Compliance engine starting Speedy Trial clock");
+        let req = shared_types::StartSpeedyTrialRequest {
+            case_id: case.id,
+            arrest_date: None,
+            indictment_date: None,
+            arraignment_date: Some(chrono::Utc::now()),
+            trial_start_deadline: None,
+        };
+        let _ = crate::repo::speedy_trial::create(&pool, &court.0, req).await;
+    }
+
     // Log case event (best-effort — never fail the request)
     let report_json = serde_json::to_value(&report).ok();
     let _ = crate::repo::case_event::insert(

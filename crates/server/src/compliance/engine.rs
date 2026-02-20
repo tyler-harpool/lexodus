@@ -288,6 +288,30 @@ fn process_actions(
                     message: message.clone(),
                 });
             }
+            RuleAction::AdvanceStatus { new_status } => {
+                report.status_changes.push(StatusChangeResult {
+                    new_status: new_status.clone(),
+                    rule_name: rule.name.clone(),
+                    rule_citation: rule.citation.clone().unwrap_or_default(),
+                });
+                report.results.push(RuleResult {
+                    rule_id: rule.id,
+                    rule_name: rule.name.clone(),
+                    matched: true,
+                    action_taken: "advance_status".to_string(),
+                    message: format!("Advance case status to '{}'", new_status),
+                });
+            }
+            RuleAction::StartSpeedyTrial => {
+                report.start_speedy_trial = true;
+                report.results.push(RuleResult {
+                    rule_id: rule.id,
+                    rule_name: rule.name.clone(),
+                    matched: true,
+                    action_taken: "start_speedy_trial".to_string(),
+                    message: "Start Speedy Trial Act clock".to_string(),
+                });
+            }
         }
     }
 }

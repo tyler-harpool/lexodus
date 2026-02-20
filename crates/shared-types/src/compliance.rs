@@ -122,6 +122,10 @@ pub enum RuleAction {
     LogCompliance {
         message: String,
     },
+    AdvanceStatus {
+        new_status: String,
+    },
+    StartSpeedyTrial,
 }
 
 // ─── Rule Priority ─────────────────────────────────────────────
@@ -219,6 +223,16 @@ pub struct ComplianceReport {
     pub warnings: Vec<String>,
     pub deadlines: Vec<DeadlineResult>,
     pub fees: Vec<FeeRequirement>,
+    pub status_changes: Vec<StatusChangeResult>,
+    pub start_speedy_trial: bool,
+}
+
+/// A status change produced by rule evaluation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StatusChangeResult {
+    pub new_status: String,
+    pub rule_name: String,
+    pub rule_citation: String,
 }
 
 /// Result of evaluating a single rule.
