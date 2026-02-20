@@ -1,8 +1,24 @@
-use shared_types::{AppError, CreateMotionRequest, Motion};
+use shared_types::{AppError, CreateMotionRequest, Motion, MotionResponse};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use crate::error_convert::SqlxErrorExt;
+
+/// Intermediate row for pending motions joined with case number.
+#[derive(sqlx::FromRow)]
+struct PendingMotionRow {
+    pub id: Uuid,
+    pub court_id: String,
+    pub case_id: Uuid,
+    pub case_number: Option<String>,
+    pub motion_type: String,
+    pub filed_by: String,
+    pub description: String,
+    pub filed_date: chrono::DateTime<chrono::Utc>,
+    pub status: String,
+    pub ruling_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub ruling_text: Option<String>,
+}
 
 /// Insert a new motion.
 pub async fn create(
@@ -141,4 +157,57 @@ pub async fn delete(
     .map_err(SqlxErrorExt::into_app_error)?;
 
     Ok(result.rows_affected() > 0)
+}
+
+/// List all pending motions for cases assigned to a specific judge.
+///
+/// Joins motions with case_assignments to find motions on the judge's
+/// active cases, and resolves the case number from criminal_cases or
+/// civil_cases via COALESCE.
+pub async fn list_pending_for_judge(
+    pool: &Pool<Postgres>,
+    court_id: &str,
+    judge_id: Uuid,
+) -> Result<Vec<MotionResponse>, AppError> {
+    let rows = sqlx::query_as!(
+        PendingMotionRow,
+        r#"
+        SELECT m.id, m.court_id, m.case_id,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
+               m.motion_type, m.filed_by, m.description,
+               m.filed_date, m.status, m.ruling_date, m.ruling_text
+        FROM motions m
+        JOIN case_assignments ca
+            ON m.case_id = ca.case_id
+            AND ca.judge_id = $2
+            AND ca.court_id = $1
+        LEFT JOIN criminal_cases cc ON m.case_id = cc.id
+        LEFT JOIN civil_cases cv ON m.case_id = cv.id
+        WHERE m.court_id = $1 AND m.status = 'Pending'
+        ORDER BY m.filed_date ASC
+        "#,
+        court_id,
+        judge_id,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(SqlxErrorExt::into_app_error)?;
+
+    let responses = rows
+        .into_iter()
+        .map(|r| MotionResponse {
+            id: r.id.to_string(),
+            case_id: r.case_id.to_string(),
+            case_number: r.case_number,
+            motion_type: r.motion_type,
+            filed_by: r.filed_by,
+            description: r.description,
+            filed_date: r.filed_date.to_rfc3339(),
+            status: r.status,
+            ruling_date: r.ruling_date.map(|dt| dt.to_rfc3339()),
+            ruling_text: r.ruling_text,
+        })
+        .collect();
+
+    Ok(responses)
 }

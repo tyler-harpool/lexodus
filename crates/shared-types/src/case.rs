@@ -622,6 +622,9 @@ pub fn is_valid_motion_status(s: &str) -> bool {
 pub struct MotionResponse {
     pub id: String,
     pub case_id: String,
+    /// Resolved case number from criminal_cases or civil_cases.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub case_number: Option<String>,
     pub motion_type: String,
     pub filed_by: String,
     pub description: String,
@@ -638,6 +641,7 @@ impl From<Motion> for MotionResponse {
         Self {
             id: m.id.to_string(),
             case_id: m.case_id.to_string(),
+            case_number: None,
             motion_type: m.motion_type,
             filed_by: m.filed_by,
             description: m.description,
@@ -842,7 +846,7 @@ pub fn is_valid_note_type(s: &str) -> bool {
 // ── Case Note response / request types ────────────────────────────
 
 /// API response for a case note.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CaseNoteResponse {
     pub id: String,
