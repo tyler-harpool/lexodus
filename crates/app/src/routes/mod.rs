@@ -85,26 +85,18 @@ pub enum Route {
     // Court domain routes
     #[route("/attorneys")]
     AttorneyList {},
-    #[route("/attorneys/new")]
-    AttorneyCreate {},
     #[route("/attorneys/:id")]
     AttorneyDetail { id: String },
     #[route("/calendar")]
     CalendarList {},
-    #[route("/calendar/new")]
-    CalendarCreate {},
     #[route("/calendar/:id")]
     CalendarDetail { id: String },
     #[route("/cases")]
     CaseList {},
-    #[route("/cases/new")]
-    CaseCreate {},
     #[route("/cases/:id")]
     CaseDetail { id: String },
     #[route("/deadlines")]
     DeadlineList {},
-    #[route("/deadlines/new")]
-    DeadlineCreate {},
     #[route("/deadlines/:id")]
     DeadlineDetail { id: String },
     // ── Opinions ──
@@ -207,10 +199,10 @@ fn AppLayout() -> Element {
         },
         Route::Users {} => "Users",
         Route::Settings { .. } => "Settings",
-        Route::AttorneyList {} | Route::AttorneyCreate {} | Route::AttorneyDetail { .. } => "Attorneys",
-        Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. } => "Calendar",
-        Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. } => "Cases",
-        Route::DeadlineList {} | Route::DeadlineCreate {} | Route::DeadlineDetail { .. } => "Deadlines",
+        Route::AttorneyList {} | Route::AttorneyDetail { .. } => "Attorneys",
+        Route::CalendarList {} | Route::CalendarDetail { .. } => "Calendar",
+        Route::CaseList {} | Route::CaseDetail { .. } => "Cases",
+        Route::DeadlineList {} | Route::DeadlineDetail { .. } => "Deadlines",
         Route::OpinionList {} | Route::OpinionDetail { .. } => "Opinions",
         Route::JudgeList {} | Route::JudgeDetail { .. } => "Judges",
         Route::ComplianceDashboard {} => "Compliance",
@@ -296,7 +288,7 @@ fn AppLayout() -> Element {
                                 SidebarMenu {
                                     SidebarMenuItem {
                                         Link { to: Route::CaseList {},
-                                            SidebarMenuButton { active: matches!(route, Route::CaseList {} | Route::CaseCreate {} | Route::CaseDetail { .. }),
+                                            SidebarMenuButton { active: matches!(route, Route::CaseList {} | Route::CaseDetail { .. }),
                                                 Icon::<LdBriefcase> { icon: LdBriefcase, width: 18, height: 18 }
                                                 "Cases"
                                             }
@@ -304,7 +296,7 @@ fn AppLayout() -> Element {
                                     }
                                     SidebarMenuItem {
                                         Link { to: Route::CalendarList {},
-                                            SidebarMenuButton { active: matches!(route, Route::CalendarList {} | Route::CalendarCreate {} | Route::CalendarDetail { .. }),
+                                            SidebarMenuButton { active: matches!(route, Route::CalendarList {} | Route::CalendarDetail { .. }),
                                                 Icon::<LdCalendar> { icon: LdCalendar, width: 18, height: 18 }
                                                 "Schedule"
                                             }
@@ -312,7 +304,7 @@ fn AppLayout() -> Element {
                                     }
                                     SidebarMenuItem {
                                         Link { to: Route::DeadlineList {},
-                                            SidebarMenuButton { active: matches!(route, Route::DeadlineList {} | Route::DeadlineCreate {} | Route::DeadlineDetail { .. }),
+                                            SidebarMenuButton { active: matches!(route, Route::DeadlineList {} | Route::DeadlineDetail { .. }),
                                                 Icon::<LdClock> { icon: LdClock, width: 18, height: 18 }
                                                 "Deadlines"
                                             }
@@ -502,11 +494,6 @@ fn AttorneyList() -> Element {
 }
 
 #[component]
-fn AttorneyCreate() -> Element {
-    attorneys::create::AttorneyCreatePage()
-}
-
-#[component]
 fn AttorneyDetail(id: String) -> Element {
     rsx! { attorneys::detail::AttorneyDetailPage { id: id } }
 }
@@ -514,11 +501,6 @@ fn AttorneyDetail(id: String) -> Element {
 #[component]
 fn CalendarList() -> Element {
     calendar::list::CalendarListPage()
-}
-
-#[component]
-fn CalendarCreate() -> Element {
-    calendar::create::CalendarCreatePage()
 }
 
 #[component]
@@ -532,11 +514,6 @@ fn CaseList() -> Element {
 }
 
 #[component]
-fn CaseCreate() -> Element {
-    cases::create::CaseCreatePage()
-}
-
-#[component]
 fn CaseDetail(id: String) -> Element {
     rsx! { cases::detail::CaseDetailPage { id: id } }
 }
@@ -544,11 +521,6 @@ fn CaseDetail(id: String) -> Element {
 #[component]
 fn DeadlineList() -> Element {
     deadlines::list::DeadlineListPage()
-}
-
-#[component]
-fn DeadlineCreate() -> Element {
-    deadlines::create::DeadlineCreatePage()
 }
 
 #[component]
