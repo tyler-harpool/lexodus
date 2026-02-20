@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
 use shared_types::{CalendarEntryResponse, JudicialOrderResponse, MotionResponse};
 use shared_ui::components::{
-    Badge, BadgeVariant, Card, CardContent, CardDescription, CardHeader, CardTitle,
-    DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader, DataTableRow,
-    PageHeader, PageTitle, Skeleton,
+    Badge, BadgeVariant, Button, ButtonVariant, Card, CardContent, CardDescription, CardHeader,
+    CardTitle, DataTable, DataTableBody, DataTableCell, DataTableColumn, DataTableHeader,
+    DataTableRow, PageHeader, PageTitle, Skeleton,
 };
 
 use crate::auth::use_auth;
@@ -324,10 +324,14 @@ fn PendingMotions(
                                 DataTableColumn { "Motion Type" }
                                 DataTableColumn { "Filed" }
                                 DataTableColumn { "Filed By" }
+                                DataTableColumn { "Action" }
                             }
                             DataTableBody {
                                 for motion in motions.iter() {
-                                    MotionRow { motion: motion.clone() }
+                                    MotionRow {
+                                        motion: motion.clone(),
+                                        on_ruled: move |_| data.restart(),
+                                    }
                                 }
                             }
                         }
@@ -346,9 +350,12 @@ fn PendingMotions(
     }
 }
 
-/// A single motion row in the pending motions table.
+/// A single motion row with inline ruling action.
 #[component]
-fn MotionRow(motion: MotionResponse) -> Element {
+fn MotionRow(motion: MotionResponse, on_ruled: EventHandler<()>) -> Element {
+    let ctx = use_context::<CourtContext>();
+    let auth = use_auth();
+
     let case_id = motion.case_id.clone();
     let case_display = motion
         .case_number
@@ -357,18 +364,123 @@ fn MotionRow(motion: MotionResponse) -> Element {
 
     let filed_date = format_date_short(&motion.filed_date);
 
+    let mut expanded = use_signal(|| false);
+    let mut selected_disposition = use_signal(|| Option::<String>::None);
+    let mut ruling_text = use_signal(|| String::new());
+    let mut submitting = use_signal(|| false);
+    let mut error_msg = use_signal(|| Option::<String>::None);
+
+    // Clone values needed across closures
+    let motion_id = motion.id.clone();
+    let motion_type = motion.motion_type.clone();
+    let motion_filed_by = motion.filed_by.clone();
+    let motion_description = motion.description.clone();
+
+    let handle_rule = move |_: MouseEvent| {
+        let court = ctx.court_id.read().clone();
+        let mid = motion_id.clone();
+        let disposition = selected_disposition.read().clone();
+        let text = ruling_text.read().clone();
+        let user = auth.current_user.read().clone();
+
+        if let (Some(disposition), Some(user)) = (disposition, user) {
+            let judge_id = user.linked_judge_id.unwrap_or_default();
+            let judge_name = user.display_name.clone();
+
+            spawn(async move {
+                submitting.set(true);
+                error_msg.set(None);
+                let result = server::api::rule_on_motion(
+                    court,
+                    mid,
+                    disposition,
+                    if text.is_empty() { None } else { Some(text) },
+                    judge_id,
+                    judge_name,
+                )
+                .await;
+                submitting.set(false);
+                match result {
+                    Ok(_) => {
+                        on_ruled.call(());
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to rule on motion: {}", e);
+                        error_msg.set(Some(e.to_string()));
+                    }
+                }
+            });
+        }
+    };
+
     rsx! {
         DataTableRow {
             DataTableCell {
-                Link { to: Route::CaseDetail { id: case_id, tab: None },
+                Link { to: Route::CaseDetail { id: case_id.clone(), tab: None },
                     span { class: "judge-link", "{case_display}" }
                 }
             }
             DataTableCell {
-                Badge { variant: BadgeVariant::Outline, "{motion.motion_type}" }
+                Badge { variant: BadgeVariant::Outline, "{motion_type}" }
             }
             DataTableCell { "{filed_date}" }
-            DataTableCell { "{motion.filed_by}" }
+            DataTableCell { "{motion_filed_by}" }
+            DataTableCell {
+                Button {
+                    variant: if *expanded.read() { ButtonVariant::Secondary } else { ButtonVariant::Primary },
+                    onclick: move |_| expanded.toggle(),
+                    if *expanded.read() { "Cancel" } else { "Rule" }
+                }
+            }
+        }
+        if *expanded.read() {
+            tr {
+                td { colspan: "5",
+                    div { class: "judge-ruling-panel",
+                        p { class: "judge-ruling-description", "{motion_description}" }
+
+                        div { class: "judge-ruling-dispositions",
+                            for disp in shared_types::RULING_DISPOSITIONS.iter().filter(|d| **d != "Moot") {
+                                {
+                                    let d = disp.to_string();
+                                    let is_selected = selected_disposition.read().as_deref() == Some(*disp);
+                                    rsx! {
+                                        Button {
+                                            variant: if is_selected { ButtonVariant::Primary } else { ButtonVariant::Secondary },
+                                            onclick: move |_| {
+                                                selected_disposition.set(Some(d.clone()));
+                                            },
+                                            "{disp}"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if selected_disposition.read().is_some() {
+                            textarea {
+                                class: "input judge-ruling-text",
+                                placeholder: "Ruling text (optional — a default will be generated)",
+                                rows: 4,
+                                value: "{ruling_text}",
+                                oninput: move |evt: Event<FormData>| ruling_text.set(evt.value()),
+                            }
+                            div { class: "judge-ruling-submit",
+                                Button {
+                                    variant: ButtonVariant::Primary,
+                                    onclick: handle_rule,
+                                    disabled: *submitting.read(),
+                                    if *submitting.read() { "Submitting..." } else { "Submit Ruling" }
+                                }
+                            }
+                        }
+
+                        if let Some(err) = error_msg.read().as_ref() {
+                            p { class: "judge-error-text", "{err}" }
+                        }
+                    }
+                }
+            }
         }
     }
 }
