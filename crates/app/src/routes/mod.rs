@@ -21,7 +21,8 @@ pub mod settings;
 pub mod terms;
 pub mod users;
 
-use crate::auth::{use_auth, use_sidebar_visibility};
+use crate::auth::{use_auth, use_sidebar_visibility, use_user_role};
+use shared_types::UserRole;
 use crate::{CourtContext, ProfileState};
 use dioxus::prelude::*;
 use dioxus_free_icons::icons::ld_icons::{
@@ -198,8 +199,12 @@ fn AppLayout() -> Element {
         is_dark: Signal::new(true),
     });
 
+    let role = use_user_role();
     let page_title = match &route {
-        Route::Dashboard {} => "Queue",
+        Route::Dashboard {} => match role {
+            UserRole::Admin | UserRole::Clerk => "Queue",
+            _ => "Dashboard",
+        },
         Route::Users {} => "Users",
         Route::Settings { .. } => "Settings",
         Route::AttorneyList {} | Route::AttorneyCreate {} | Route::AttorneyDetail { .. } => "Attorneys",
@@ -270,7 +275,10 @@ fn AppLayout() -> Element {
                                         Link { to: Route::Dashboard {},
                                             SidebarMenuButton { active: matches!(route, Route::Dashboard {}),
                                                 Icon::<LdLayoutDashboard> { icon: LdLayoutDashboard, width: 18, height: 18 }
-                                                "Queue"
+                                                {match role {
+                                                    UserRole::Admin | UserRole::Clerk => "Queue",
+                                                    _ => "Dashboard",
+                                                }}
                                             }
                                         }
                                     }
