@@ -57,3 +57,6 @@ pub mod typst;
 
 #[cfg(feature = "server")]
 pub mod search;
+
+#[cfg(feature = "server")]
+pub mod compliance;

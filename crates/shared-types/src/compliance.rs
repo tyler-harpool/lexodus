@@ -168,7 +168,7 @@ impl RulePriority {
 /// Per FRCP 6(d): mail/leaving with clerk/other adds 3 days.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum DeadlineServiceMethod {
+pub enum ServiceMethod {
     Electronic,
     PersonalDelivery,
     Mail,
@@ -176,7 +176,7 @@ pub enum DeadlineServiceMethod {
     Other,
 }
 
-impl DeadlineServiceMethod {
+impl ServiceMethod {
     pub fn additional_days(&self) -> i32 {
         match self {
             Self::Electronic | Self::PersonalDelivery => 0,
@@ -185,7 +185,7 @@ impl DeadlineServiceMethod {
     }
 }
 
-impl Default for DeadlineServiceMethod {
+impl Default for ServiceMethod {
     fn default() -> Self {
         Self::Electronic
     }
@@ -203,7 +203,7 @@ pub struct FilingContext {
     pub jurisdiction_id: String,
     pub division: Option<String>,
     pub assigned_judge: Option<String>,
-    pub service_method: Option<DeadlineServiceMethod>,
+    pub service_method: Option<ServiceMethod>,
     /// Extensible metadata (case_id, party_count, sealed, etc.)
     pub metadata: serde_json::Value,
 }
@@ -212,7 +212,7 @@ pub struct FilingContext {
 
 /// Report of compliance check results for a filing/action.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct RuleComplianceReport {
+pub struct ComplianceReport {
     pub results: Vec<RuleResult>,
     pub blocked: bool,
     pub block_reasons: Vec<String>,
@@ -257,7 +257,7 @@ pub struct FeeRequirement {
 pub struct DeadlineComputeRequest {
     pub trigger_date: NaiveDate,
     pub period_days: i32,
-    pub service_method: DeadlineServiceMethod,
+    pub service_method: ServiceMethod,
     pub jurisdiction: String,
     pub description: String,
     pub rule_citation: String,

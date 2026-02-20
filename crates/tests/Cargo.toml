@@ -17,6 +17,7 @@ serde_json = { workspace = true }
 uuid = { workspace = true }
 dotenvy = { workspace = true }
 tower = { version = "0.5", features = ["util"] }
+chrono = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

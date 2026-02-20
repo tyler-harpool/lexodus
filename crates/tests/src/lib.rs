@@ -201,3 +201,6 @@ mod queue_workflow_tests;
 
 #[cfg(test)]
 mod judge_name_tests;
+
+#[cfg(test)]
+mod deadline_engine_tests;
