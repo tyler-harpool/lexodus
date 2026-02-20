@@ -89,6 +89,20 @@
     padding: 0 4px;
 }
 
+/* ---- Scope toggle (My Items / All Court) ---- */
+.scope-toggle {
+    display: flex;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+/* ---- Case type toggle ---- */
+.case-type-toggle {
+    display: flex;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
 /* ---- Mobile responsive ---- */
 @media (max-width: 768px) {
     .navbar-bar {

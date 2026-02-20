@@ -9,6 +9,7 @@ use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
 use super::form_sheet::{DeadlineFormSheet, FormMode};
 use crate::auth::{can, use_user_role, Action};
+use crate::components::scope_toggle::{use_scope_filter, ListScope, ScopeToggle};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -22,11 +23,34 @@ pub fn DeadlineListPage() -> Element {
     let limit: i64 = 20;
     let mut show_sheet = use_signal(|| false);
 
+    // Scope toggle: My Items vs All Court (only rendered for Judge/Attorney)
+    let scope = use_signal(|| ListScope::MyItems);
+
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let st = search_status.read().clone();
         let off = *offset.read();
+        let scope_filter = use_scope_filter(*scope.read());
         async move {
+            // If in "My Items" mode with an attorney_id, use the dedicated endpoint
+            if let Some(attorney_id) = scope_filter.attorney_id {
+                let status_filter = if st.is_empty() { None } else { Some(st) };
+                let deadlines = server::api::list_deadlines_for_attorney(
+                    court,
+                    attorney_id,
+                    status_filter,
+                    None, // date_to
+                )
+                .await
+                .unwrap_or_default();
+
+                return Some(shared_types::DeadlineSearchResponse {
+                    total: deadlines.len() as i64,
+                    deadlines,
+                });
+            }
+
+            // Default: search all court deadlines
             server::api::search_deadlines(
                 court,
                 if st.is_empty() { None } else { Some(st) },
@@ -60,6 +84,9 @@ pub fn DeadlineListPage() -> Element {
                     }
                 }
             }
+
+            // My Items / All Court toggle (only for Judge and Attorney roles)
+            ScopeToggle { scope: scope }
 
             SearchBar {
                 FormSelect {

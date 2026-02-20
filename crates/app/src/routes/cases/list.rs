@@ -9,6 +9,7 @@ use shared_ui::{HoverCard, HoverCardContent, HoverCardTrigger};
 
 use super::form_sheet::{CaseFormSheet, FormMode};
 use crate::auth::{can, use_user_role, Action};
+use crate::components::scope_toggle::{use_scope_filter, ListScope, ScopeToggle};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -24,6 +25,9 @@ pub fn CaseListPage() -> Element {
     let mut search_query = use_signal(String::new);
     let limit: i64 = 20;
 
+    // Scope toggle: My Items vs All Court (only rendered for Judge/Attorney)
+    let scope = use_signal(|| ListScope::MyItems);
+
     // Sheet state for creating cases
     let mut show_sheet = use_signal(|| false);
 
@@ -34,7 +38,26 @@ pub fn CaseListPage() -> Element {
         let crime = filter_crime_type.read().clone();
         let q = search_query.read().clone();
         let off = *offset.read();
+        let scope_filter = use_scope_filter(*scope.read());
         async move {
+            // If in "My Items" mode with an attorney_id, use the dedicated endpoint
+            if let Some(attorney_id) = scope_filter.attorney_id {
+                let cases = server::api::list_cases_for_attorney(
+                    court.clone(),
+                    attorney_id,
+                )
+                .await
+                .unwrap_or_default();
+
+                return Some(CaseSearchResponse {
+                    total: cases.len() as i64,
+                    cases,
+                });
+            }
+
+            // For judge scope, pass assigned_judge_id filter to the search endpoints
+            let judge_filter = scope_filter.judge_id.clone();
+
             if ct == "civil" {
                 let result = server::api::search_civil_cases(
                     court,
@@ -42,7 +65,7 @@ pub fn CaseListPage() -> Element {
                     None, // nature_of_suit
                     if crime.is_empty() { None } else { Some(crime) },
                     None, // class_action
-                    None, // assigned_judge_id
+                    judge_filter, // assigned_judge_id
                     if q.is_empty() { None } else { Some(q) },
                     Some(off),
                     Some(limit),
@@ -136,6 +159,9 @@ pub fn CaseListPage() -> Element {
                     }
                 }
             }
+
+            // My Items / All Court toggle (only for Judge and Attorney roles)
+            ScopeToggle { scope: scope }
 
             // Case type toggle (criminal / civil)
             div { class: "case-type-toggle",

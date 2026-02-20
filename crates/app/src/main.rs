@@ -3,6 +3,7 @@ use shared_types::{FeatureFlags, UserTier};
 
 mod auth;
 pub mod billing_listener;
+pub mod components;
 pub mod format_helpers;
 pub mod notify;
 mod routes;

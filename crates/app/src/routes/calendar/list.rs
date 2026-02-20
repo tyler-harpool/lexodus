@@ -12,6 +12,7 @@ use shared_ui::{
 
 use super::form_sheet::{CalendarFormSheet, FormMode};
 use crate::auth::{can, use_user_role, Action};
+use crate::components::scope_toggle::{use_scope_filter, ListScope, ScopeToggle};
 use crate::routes::Route;
 use crate::CourtContext;
 
@@ -31,15 +32,38 @@ pub fn CalendarListPage() -> Element {
     let mut show_sheet = use_signal(|| false);
     let mut prefill_date = use_signal(|| None::<String>);
 
+    // Scope toggle: My Items vs All Court (only rendered for Judge/Attorney)
+    let scope = use_signal(|| ListScope::MyItems);
+
     let mut data = use_resource(move || {
         let court = ctx.court_id.read().clone();
         let et = search_event_type.read().clone();
         let st = search_status.read().clone();
         let off = *offset.read();
+        let scope_filter = use_scope_filter(*scope.read());
         async move {
+            // If in "My Items" mode with an attorney_id, use the dedicated endpoint
+            if let Some(attorney_id) = scope_filter.attorney_id {
+                let events = server::api::list_calendar_events_for_attorney(
+                    court,
+                    attorney_id,
+                    None, // date_from (show all)
+                )
+                .await
+                .unwrap_or_default();
+
+                return Some(shared_types::CalendarSearchResponse {
+                    total: events.len() as i64,
+                    events,
+                });
+            }
+
+            // For judge scope, pass judge_id to the search endpoint
+            let judge_filter = scope_filter.judge_id;
+
             let result = server::api::search_calendar_events(
                 court,
-                None, // judge_id
+                judge_filter, // judge_id filter
                 None, // courtroom
                 if et.is_empty() { None } else { Some(et) },
                 if st.is_empty() { None } else { Some(st) },
@@ -77,6 +101,9 @@ pub fn CalendarListPage() -> Element {
                     }
                 }
             }
+
+            // My Items / All Court toggle (only for Judge and Attorney roles)
+            ScopeToggle { scope: scope }
 
             div { class: "calendar-layout",
                 div { class: "calendar-widget",
