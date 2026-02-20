@@ -1027,3 +1027,48 @@ pub async fn get_filing_stats(
         by_type,
     }))
 }
+
+/// GET /api/cases/{case_id}/compliance-events — audit trail of compliance events for a case
+pub async fn list_compliance_events(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(case_id): Path<String>,
+) -> Result<Json<Vec<serde_json::Value>>, AppError> {
+    let uuid = Uuid::parse_str(&case_id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    let events = crate::repo::case_event::list_by_case(&pool, &court.0, uuid)
+        .await
+        .map_err(SqlxErrorExt::into_app_error)?;
+
+    Ok(Json(events))
+}
+
+/// GET /api/cases/{case_id}/compliance — latest compliance status summary for a case
+pub async fn get_compliance_status(
+    State(pool): State<Pool<Postgres>>,
+    court: CourtId,
+    Path(case_id): Path<String>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let uuid = Uuid::parse_str(&case_id)
+        .map_err(|_| AppError::bad_request("Invalid UUID format"))?;
+
+    let events = crate::repo::case_event::list_by_case(&pool, &court.0, uuid)
+        .await
+        .map_err(SqlxErrorExt::into_app_error)?;
+
+    // Find the most recent event that contains a compliance_report
+    let latest_report = events.iter().find_map(|e| {
+        e.get("compliance_report")
+            .filter(|r| !r.is_null())
+    });
+
+    let status = serde_json::json!({
+        "case_id": case_id,
+        "total_events": events.len(),
+        "latest_compliance_report": latest_report,
+        "last_event": events.first(),
+    });
+
+    Ok(Json(status))
+}

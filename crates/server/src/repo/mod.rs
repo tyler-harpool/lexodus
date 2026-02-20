@@ -114,3 +114,5 @@ pub mod practice_area;
 pub mod queue;
 #[cfg(feature = "server")]
 pub mod case_event;
+#[cfg(feature = "server")]
+pub mod fee_schedule;

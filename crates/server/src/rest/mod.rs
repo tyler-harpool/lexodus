@@ -39,6 +39,7 @@ pub mod reminder;
 pub mod federal_rule;
 pub mod victim;
 pub mod queue;
+pub mod fee_schedule;
 
 use axum::{routing::{get, post, put, delete, patch}, Router};
 use crate::db::AppState;
@@ -83,6 +84,9 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/cases/{id}/seal", post(case::seal_case))
         .route("/api/cases/{id}/unseal", post(case::unseal_case))
         .route("/api/cases/{case_id}/filing-stats", get(case::get_filing_stats))
+        // Case Compliance Events (audit trail)
+        .route("/api/cases/{case_id}/compliance-events", get(case::list_compliance_events))
+        .route("/api/cases/{case_id}/compliance", get(case::get_compliance_status))
         // Civil Cases
         .route("/api/civil-cases/statistics", get(civil_case::civil_case_statistics))
         .route("/api/civil-cases/by-judge/{judge_id}", get(civil_case::list_civil_cases_by_judge))
@@ -415,6 +419,9 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/queue/{id}/release", post(queue::release_queue_item))
         .route("/api/queue/{id}/advance", post(queue::advance_queue_item))
         .route("/api/queue/{id}/reject", post(queue::reject_queue_item))
+        // Fee Schedule
+        .route("/api/fee-schedule", get(fee_schedule::list_fees).post(fee_schedule::create_fee))
+        .route("/api/fee-schedule/{id}", get(fee_schedule::get_fee).patch(fee_schedule::update_fee).delete(fee_schedule::delete_fee))
         // Template SaaS routes (users, products, auth, billing)
         .merge(template_crud::rest_router())
 }
