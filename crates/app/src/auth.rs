@@ -139,6 +139,7 @@ pub enum Action {
     SignOrder,
     IssueOrder,
     DraftOpinion,
+    RuleMotion,
 
     // Document control
     SealDocument,
@@ -173,7 +174,7 @@ pub fn can(role: &UserRole, action: Action) -> bool {
             matches!(role, UserRole::Attorney | UserRole::Clerk | UserRole::Admin)
         }
         // Judge/Admin
-        Action::SignOrder | Action::DraftOpinion => {
+        Action::SignOrder | Action::DraftOpinion | Action::RuleMotion => {
             matches!(role, UserRole::Judge | UserRole::Admin)
         }
         // Clerk/Admin
