@@ -216,3 +216,6 @@ mod compliance_wiring_tests;
 
 #[cfg(test)]
 mod compliance_integration_tests;
+
+#[cfg(test)]
+mod motion_ruling_tests;
