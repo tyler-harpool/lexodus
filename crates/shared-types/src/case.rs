@@ -691,6 +691,37 @@ pub struct UpdateMotionRequest {
     pub ruling_text: Option<String>,
 }
 
+// ── Ruling disposition constants ────────────────────────────────────
+
+/// Valid ruling dispositions for a motion.
+pub const RULING_DISPOSITIONS: &[&str] = &[
+    "Granted",
+    "Denied",
+    "Granted in Part",
+    "Taken Under Advisement",
+    "Set for Hearing",
+    "Moot",
+];
+
+/// Check whether a ruling disposition string is valid.
+pub fn is_valid_ruling_disposition(s: &str) -> bool {
+    RULING_DISPOSITIONS.contains(&s)
+}
+
+/// Request body for a judge ruling on a motion.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RuleMotionRequest {
+    /// The disposition: "Granted", "Denied", "Granted in Part", "Taken Under Advisement", "Set for Hearing", "Moot"
+    pub disposition: String,
+    /// Free-form ruling text from the judge
+    pub ruling_text: Option<String>,
+    /// The judge's ID (UUID as string)
+    pub judge_id: String,
+    /// The judge's display name (for order generation)
+    pub judge_name: String,
+}
+
 // ── Evidence validation constants ───────────────────────────────────
 
 /// Valid evidence type values matching the DB CHECK constraint.
