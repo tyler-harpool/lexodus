@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::error_convert::SqlxErrorExt;
 
-/// Insert a new judicial order with resolved judge name.
+/// Insert a new judicial order with resolved judge name and case number.
 pub async fn create(
     pool: &Pool<Postgres>,
     court_id: &str,
@@ -28,12 +28,15 @@ pub async fn create(
         )
         SELECT ins.id, ins.court_id, ins.case_id, ins.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                ins.order_type, ins.title, ins.content,
                ins.status, ins.is_sealed, ins.signer_name, ins.signed_at, ins.signature_hash,
                ins.issued_at, ins.effective_date, ins.expiration_date, ins.related_motions,
                ins.created_at, ins.updated_at
         FROM ins
         LEFT JOIN judges j ON ins.judge_id = j.id AND j.court_id = ins.court_id
+        LEFT JOIN criminal_cases cc ON ins.case_id = cc.id
+        LEFT JOIN civil_cases cv ON ins.case_id = cv.id
         "#,
         court_id,
         req.case_id,
@@ -65,12 +68,15 @@ pub async fn find_by_id(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.id = $1 AND o.court_id = $2
         "#,
         id,
@@ -94,12 +100,15 @@ pub async fn list_by_case(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.case_id = $1 AND o.court_id = $2
         ORDER BY o.created_at DESC
         "#,
@@ -124,12 +133,15 @@ pub async fn list_by_judge(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.judge_id = $1 AND o.court_id = $2
         ORDER BY o.created_at DESC
         "#,
@@ -172,12 +184,15 @@ pub async fn list_all(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.court_id = $1
           AND ($2::TEXT IS NULL OR LOWER(o.title) LIKE $2)
         ORDER BY o.created_at DESC
@@ -195,7 +210,7 @@ pub async fn list_all(
     Ok((rows, total))
 }
 
-/// Update a judicial order with only the provided fields and return with judge name.
+/// Update a judicial order with only the provided fields and return with judge name and case number.
 pub async fn update(
     pool: &Pool<Postgres>,
     court_id: &str,
@@ -223,12 +238,15 @@ pub async fn update(
         )
         SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                upd.order_type, upd.title, upd.content,
                upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
                upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
                upd.created_at, upd.updated_at
         FROM upd
         LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
+        LEFT JOIN criminal_cases cc ON upd.case_id = cc.id
+        LEFT JOIN civil_cases cv ON upd.case_id = cv.id
         "#,
         id,
         court_id,

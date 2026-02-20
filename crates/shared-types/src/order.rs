@@ -53,6 +53,8 @@ pub struct JudicialOrder {
     pub judge_id: Uuid,
     /// Resolved judge name from LEFT JOIN judges.
     pub judge_name: Option<String>,
+    /// Resolved case number from LEFT JOIN criminal_cases/civil_cases.
+    pub case_number: Option<String>,
     /// OrderType enum stored as text (e.g. "Scheduling", "Protective", "Warrant").
     pub order_type: String,
     pub title: String,
@@ -83,6 +85,9 @@ pub struct JudicialOrderResponse {
     /// Resolved judge name from the judges table.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub judge_name: Option<String>,
+    /// Resolved case number from criminal_cases or civil_cases.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub case_number: Option<String>,
     pub order_type: String,
     pub title: String,
     pub content: String,
@@ -112,6 +117,7 @@ impl From<JudicialOrder> for JudicialOrderResponse {
             case_id: o.case_id.to_string(),
             judge_id: o.judge_id.to_string(),
             judge_name: o.judge_name,
+            case_number: o.case_number,
             order_type: o.order_type,
             title: o.title,
             content: o.content,

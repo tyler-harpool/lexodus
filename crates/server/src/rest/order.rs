@@ -97,12 +97,15 @@ pub async fn list_orders(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.court_id = $1
           AND ($2::UUID IS NULL OR o.case_id = $2)
           AND ($3::UUID IS NULL OR o.judge_id = $3)
@@ -511,12 +514,15 @@ pub async fn sign_order(
         )
         SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                upd.order_type, upd.title, upd.content,
                upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
                upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
                upd.created_at, upd.updated_at
         FROM upd
         LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
+        LEFT JOIN criminal_cases cc ON upd.case_id = cc.id
+        LEFT JOIN civil_cases cv ON upd.case_id = cv.id
         "#,
         uuid,
         &court.0,
@@ -575,12 +581,15 @@ pub async fn issue_order(
         )
         SELECT upd.id, upd.court_id, upd.case_id, upd.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                upd.order_type, upd.title, upd.content,
                upd.status, upd.is_sealed, upd.signer_name, upd.signed_at, upd.signature_hash,
                upd.issued_at, upd.effective_date, upd.expiration_date, upd.related_motions,
                upd.created_at, upd.updated_at
         FROM upd
         LEFT JOIN judges j ON upd.judge_id = j.id AND j.court_id = upd.court_id
+        LEFT JOIN criminal_cases cc ON upd.case_id = cc.id
+        LEFT JOIN civil_cases cv ON upd.case_id = cv.id
         "#,
         uuid,
         &court.0,
@@ -648,12 +657,15 @@ pub async fn check_expired(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.court_id = $1 AND o.expiration_date < NOW() AND o.status NOT IN ('Vacated', 'Superseded')
         ORDER BY o.expiration_date DESC
         "#,
@@ -688,12 +700,15 @@ pub async fn check_requires_attention(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.court_id = $1 AND o.status IN ('Draft', 'Pending Signature')
         ORDER BY o.created_at ASC
         "#,
@@ -728,12 +743,15 @@ pub async fn list_pending_signatures(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.court_id = $1 AND o.status = 'Pending Signature'
         ORDER BY o.created_at ASC
         "#,
@@ -780,12 +798,15 @@ pub async fn list_expiring(
         r#"
         SELECT o.id, o.court_id, o.case_id, o.judge_id,
                j.name as judge_name,
+               COALESCE(cc.case_number, cv.case_number) as "case_number?",
                o.order_type, o.title, o.content,
                o.status, o.is_sealed, o.signer_name, o.signed_at, o.signature_hash,
                o.issued_at, o.effective_date, o.expiration_date, o.related_motions,
                o.created_at, o.updated_at
         FROM judicial_orders o
         LEFT JOIN judges j ON o.judge_id = j.id AND j.court_id = o.court_id
+        LEFT JOIN criminal_cases cc ON o.case_id = cc.id
+        LEFT JOIN civil_cases cv ON o.case_id = cv.id
         WHERE o.court_id = $1
           AND o.expiration_date IS NOT NULL
           AND o.expiration_date > NOW()
