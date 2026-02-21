@@ -40,6 +40,7 @@ pub mod federal_rule;
 pub mod victim;
 pub mod queue;
 pub mod fee_schedule;
+pub mod unified_search;
 
 use axum::{routing::{get, post, put, delete, patch}, Router};
 use crate::db::AppState;
@@ -58,11 +59,9 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/attorneys/bar-number/{bar_number}", get(attorney::get_attorney_by_bar_number))
         .route("/api/attorneys/{id}", get(attorney::get_attorney))
         .route("/api/attorneys/{id}", put(attorney::update_attorney))
-        .route("/api/attorneys/{id}", delete(attorney::delete_attorney))
         // Calendar
         .route("/api/calendar/events", post(calendar::schedule_event))
         .route("/api/calendar/events/{event_id}/status", patch(calendar::update_event_status))
-        .route("/api/calendar/events/{id}", delete(calendar::delete_event))
         .route("/api/calendar/search", get(calendar::search_calendar))
         .route("/api/cases/{case_id}/calendar", get(calendar::get_case_calendar))
         // Calendar extras (moved under judges/courtrooms per spec)
@@ -76,7 +75,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/cases/by-judge/{judge_id}", get(case::list_by_judge))
         .route("/api/cases/count-by-status/{status}", get(case::count_by_status))
         .route("/api/cases", get(case::search_cases).post(case::create_case))
-        .route("/api/cases/{id}", get(case::get_case).delete(case::delete_case).patch(case::update_case))
+        .route("/api/cases/{id}", get(case::get_case).patch(case::update_case))
         .route("/api/cases/{id}/status", patch(case::update_case_status))
         .route("/api/cases/{id}/plea", post(case::enter_plea))
         .route("/api/cases/{id}/events", post(case::add_case_event))
@@ -91,7 +90,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/civil-cases/statistics", get(civil_case::civil_case_statistics))
         .route("/api/civil-cases/by-judge/{judge_id}", get(civil_case::list_civil_cases_by_judge))
         .route("/api/civil-cases", get(civil_case::search_civil_cases).post(civil_case::create_civil_case))
-        .route("/api/civil-cases/{id}", get(civil_case::get_civil_case).delete(civil_case::delete_civil_case))
+        .route("/api/civil-cases/{id}", get(civil_case::get_civil_case))
         .route("/api/civil-cases/{id}/status", patch(civil_case::update_civil_case_status))
         // Victims
         .route("/api/cases/{id}/victims", get(victim::list_victims).post(victim::add_victim))
@@ -99,40 +98,39 @@ pub fn api_router() -> Router<AppState> {
         // Defendants
         .route("/api/defendants", post(defendant::create_defendant))
         .route("/api/cases/{case_id}/defendants", get(defendant::list_defendants_by_case))
-        .route("/api/defendants/{id}", get(defendant::get_defendant).put(defendant::update_defendant).delete(defendant::delete_defendant))
+        .route("/api/defendants/{id}", get(defendant::get_defendant).put(defendant::update_defendant))
         // Charges
         .route("/api/charges", post(charge::create_charge))
         .route("/api/charges/defendant/{defendant_id}", get(charge::list_charges_by_defendant))
-        .route("/api/charges/{id}", get(charge::get_charge).put(charge::update_charge).delete(charge::delete_charge))
+        .route("/api/charges/{id}", get(charge::get_charge).put(charge::update_charge))
         // Motions
         .route("/api/motions", post(motion::create_motion))
         .route("/api/cases/{case_id}/motions", get(motion::list_motions_by_case))
-        .route("/api/motions/{id}", get(motion::get_motion).put(motion::update_motion).delete(motion::delete_motion))
+        .route("/api/motions/{id}", get(motion::get_motion).put(motion::update_motion))
         .route("/api/motions/{id}/rule", post(motion::rule_motion))
         // Evidence
         .route("/api/evidence", post(evidence::create_evidence))
         .route("/api/cases/{case_id}/evidence", get(evidence::list_evidence_by_case))
-        .route("/api/evidence/{id}", get(evidence::get_evidence).put(evidence::update_evidence).delete(evidence::delete_evidence))
+        .route("/api/evidence/{id}", get(evidence::get_evidence).put(evidence::update_evidence))
         // Custody Transfers
         .route("/api/custody-transfers", post(evidence::create_custody_transfer))
         .route("/api/custody-transfers/evidence/{evidence_id}", get(evidence::list_custody_transfers_by_evidence))
-        .route("/api/custody-transfers/{id}", get(evidence::get_custody_transfer).delete(evidence::delete_custody_transfer))
+        .route("/api/custody-transfers/{id}", get(evidence::get_custody_transfer))
         // Case Notes
         .route("/api/case-notes", post(case_note::create_case_note))
         .route("/api/cases/{case_id}/case-notes", get(case_note::list_case_notes_by_case))
-        .route("/api/case-notes/{id}", get(case_note::get_case_note).put(case_note::update_case_note).delete(case_note::delete_case_note))
+        .route("/api/case-notes/{id}", get(case_note::get_case_note).put(case_note::update_case_note))
         // Speedy Trial
         .route("/api/cases/{id}/speedy-trial/start", post(speedy_trial::start_speedy_trial))
         .route("/api/speedy-trial/deadlines/approaching", get(speedy_trial::list_approaching))
         .route("/api/speedy-trial/violations", get(speedy_trial::list_violations))
-        .route("/api/speedy-trial/delays/{id}", delete(speedy_trial::delete_delay))
         .route("/api/cases/{case_id}/speedy-trial", get(speedy_trial::get_speedy_trial).put(speedy_trial::update_speedy_trial_clock))
         .route("/api/cases/{case_id}/speedy-trial/delays", get(speedy_trial::list_delays))
         .route("/api/cases/{case_id}/speedy-trial/deadline-check", get(speedy_trial::deadline_check))
         .route("/api/cases/{id}/speedy-trial/exclude", post(speedy_trial::create_delay))
         // Docket
         .route("/api/docket/entries", post(docket::create_docket_entry))
-        .route("/api/docket/entries/{id}", get(docket::get_docket_entry).delete(docket::delete_docket_entry))
+        .route("/api/docket/entries/{id}", get(docket::get_docket_entry))
         .route("/api/docket/entries/{entry_id}/link-document", post(docket::link_document))
         .route("/api/docket/search", get(docket::search_docket_entries))
         .route("/api/cases/{case_id}/docket", get(docket::get_case_docket))
@@ -159,7 +157,6 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/deadlines/calculate", post(deadline::calculate_deadline))
         .route("/api/deadlines/{id}", get(deadline::get_deadline))
         .route("/api/deadlines/{id}", put(deadline::update_deadline))
-        .route("/api/deadlines/{id}", delete(deadline::delete_deadline))
         .route("/api/deadlines/{id}/status", patch(deadline::update_deadline_status))
         // Extensions
         .route("/api/deadlines/{deadline_id}/extensions", post(extension::request_extension).get(extension::list_extensions))
@@ -203,7 +200,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/parties/unrepresented", get(party::list_unrepresented))
         .route("/api/parties/case/{case_id}", get(party::list_parties_by_case))
         .route("/api/parties/attorney/{attorney_id}", get(party::list_parties_by_attorney))
-        .route("/api/parties/{id}", get(party::get_party).put(party::update_party).delete(party::delete_party))
+        .route("/api/parties/{id}", get(party::get_party).put(party::update_party))
         .route("/api/parties/{id}/status", patch(party::update_party_status))
         .route("/api/parties/{id}/needs-service", get(party::check_needs_service))
         .route("/api/parties/{id}/lead-counsel", get(party::get_lead_counsel))
@@ -242,17 +239,16 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/judges/conflicts/check/{party_name}", get(judge::check_conflicts_for_party))
         .route("/api/judges/status/{status}", get(judge::list_judges_by_status))
         .route("/api/judges/district/{district}", get(judge::list_by_district))
-        .route("/api/judges/{id}", get(judge::get_judge).put(judge::update_judge).delete(judge::delete_judge))
+        .route("/api/judges/{id}", get(judge::get_judge).put(judge::update_judge))
         .route("/api/judges/{id}/status", patch(judge::update_judge_status))
         .route("/api/judges/{id}/workload", get(judge::get_workload))
         // Judge Conflicts
         .route("/api/judges/{judge_id}/conflicts", post(judge::create_conflict).get(judge::list_conflicts))
-        .route("/api/judges/{judge_id}/conflicts/{conflict_id}", get(judge::get_conflict).delete(judge::delete_conflict))
+        .route("/api/judges/{judge_id}/conflicts/{conflict_id}", get(judge::get_conflict))
         // Case Assignments
         .route("/api/judges/assignments", post(judge::create_assignment))
         .route("/api/cases/{case_id}/assignment", get(judge::list_assignments_by_case))
         .route("/api/cases/{case_id}/assignment-history", get(judge::get_assignment_history))
-        .route("/api/assignments/{id}", delete(judge::delete_assignment))
         // Recusal Motions
         .route("/api/judges/{judge_id}/recusals", post(judge::create_recusal))
         .route("/api/recusals/{recusal_id}/process", post(judge::process_recusal))
@@ -268,7 +264,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/orders/expiring", get(order::list_expiring))
         .route("/api/orders/statistics", get(order::order_statistics))
         .route("/api/orders/from-template", post(order::create_from_template))
-        .route("/api/orders/{order_id}", get(order::get_order).patch(order::update_order).delete(order::delete_order))
+        .route("/api/orders/{order_id}", get(order::get_order).patch(order::update_order))
         .route("/api/orders/{order_id}/sign", post(order::sign_order))
         .route("/api/orders/{order_id}/issue", post(order::issue_order))
         .route("/api/orders/{order_id}/service", post(order::serve_order))
@@ -285,7 +281,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/opinions/statistics", get(opinion::calculate_statistics))
         .route("/api/opinions/precedential", get(opinion::list_precedential))
         .route("/api/opinions/citations/statistics", get(opinion::citation_statistics))
-        .route("/api/opinions/{opinion_id}", get(opinion::get_opinion).patch(opinion::update_opinion).delete(opinion::delete_opinion))
+        .route("/api/opinions/{opinion_id}", get(opinion::get_opinion).patch(opinion::update_opinion))
         .route("/api/opinions/{opinion_id}/file", post(opinion::file_opinion))
         .route("/api/opinions/{opinion_id}/publish", post(opinion::publish_opinion))
         .route("/api/opinions/{opinion_id}/is-majority", get(opinion::check_is_majority))
@@ -318,7 +314,7 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/cases/{case_id}/sentencing", get(sentencing::list_by_case))
         .route("/api/sentencing/defendant/{defendant_id}", get(sentencing::list_by_defendant))
         .route("/api/sentencing/judge/{judge_id}", get(sentencing::list_by_judge))
-        .route("/api/sentencing/{id}", get(sentencing::get_sentencing).put(sentencing::update_sentencing).delete(sentencing::delete_sentencing))
+        .route("/api/sentencing/{id}", get(sentencing::get_sentencing).put(sentencing::update_sentencing))
         .route("/api/sentencing/{id}/departure", post(sentencing::record_departure))
         .route("/api/sentencing/{id}/variance", post(sentencing::record_variance))
         .route("/api/sentencing/{id}/supervised-release", put(sentencing::update_supervised_release))
@@ -423,6 +419,8 @@ pub fn api_router() -> Router<AppState> {
         // Fee Schedule
         .route("/api/fee-schedule", get(fee_schedule::list_fees).post(fee_schedule::create_fee))
         .route("/api/fee-schedule/{id}", get(fee_schedule::get_fee).patch(fee_schedule::update_fee).delete(fee_schedule::delete_fee))
+        // Unified Search
+        .route("/api/search/unified", get(unified_search::unified_search))
         // Template SaaS routes (users, products, auth, billing)
         .merge(template_crud::rest_router())
 }
