@@ -68,6 +68,34 @@
     flex-shrink: 0;
 }
 
+/* All Courts toggle */
+.cmd-palette-all-courts-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    user-select: none;
+    padding: 2px 8px;
+    border-radius: var(--radius);
+    transition: color 0.15s ease;
+}
+
+.cmd-palette-all-courts-toggle:hover {
+    color: var(--color-on-surface);
+}
+
+.cmd-palette-all-courts-toggle input[type="checkbox"] {
+    accent-color: var(--color-primary);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    margin: 0;
+}
+
 /* Scrollable results area */
 .cmd-palette-results {
     flex: 1;

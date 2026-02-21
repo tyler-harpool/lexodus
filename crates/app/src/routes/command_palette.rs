@@ -6,6 +6,18 @@ use shared_types::SearchResult;
 use crate::routes::Route;
 use crate::CourtContext;
 
+/// Converts a `UnifiedSearchResult` into a `SearchResult` for display in the palette.
+/// Prefixes the subtitle with `[court_id]` so the user knows which court the result belongs to.
+fn unified_to_search_result(u: &shared_types::UnifiedSearchResult) -> SearchResult {
+    SearchResult {
+        id: u.id.clone(),
+        entity_type: u.entity_type.clone(),
+        title: u.title.clone(),
+        subtitle: format!("[{}] {}", u.court_id, u.subtitle),
+        parent_id: u.parent_id.clone(),
+    }
+}
+
 /// Maximum number of search results to fetch from the server.
 const SEARCH_RESULT_LIMIT: usize = 10;
 
@@ -97,6 +109,7 @@ pub fn CommandPalette(show: Signal<bool>) -> Element {
     let mut results: Signal<Vec<SearchResult>> = use_signal(Vec::new);
     let mut active_index = use_signal(|| 0usize);
     let mut loading = use_signal(|| false);
+    let mut search_all_courts = use_signal(|| false);
 
     // Close helper: reset state when closing the palette.
     let mut close = move || {
@@ -104,6 +117,7 @@ pub fn CommandPalette(show: Signal<bool>) -> Element {
         query.set(String::new());
         results.set(Vec::new());
         active_index.set(0);
+        search_all_courts.set(false);
     };
 
     // Navigate to the given result and close the palette.
@@ -199,25 +213,112 @@ pub fn CommandPalette(show: Signal<bool>) -> Element {
                         }
 
                         let court_id = ctx.court_id.read().clone();
+                        let all_courts = *search_all_courts.read();
                         loading.set(true);
                         spawn(async move {
-                            match server::api::global_search(
-                                court_id,
-                                value,
-                                Some(SEARCH_RESULT_LIMIT),
-                            )
-                            .await
-                            {
-                                Ok(items) => {
-                                    results.set(items);
+                            if all_courts {
+                                // Cross-court unified search
+                                match server::api::unified_search(
+                                    value,
+                                    Some("all".to_string()),
+                                    None,
+                                    Some(1),
+                                    Some(SEARCH_RESULT_LIMIT as i64),
+                                )
+                                .await
+                                {
+                                    Ok(response) => {
+                                        let items: Vec<SearchResult> = response
+                                            .results
+                                            .iter()
+                                            .map(unified_to_search_result)
+                                            .collect();
+                                        results.set(items);
+                                    }
+                                    Err(_) => {
+                                        results.set(Vec::new());
+                                    }
                                 }
-                                Err(_) => {
-                                    results.set(Vec::new());
+                            } else {
+                                // Single-court search
+                                match server::api::global_search(
+                                    court_id,
+                                    value,
+                                    Some(SEARCH_RESULT_LIMIT),
+                                )
+                                .await
+                                {
+                                    Ok(items) => {
+                                        results.set(items);
+                                    }
+                                    Err(_) => {
+                                        results.set(Vec::new());
+                                    }
                                 }
                             }
                             loading.set(false);
                         });
                     },
+                }
+                label {
+                    class: "cmd-palette-all-courts-toggle",
+                    input {
+                        r#type: "checkbox",
+                        checked: search_all_courts(),
+                        onchange: move |e: FormEvent| {
+                            let checked = e.value() == "true";
+                            search_all_courts.set(checked);
+                            // Re-trigger search with current query when toggled
+                            let current = query.read().clone();
+                            if !current.trim().is_empty() {
+                                let court_id = ctx.court_id.read().clone();
+                                loading.set(true);
+                                active_index.set(0);
+                                spawn(async move {
+                                    if checked {
+                                        match server::api::unified_search(
+                                            current,
+                                            Some("all".to_string()),
+                                            None,
+                                            Some(1),
+                                            Some(SEARCH_RESULT_LIMIT as i64),
+                                        )
+                                        .await
+                                        {
+                                            Ok(response) => {
+                                                let items: Vec<SearchResult> = response
+                                                    .results
+                                                    .iter()
+                                                    .map(unified_to_search_result)
+                                                    .collect();
+                                                results.set(items);
+                                            }
+                                            Err(_) => {
+                                                results.set(Vec::new());
+                                            }
+                                        }
+                                    } else {
+                                        match server::api::global_search(
+                                            court_id,
+                                            current,
+                                            Some(SEARCH_RESULT_LIMIT),
+                                        )
+                                        .await
+                                        {
+                                            Ok(items) => {
+                                                results.set(items);
+                                            }
+                                            Err(_) => {
+                                                results.set(Vec::new());
+                                            }
+                                        }
+                                    }
+                                    loading.set(false);
+                                });
+                            }
+                        },
+                    }
+                    span { "All courts" }
                 }
                 span { class: "cmd-palette-kbd", "ESC" }
             }

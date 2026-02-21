@@ -219,3 +219,9 @@ mod compliance_integration_tests;
 
 #[cfg(test)]
 mod motion_ruling_tests;
+
+#[cfg(test)]
+mod unified_search_tests;
+
+#[cfg(test)]
+mod billing_tests;
