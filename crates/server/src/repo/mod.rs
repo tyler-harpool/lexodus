@@ -116,3 +116,5 @@ pub mod queue;
 pub mod case_event;
 #[cfg(feature = "server")]
 pub mod fee_schedule;
+#[cfg(feature = "server")]
+pub mod billing;
