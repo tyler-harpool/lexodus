@@ -1,4 +1,5 @@
-use shared_types::SearchResult;
+use shared_types::{SearchResult, UnifiedSearchResult, SearchFacets, UnifiedSearchResponse};
+use std::collections::HashMap;
 use sqlx::{Pool, Postgres};
 use std::sync::OnceLock;
 use tantivy::collector::TopDocs;
@@ -32,10 +33,10 @@ impl SearchIndex {
     pub fn new() -> Self {
         let mut schema_builder = Schema::builder();
         let id = schema_builder.add_text_field("id", STORED);
-        let entity_type = schema_builder.add_text_field("entity_type", STORED);
+        let entity_type = schema_builder.add_text_field("entity_type", TEXT | STORED);
         let title = schema_builder.add_text_field("title", TEXT | STORED);
         let subtitle = schema_builder.add_text_field("subtitle", TEXT | STORED);
-        let court_id = schema_builder.add_text_field("court_id", STORED);
+        let court_id = schema_builder.add_text_field("court_id", TEXT | STORED);
         let parent_id = schema_builder.add_text_field("parent_id", STORED);
         let schema = schema_builder.build();
 
@@ -133,6 +134,153 @@ impl SearchIndex {
         }
 
         results
+    }
+
+    /// Cross-court search. If `court_ids` is empty, searches all courts.
+    /// If `entity_types` is non-empty, filters to those entity types.
+    /// Returns results with scores and faceted counts.
+    pub fn unified_search(
+        &self,
+        query_str: &str,
+        court_ids: &[String],
+        entity_types: &[String],
+        page: i64,
+        per_page: i64,
+    ) -> UnifiedSearchResponse {
+        let searcher = self.reader.searcher();
+        let query_parser = QueryParser::for_index(
+            &self.index,
+            vec![self.fields.title, self.fields.subtitle],
+        );
+
+        let query = match query_parser.parse_query(query_str) {
+            Ok(q) => q,
+            Err(_) => {
+                return UnifiedSearchResponse {
+                    results: vec![],
+                    total: 0,
+                    page,
+                    per_page,
+                    facets: SearchFacets {
+                        by_court: vec![],
+                        by_entity_type: vec![],
+                    },
+                };
+            }
+        };
+
+        // Fetch more than needed so we can filter and paginate
+        let fetch_limit = ((page + 1) * per_page) as usize + 200;
+        let top_docs = match searcher.search(&query, &TopDocs::with_limit(fetch_limit)) {
+            Ok(docs) => docs,
+            Err(_) => {
+                return UnifiedSearchResponse {
+                    results: vec![],
+                    total: 0,
+                    page,
+                    per_page,
+                    facets: SearchFacets {
+                        by_court: vec![],
+                        by_entity_type: vec![],
+                    },
+                };
+            }
+        };
+
+        // Collect all matching results, applying court and entity type filters
+        let mut all_results: Vec<UnifiedSearchResult> = Vec::new();
+        let mut court_counts: HashMap<String, i64> = HashMap::new();
+        let mut type_counts: HashMap<String, i64> = HashMap::new();
+
+        for (score, doc_address) in top_docs {
+            let doc: tantivy::TantivyDocument = match searcher.doc(doc_address) {
+                Ok(d) => d,
+                Err(_) => continue,
+            };
+
+            let stored_court = doc
+                .get_first(self.fields.court_id)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            let stored_type = doc
+                .get_first(self.fields.entity_type)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            // Filter by court if specified
+            if !court_ids.is_empty() && !court_ids.iter().any(|c| c == &stored_court) {
+                continue;
+            }
+
+            // Count facets before entity type filter (so facets reflect the full result set)
+            *court_counts.entry(stored_court.clone()).or_insert(0) += 1;
+            *type_counts.entry(stored_type.clone()).or_insert(0) += 1;
+
+            // Filter by entity type if specified
+            if !entity_types.is_empty() && !entity_types.iter().any(|t| t == &stored_type) {
+                continue;
+            }
+
+            let id = doc
+                .get_first(self.fields.id)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let title = doc
+                .get_first(self.fields.title)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let subtitle = doc
+                .get_first(self.fields.subtitle)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let parent_id = doc
+                .get_first(self.fields.parent_id)
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string());
+
+            all_results.push(UnifiedSearchResult {
+                id,
+                entity_type: stored_type,
+                court_id: stored_court,
+                title,
+                subtitle,
+                snippet: None,
+                score,
+                parent_id,
+            });
+        }
+
+        let total = all_results.len() as i64;
+        let skip = (page.max(1) - 1) * per_page;
+        let results: Vec<UnifiedSearchResult> = all_results
+            .into_iter()
+            .skip(skip as usize)
+            .take(per_page as usize)
+            .collect();
+
+        let mut by_court: Vec<(String, i64)> = court_counts.into_iter().collect();
+        by_court.sort_by(|a, b| b.1.cmp(&a.1));
+
+        let mut by_entity_type: Vec<(String, i64)> = type_counts.into_iter().collect();
+        by_entity_type.sort_by(|a, b| b.1.cmp(&a.1));
+
+        UnifiedSearchResponse {
+            results,
+            total,
+            page,
+            per_page,
+            facets: SearchFacets {
+                by_court,
+                by_entity_type,
+            },
+        }
     }
 
     /// Acquire an IndexWriter for bulk indexing. Caller must commit.
