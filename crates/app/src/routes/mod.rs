@@ -17,6 +17,7 @@ pub mod privacy;
 pub mod register;
 pub mod reset_password;
 pub mod rules;
+pub mod search;
 pub mod settings;
 pub mod terms;
 pub mod users;
@@ -117,6 +118,9 @@ pub enum Route {
     RuleList {},
     #[route("/rules/:id")]
     RuleDetail { id: String },
+    // ── Search ──
+    #[route("/search")]
+    AdvancedSearch {},
     #[end_layout]
     #[end_layout]
     #[route("/:..route")]
@@ -207,6 +211,7 @@ fn AppLayout() -> Element {
         Route::JudgeList {} | Route::JudgeDetail { .. } => "Judges",
         Route::ComplianceDashboard {} => "Compliance",
         Route::RuleList {} | Route::RuleDetail { .. } => "Rules",
+        Route::AdvancedSearch {} => "Search",
         Route::Login { .. }
         | Route::Register {}
         | Route::ForgotPassword {}
@@ -561,6 +566,11 @@ fn RuleList() -> Element {
 #[component]
 fn RuleDetail(id: String) -> Element {
     rsx! { rules::detail::RuleDetailPage { id: id } }
+}
+
+#[component]
+fn AdvancedSearch() -> Element {
+    search::advanced::AdvancedSearchPage()
 }
 
 /// Displays the selected court's tier as a badge in the sidebar footer.

@@ -1,0 +1,189 @@
+/* ── Advanced Search Page ──────────────────────────────────────────── */
+
+.adv-search-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.adv-search-input-row {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: stretch;
+}
+
+.adv-search-input {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-on-surface);
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.adv-search-input:focus {
+    border-color: var(--color-primary);
+}
+
+.adv-search-input::placeholder {
+    color: var(--color-on-surface-muted);
+}
+
+.adv-search-filters {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.adv-search-filters > * {
+    min-width: 180px;
+}
+
+/* ── Facets ───────────────────────────────────────────────────────── */
+
+.adv-search-facets {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md) 0;
+}
+
+.adv-search-facet-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.adv-search-facet-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-on-surface-muted);
+    margin-right: var(--space-xs);
+}
+
+/* ── Results ──────────────────────────────────────────────────────── */
+
+.adv-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: var(--space-md);
+}
+
+.adv-search-result-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.adv-search-result {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    transition: background 0.12s ease, border-color 0.12s ease;
+    cursor: pointer;
+}
+
+.adv-search-result:hover {
+    background: var(--color-surface-raised, rgba(255, 255, 255, 0.04));
+    border-color: var(--color-primary);
+}
+
+.adv-search-result-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+    min-width: 100px;
+}
+
+.adv-search-result-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.adv-search-result-title {
+    font-weight: 500;
+    font-size: var(--font-size-base);
+    color: var(--color-on-surface);
+    line-height: 1.4;
+}
+
+.adv-search-result-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+    line-height: 1.4;
+}
+
+/* ── Loading ──────────────────────────────────────────────────────── */
+
+.adv-search-loading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
+
+/* ── Empty state ──────────────────────────────────────────────────── */
+
+.adv-search-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-xl) var(--space-md);
+    color: var(--color-on-surface-muted);
+    text-align: center;
+    min-height: 200px;
+    font-size: var(--font-size-base);
+}
+
+/* ── Pagination ───────────────────────────────────────────────────── */
+
+.adv-search-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-lg) 0;
+}
+
+.adv-search-pagination-info {
+    font-size: var(--font-size-sm);
+    color: var(--color-on-surface-muted);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+    .adv-search-input-row {
+        flex-direction: column;
+    }
+
+    .adv-search-filters {
+        flex-direction: column;
+    }
+
+    .adv-search-filters > * {
+        min-width: unset;
+    }
+
+    .adv-search-result {
+        flex-direction: column;
+    }
+
+    .adv-search-result-badges {
+        flex-direction: row;
+        min-width: unset;
+    }
+}
