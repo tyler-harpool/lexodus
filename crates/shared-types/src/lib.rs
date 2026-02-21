@@ -7,6 +7,7 @@ pub mod requests;
 
 // Lexodus domain modules (canonical locations for all court domain types)
 pub mod attorney;
+pub mod billing;
 pub mod calendar;
 pub mod case;
 pub mod civil_case;
@@ -36,6 +37,7 @@ pub use requests::*;
 
 // Re-export all domain types
 pub use attorney::*;
+pub use billing::*;
 pub use calendar::*;
 pub use case::*;
 pub use civil_case::*;
