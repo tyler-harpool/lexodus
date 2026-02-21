@@ -225,3 +225,6 @@ mod unified_search_tests;
 
 #[cfg(test)]
 mod billing_tests;
+
+#[cfg(test)]
+mod cross_court_demo_tests;
