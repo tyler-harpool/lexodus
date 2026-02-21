@@ -41,6 +41,7 @@ pub mod victim;
 pub mod queue;
 pub mod fee_schedule;
 pub mod unified_search;
+pub mod billing;
 
 use axum::{routing::{get, post, put, delete, patch}, Router};
 use crate::db::AppState;
@@ -421,6 +422,13 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/fee-schedule/{id}", get(fee_schedule::get_fee).patch(fee_schedule::update_fee).delete(fee_schedule::delete_fee))
         // Unified Search
         .route("/api/search/unified", get(unified_search::unified_search))
+        .route("/api/search/export", get(unified_search::export_search))
+        // Billing
+        .route("/api/billing/account", get(billing::get_billing_account))
+        .route("/api/billing/transactions", get(billing::list_billing_transactions))
+        .route("/api/billing/topup", post(billing::create_topup))
+        .route("/api/admin/billing/summary", get(billing::admin_billing_summary))
+        .route("/api/admin/billing/fee-schedule", get(billing::list_fee_schedule))
         // Template SaaS routes (users, products, auth, billing)
         .merge(template_crud::rest_router())
 }
